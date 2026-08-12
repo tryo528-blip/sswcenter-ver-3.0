@@ -1,6 +1,6 @@
 # AI 래퍼 사용 안내
 
-`안녕테스트해줘` 호출은 [HELLO-TEST.md](./HELLO-TEST.md)의 네 공급자 실제 호출 테스트를 뜻한다.
+`안녕테스트해줘` 호출은 [HELLO-TEST.md](./HELLO-TEST.md)의 네 공급자 실제 연결 진단을 뜻합니다. 프로젝트 작업이 아니며, Codex 단계는 Claude→Codex wrapper 진입점만 확인합니다.
 
 이 패키지의 목적은 경로·설정·인증 같은 단순한 문제로 유료 작업을 다시 호출하는 일을 줄이고, 선택한 모델에 완성된 작업을 한 번 맡긴 뒤 구조화된 최종 보고를 받는 것입니다.
 
@@ -22,31 +22,19 @@
 | Claude Code 오퍼레이터의 등급별 테스트 | `invoke-codex.ps1 -TestGrade 1..5` | 등급표에 따라 Spark/Luna/Sol 고정 | 1~2 읽기 전용, 3~5 격리 테스트 실행 |
 | Claude Code 오퍼레이터의 등급별 검수 | `invoke-codex.ps1 -ReviewGrade 1..5` | 등급표에 따라 Luna/Sol 고정 | `read-only` sandbox |
 
+**Codex 오퍼레이터의 본진과 독립 task/thread에서는 `invoke-codex.ps1`를 호출하지 않습니다. 이미 배정된 Codex가 자기 worktree에서 테스트·검수를 직접 수행합니다.**
+
 Codex의 구현 모드와 `-Implement`는 제거됐습니다. 전달하면 PowerShell 인자 처리 단계에서 거부되어 인증·작업 프로세스가 시작되지 않습니다. DeepSeek 러너와 당일 Writer 선택은 이 패키지 범위 밖입니다.
 
 Grok은 `--no-subagents`, Opus는 `Agent` 도구 차단, Codex는 `features.multi_agent=false`로 실행됩니다. Grok은 셸·웹·외부 MCP를 사용할 수 없습니다. Opus와 검수용 Codex는 읽기 전용이며, 테스트 3~5등급 Codex도 저장소/Git 변경은 금지되고 사후 감시에서 한 건이라도 발견되면 실패합니다.
 
-### Codex 테스트 등급
+### 등급과 모델 배정
 
-| 등급 | 대표 범위 | 모델 | effort | fast | sandbox/network |
-|---:|---|---|---|---|---|
-| 1 | 정적·문법·import·compile·단일 smoke | `gpt-5.3-codex-spark` | `xhigh` | off | `read-only`, network off |
-| 2 | bounded unit·component·contract | `gpt-5.3-codex-spark` | `xhigh` | off | `read-only`, network off |
-| 3 | 격리 PostgreSQL·DB integration | `gpt-5.6-luna` | `max` | on | `workspace-write`, network on |
-| 4 | API·frontend·service·E2E | `gpt-5.6-luna` | `max` | on | `workspace-write`, network on |
-| 5 | 운영·복구·migration lifecycle·security·최종 acceptance | `gpt-5.6-sol` | `max` | off | `workspace-write`, network on |
+- 등급의 의미는 [`docs/운영_오퍼레이터_등급_정의_v1.0.md`](../docs/운영_오퍼레이터_등급_정의_v1.0.md)가 소유합니다.
+- 모델·effort·fast 배정과 호출 권한은 [`00-오케스트레이션-작업지침.md`](../00-오케스트레이션-작업지침.md)가 소유합니다.
+- 이 README와 스킬은 표를 복사하지 않습니다. 래퍼 소스와 오프라인 테스트는 정본의 배정을 구현하고 검증합니다.
 
-3~5등급의 network 허용은 명시적으로 요청한 로컬 테스트 서비스와 격리 테스트 DB를 위한 것입니다. public internet, 패키지 다운로드, 설치, production/shared/식별 불가 DB는 프롬프트에서 금지합니다. sandbox가 쓰기를 허용하더라도 저장소와 Git은 불변이어야 하며 watcher/fingerprint 검증을 통과해야 합니다.
-
-### Codex 검수 등급
-
-| 등급 | 대표 범위 | 모델 | effort | fast |
-|---:|---|---|---|---|
-| 1 | 빠른 집중 검수 | `gpt-5.6-luna` | `max` | on |
-| 2 | 일반 정확성·회귀·테스트 적정성 검수 | `gpt-5.6-luna` | `max` | on |
-| 3 | cross-layer·data flow·integration·edge 검수 | `gpt-5.6-sol` | `xhigh` | off |
-| 4 | architecture·security·concurrency·recovery·운영 검수 | `gpt-5.6-sol` | `xhigh` | off |
-| 5 | 최종 adversarial acceptance 검수 | `gpt-5.6-sol` | `ultra` | off |
+테스트 3~5등급의 network 허용은 명시적으로 요청한 로컬 테스트 서비스와 격리 테스트 DB만을 위한 것입니다. public internet, 패키지 다운로드, 설치, production/shared/식별 불가 DB는 금지합니다. sandbox가 쓰기를 허용하더라도 저장소와 Git은 불변이어야 합니다.
 
 Codex 래퍼는 세션 시작에 설정을 묻지 않습니다. 호출할 때 `-TestGrade` 또는 `-ReviewGrade` 중 정확히 하나를 반드시 전달합니다. 누락하거나 둘 다 전달하면 native 인증·작업 호출 없이 종료 코드 64입니다. `-SimpleTest`는 호환용 테스트 1등급 별칭이며 다른 등급 인자와 함께 쓸 수 없습니다.
 
@@ -105,7 +93,7 @@ pwsh -NoProfile -File .\invoke-grok.ps1 `
   -WriteAllowPath 'backend\app' `
   -Prompt '요청한 기능을 구현해'
 
-# GitHub에서 받은 로컬 clone을 Codex Sol 3등급으로 검수
+# Claude Code 오퍼레이터가 GitHub 로컬 clone을 Codex 3등급으로 검수
 pwsh -NoProfile -File .\invoke-codex.ps1 `
   -RepositoryRoot 'C:\Users\USER\GitHub\sswcenter' `
   -ReviewGrade 3 `
@@ -146,13 +134,13 @@ pwsh -NoProfile -File .\invoke-opus.ps1 -Prompt '현재 변경분을 최종 독�
 # Claude Code 오퍼레이터가 사용하는 Codex Sol 3등급 검수
 pwsh -NoProfile -File .\invoke-codex.ps1 -ReviewGrade 3 -Prompt '현재 변경분을 검수해'
 
-# Codex Spark 2등급 unit/contract 테스트
+# Claude Code 오퍼레이터가 Codex 2등급 unit/contract 테스트를 위임
 pwsh -NoProfile -File .\invoke-codex.ps1 -TestGrade 2 -Prompt '지정한 unit/contract 테스트를 실행하고 결과를 보고해'
 
-# Codex Luna 3등급 격리 DB 테스트
+# Claude Code 오퍼레이터가 Codex 3등급 격리 DB 테스트를 위임
 pwsh -NoProfile -File .\invoke-codex.ps1 -TestGrade 3 -Prompt '지정한 격리 PostgreSQL 테스트를 실행하고 결과를 보고해'
 
-# 호환용 Spark 1등급 별칭
+# Claude Code 오퍼레이터용 호환 1등급 별칭
 pwsh -NoProfile -File .\invoke-codex.ps1 -SimpleTest -Prompt '지정한 작은 테스트만 실행하고 결과를 보고해'
 ```
 
@@ -175,7 +163,7 @@ Grok Writer는 작업 중간 진행을 허용하기 위해 `--json-schema`를 �
 
 Opus도 `--output-format json`만 사용합니다. Claude의 `--json-schema`는 보고 형식 불일치 때 같은 CLI 안에서 형식 교정 재시도를 수행할 수 있어, 모델에 한 번 맡기고 형식 오류는 그대로 종료한다는 이 래퍼의 목적과 맞지 않으므로 사용하지 않습니다. 래퍼는 `type=result`, `subtype=success`, `is_error=false`인 성공 envelope의 `result` 문자열만 받아 최종 JSON을 직접 엄격 검증합니다. 오류 envelope, 미완료 terminal reason, 주변 설명문, 누락·추가 필드와 잘못된 타입은 모두 종료 코드 20입니다.
 
-Codex는 공식 `--output-schema`와 새 임시 `--output-last-message` 파일을 사용한 뒤 같은 스키마를 래퍼가 다시 엄격 검증합니다. 한 명령이 정책에 막혀도 같은 범위의 다른 허용된 방법으로 확인할 수 있으면 동일 호출 안에서 계속합니다. 모델·effort·fast·sandbox/network 조합은 위 등급표에서만 결정되고 사용자가 임의 조합을 전달하는 표면은 없습니다.
+Codex는 공식 `--output-schema`와 새 임시 `--output-last-message` 파일을 사용한 뒤 같은 스키마를 래퍼가 다시 엄격 검증합니다. 한 명령이 정책에 막혀도 같은 범위의 다른 허용된 방법으로 확인할 수 있으면 동일 호출 안에서 계속합니다. 모델·effort·fast·sandbox/network 조합은 오케스트레이션 정본에 따라 래퍼 내부 등급 분기에서 결정되며 사용자가 임의 조합을 전달하는 표면은 없습니다.
 
 Codex CLI는 비대화형 실행에 맞게 `approval_policy="never"`를 유지합니다. Windows에서는 `windows.sandbox="elevated"`를 명시하고, login-shell 요청 자체를 0ms에 거부하던 `allow_login_shell=false` 강제값은 사용하지 않습니다. AI 자식 환경에는 `GIT_OPTIONAL_LOCKS=0`, `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`를 넣어 읽기 명령의 선택적 `.git/index.lock`과 인증 프롬프트를 예방합니다.
 
