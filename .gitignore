@@ -8,6 +8,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+api-keys.local.env
+**/api-keys.local.env
 *.log
 .pytest_cache/
 .mypy_cache/

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 3,
+  "repositoryRoot": "C:\\sswcenter\\3.0",
+  "activeMachineProfile": "office",
+  "machineProfiles": {
+    "home": {
+      "grokExecutable": "%USERPROFILE%\\.grok\\bin\\grok.exe",
+      "opusExecutable": "%APPDATA%\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe",
+      "codexExecutable": "%LOCALAPPDATA%\\OpenAI\\Codex\\bin\\0000000000000000\\codex.exe"
+    },
+    "office": {
+      "grokExecutable": "%USERPROFILE%\\.grok\\bin\\grok.exe",
+      "opusExecutable": "%APPDATA%\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe",
+      "codexExecutable": "%LOCALAPPDATA%\\OpenAI\\Codex\\bin\\0000000000000000\\codex.exe"
+    }
+  },
+  "preflightTimeoutSeconds": 30,
+  "grokTimeoutSeconds": 3600,
+  "opusTimeoutSeconds": 2700,
+  "codexTimeoutSeconds": 5400,
+  "maxOutputBytes": 4194304
+}

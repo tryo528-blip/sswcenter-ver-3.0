@@ -120,28 +120,16 @@
 
 ### 5.1 테스트
 
-| 등급 | 대표 범위 | 모델 | effort | fast | sandbox/network |
-|---:|---|---|---|---|---|
-| 1 | 정적·문법·import·compile·단일 smoke | Spark | `xhigh` | off | `read-only`, network off |
-| 2 | bounded unit·component·contract | Spark | `xhigh` | off | `read-only`, network off |
-| 3 | 격리 PostgreSQL·DB integration | Luna | `max` | on | `workspace-write`, network on |
-| 4 | API·frontend·service·E2E | Luna | `max` | on | `workspace-write`, network on |
-| 5 | 운영·복구·migration lifecycle·security·최종 acceptance | Sol | `max` | on | `workspace-write`, network on |
+등급의 작업 범위와 의미는 [오퍼레이터 테스트·검수 등급 정의](../../docs/운영_오퍼레이터_등급_정의_v1.0.md)를 읽는다. 이 handoff에는 의미표를 복사하지 않는다.
 
-- 정확한 모델 ID는 Spark `gpt-5.3-codex-spark`, Luna `gpt-5.6-luna`, Sol `gpt-5.6-sol`.
+- 모델 ID와 effort/fast 조합은 장소별 래퍼와 라우팅 스킬의 현재 설정을 따른다.
 - 테스트 3~5등급의 쓰기/network 허용은 격리 임시 디렉터리, disposable test DB, 명시한 로컬 테스트 서비스를 위한 것.
 - public internet, package download/install, production/shared/식별 불가 DB는 금지.
 - sandbox가 workspace write를 허용해도 제품 저장소와 Git state는 불변이어야 하며 wrapper watcher/fingerprint에서 변화가 한 건이라도 발견되면 실패.
 
 ### 5.2 검수
 
-| 등급 | 대표 범위 | 모델 | effort | fast | sandbox |
-|---:|---|---|---|---|---|
-| 1 | 빠른 집중 검수 | Luna | `max` | on | `read-only` |
-| 2 | 일반 정확성·회귀·테스트 적정성 검수 | Luna | `max` | on | `read-only` |
-| 3 | cross-layer·data flow·integration·edge 검수 | Sol | `xhigh` | on | `read-only` |
-| 4 | architecture·security·concurrency·recovery·운영 검수 | Sol | `xhigh` | on | `read-only` |
-| 5 | 최종 adversarial acceptance 검수 | Sol | `ultra` | off | `read-only` |
+검수 등급의 작업 범위와 의미도 같은 [오퍼레이터 테스트·검수 등급 정의](../../docs/운영_오퍼레이터_등급_정의_v1.0.md)가 소유한다. 모델과 실행 조합은 이 handoff에서 재정의하지 않는다.
 
 ### 5.3 호출 계약
 

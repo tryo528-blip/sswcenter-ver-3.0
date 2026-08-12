@@ -106,9 +106,9 @@
 |---|---:|---|---|---|---|---|
 | Test | 1~2 | Spark | xhigh | off | read-only + elevated | 유지 |
 | Test | 3~4 | Luna | max | on | workspace-write + elevated | **unelevated로 변경 필요** |
-| Test | 5 | Sol | max | on | workspace-write + elevated | **unelevated로 변경 필요** |
+| Test | 5 | Sol | max | off | workspace-write + elevated | **unelevated로 변경 필요** |
 | Review | 1~2 | Luna | max | on | read-only + elevated | 유지 |
-| Review | 3~4 | Sol | xhigh | on | read-only + elevated | 유지 |
+| Review | 3~4 | Sol | xhigh | off | read-only + elevated | 유지 |
 | Review | 5 | Sol | ultra | off | read-only + elevated | 유지 |
 
 - 등급은 세션 시작 때 미리 고르지 않고 wrapper 호출 시 Test/Review 등급을 지정한다.
