@@ -1,0 +1,69 @@
+"""Stable W1D error codes and messages."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from app.domains.recipient.errors import RecipientDomainError
+
+STABLE_CODES: frozenset[str] = frozenset(
+    {
+        "CONTRACT_SERVICE_PERIOD_CONFLICT",
+        "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT",
+        "CONTRACT_REACTIVATION_FORBIDDEN",
+        "CERTIFICATION_TRANSITION_STALE",
+        "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED",
+        "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH",
+        "CERTIFICATION_TRANSITION_TOKEN_INVALID",
+        "CERTIFICATION_TRANSITION_PREVIEW_REQUIRED",
+    }
+)
+ERROR_CODES = STABLE_CODES
+
+APPLY_VALIDATION_PRECEDENCE = (
+    "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED",
+    "CERTIFICATION_TRANSITION_PREVIEW_REQUIRED",
+    "CERTIFICATION_TRANSITION_TOKEN_INVALID",
+    "CERTIFICATION_TRANSITION_STALE",
+    "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH",
+)
+
+MESSAGES: dict[str, str] = {
+    "RECIPIENT_NOT_FOUND": "수급자를 찾을 수 없습니다.",
+    "CERTIFICATION_IDENTITY_NOT_FOUND": "인정 본번호가 등록되지 않았습니다.",
+    "CONTRACT_NOT_FOUND": "계약을 찾을 수 없습니다.",
+    "CONTRACT_SERVICE_PERIOD_CONFLICT": "동일 서비스의 계약 기간이 겹칩니다.",
+    "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT": ("다른 서비스 그룹의 계약 기간이 겹칩니다."),
+    "CONTRACT_REACTIVATION_FORBIDDEN": "종료된 계약은 재활성화할 수 없습니다.",
+    "CERTIFICATION_TRANSITION_STALE": ("미리보기 이후 상태가 변경되었습니다. 다시 미리보세요."),
+    "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED": "전환 적용을 확인해야 합니다.",
+    "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH": (
+        "대체계약 입력이 미리보기와 일치하지 않습니다."
+    ),
+    "CERTIFICATION_TRANSITION_TOKEN_INVALID": ("전환 미리보기 토큰이 유효하지 않습니다."),
+    "CERTIFICATION_TRANSITION_PREVIEW_REQUIRED": "전환 미리보기가 필요합니다.",
+    "SERVICE_TYPE_NOT_FOUND": "서비스 유형을 찾을 수 없습니다.",
+    "ROW_VERSION_CONFLICT": ("다른 사용자가 먼저 변경했습니다. 최신 정보를 다시 불러오세요."),
+    "VALIDATION_ERROR": "입력값을 확인하세요.",
+    "UNEXPECTED_SERVER_ERROR": "요청을 처리하지 못했습니다.",
+}
+
+
+def domain_error(
+    code: str,
+    status_code: int,
+    *,
+    field: str | None = None,
+    details: dict[str, Any] | None = None,
+) -> RecipientDomainError:
+    message = MESSAGES.get(code, MESSAGES["UNEXPECTED_SERVER_ERROR"])
+    field_errors = []
+    if field is not None:
+        field_errors.append({"field": field, "message": message})
+    return RecipientDomainError(
+        code=code,
+        status_code=status_code,
+        message=message,
+        field_errors=field_errors,
+        details=details or {},
+    )

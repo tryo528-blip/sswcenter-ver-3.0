@@ -1,0 +1,80 @@
+/* Design Tokens for SSWCenter 2.0 Wave 0 Foundation */
+
+:root {
+  /* Font Family Contract */
+  --font-family-base: 'Pretendard', 'Noto Serif KR', 'NotoSerifKR', 'MaruBuri', serif;
+  --font-family-mono: var(--font-family-base);
+
+  /* Layout Constants (Desktop Only) */
+  --sidebar-width: 226px;
+  --header-height: 74px;
+  --min-desktop-width: 1366px;
+  --target-desktop-width: 1440px;
+
+  /* Monthly Primary Color Palette Tokens (1월 ~ 12월) */
+  --color-primary-01: #2563eb; /* 1월: Royal Blue */
+  --color-primary-02: #7c3aed; /* 2월: Violet */
+  --color-primary-03: #059669; /* 3월: Spring Emerald */
+  --color-primary-04: #db2777; /* 4월: Cherry Pink */
+  --color-primary-05: #0d9488; /* 5월: Fresh Teal */
+  --color-primary-06: #0284c7; /* 6월: Sky Blue */
+  --color-primary-07: #0f766e; /* 7월: Deep Ocean */
+  --color-primary-08: #1e40af; /* 8월: Midnight Navy */
+  --color-primary-09: #d97706; /* 9월: Autumn Amber */
+  --color-primary-10: #ea580c; /* 10월: Pumpkin Orange */
+  --color-primary-11: #78350f; /* 11월: Warm Chestnut */
+  --color-primary-12: #15803d; /* 12월: Christmas Holly */
+
+  /* Default Active Primary (Dynamic, defaults to 7월 for current month July) */
+  --color-primary: var(--color-primary-07);
+  --color-primary-hover: color-mix(in srgb, var(--color-primary) 82%, #17211d);
+  --color-primary-strong: color-mix(in srgb, var(--color-primary) 88%, #101713);
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 7%, #ffffff);
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 11%, #ffffff);
+  --color-primary-border: color-mix(in srgb, var(--color-primary) 28%, #ffffff);
+  --color-seasonal-accent: var(--color-primary);
+  --color-seasonal-accent-soft: color-mix(in srgb, var(--color-seasonal-accent) 11%, #ffffff);
+
+  /* Semantic Status Tokens */
+  --color-success: #10b981;
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a7f3d0;
+
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-danger: #ef4444;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  --color-info: #3b82f6;
+  --color-info-bg: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  /* Neutral Surface & Card Tokens (Thin borders, low shadows, white cards) */
+  --bg-app: #f6f9f7;
+  --bg-sidebar: #ffffff;
+  --bg-header: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f9fbfa;
+  --bg-table-header: #f6f9f7;
+  --bg-table-row-hover: var(--color-primary-light);
+
+  --text-main: #18231e;
+  --text-muted: #68736e;
+  --text-light: #98a19d;
+  --text-inverse: #ffffff;
+  --text-sidebar: #53605a;
+  --text-sidebar-active: var(--color-primary-strong);
+
+  --border-color-thin: #dce3df;
+  --border-color-muted: #cbd4cf;
+  --border-radius-sm: 5px;
+  --border-radius-md: 7px;
+  --border-radius-lg: 9px;
+
+  --shadow-subtle: 0 1px 2px rgb(24 35 30 / 4%);
+  --shadow-card: 0 1px 2px rgb(24 35 30 / 8%), 0 4px 12px rgb(24 35 30 / 3%);
+  --shadow-popover: 0 18px 48px rgb(24 35 30 / 16%);
+}

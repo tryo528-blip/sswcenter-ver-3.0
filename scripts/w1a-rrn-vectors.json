@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "rrnCases": [
+    { "id": "raw-code-0", "kind": "rrn", "birthDate": "000101", "genderCode": "0", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-1", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-2", "kind": "rrn", "birthDate": "000101", "genderCode": "2", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-3", "kind": "rrn", "birthDate": "000101", "genderCode": "3", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-4", "kind": "rrn", "birthDate": "000101", "genderCode": "4", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-5", "kind": "rrn", "birthDate": "000101", "genderCode": "5", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-6", "kind": "rrn", "birthDate": "000101", "genderCode": "6", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-7", "kind": "rrn", "birthDate": "000101", "genderCode": "7", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-8", "kind": "rrn", "birthDate": "000101", "genderCode": "8", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "raw-code-9", "kind": "rrn", "birthDate": "000101", "genderCode": "9", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-0", "kind": "rrn", "birthDate": "000101", "genderCode": "0", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-1", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-2", "kind": "rrn", "birthDate": "000101", "genderCode": "2", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-3", "kind": "rrn", "birthDate": "000101", "genderCode": "3", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-4", "kind": "rrn", "birthDate": "000101", "genderCode": "4", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-5", "kind": "rrn", "birthDate": "000101", "genderCode": "5", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-6", "kind": "rrn", "birthDate": "000101", "genderCode": "6", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-7", "kind": "rrn", "birthDate": "000101", "genderCode": "7", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-8", "kind": "rrn", "birthDate": "000101", "genderCode": "8", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphenated-code-9", "kind": "rrn", "birthDate": "000101", "genderCode": "9", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true }
+  ],
+  "boundaryCases": [
+    { "id": "hyphen-immediately-before", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "", "prefix": "resident_number=-", "suffix": "", "expectedSensitive": true },
+    { "id": "hyphen-immediately-after", "kind": "rrn", "birthDate": "000101", "genderCode": "2", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "-next", "expectedSensitive": true },
+    { "id": "underscore-boundary", "kind": "rrn", "birthDate": "000101", "genderCode": "3", "serial": "123456", "separator": "", "prefix": "resident_number=_", "suffix": "_next", "expectedSensitive": true },
+    { "id": "general-delimiter-boundary", "kind": "rrn", "birthDate": "000101", "genderCode": "4", "serial": "123456", "separator": "", "prefix": "resident_number=:", "suffix": ",next", "expectedSensitive": true },
+    { "id": "slash-boundary", "kind": "rrn", "birthDate": "000101", "genderCode": "5", "serial": "123456", "separator": "", "prefix": "resident_number=/", "suffix": "/next", "expectedSensitive": true }
+  ],
+  "delimiterCases": [
+    { "id": "dot-internal", "kind": "rrn", "birthDate": "000101", "genderCode": "0", "serial": "000000", "separator": ".", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "tab-internal", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "000000", "separator": "\t", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "underscore-internal", "kind": "rrn", "birthDate": "000101", "genderCode": "6", "serial": "123456", "separator": "_", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "slash-internal", "kind": "rrn", "birthDate": "000101", "genderCode": "7", "serial": "123456", "separator": "/", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "colon-internal", "kind": "rrn", "birthDate": "000101", "genderCode": "8", "serial": "123456", "separator": ":", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true },
+    { "id": "space-internal", "kind": "rrn", "birthDate": "000101", "genderCode": "9", "serial": "123456", "separator": " ", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true }
+  ],
+  "negativeCases": [
+    { "id": "invalid-calendar-date", "kind": "rrn", "birthDate": "000231", "genderCode": "1", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": false },
+    { "id": "long-number-prefix", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "", "prefix": "resident_number=9", "suffix": "", "expectedSensitive": false },
+    { "id": "long-number-suffix", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "", "prefix": "resident_number=", "suffix": "9", "expectedSensitive": false },
+    { "id": "long-hyphenated-prefix", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "-", "prefix": "resident_number=9", "suffix": "", "expectedSensitive": false },
+    { "id": "long-hyphenated-suffix", "kind": "rrn", "birthDate": "000101", "genderCode": "1", "serial": "123456", "separator": "-", "prefix": "resident_number=", "suffix": "9", "expectedSensitive": false }
+  ],
+  "epochCases": [
+    { "id": "epoch-created-at-1", "kind": "epoch-ms", "iso": "2024-01-01T00:00:00Z", "birthDate": "", "genderCode": "", "serial": "", "separator": "", "prefix": "created_at=", "suffix": "", "expectedSensitive": false },
+    { "id": "epoch-timestamp-2", "kind": "epoch-ms", "iso": "2024-01-02T00:00:00Z", "birthDate": "", "genderCode": "", "serial": "", "separator": "", "prefix": "timestamp=", "suffix": "", "expectedSensitive": false },
+    { "id": "epoch-millis-3", "kind": "epoch-ms", "iso": "2024-01-03T00:00:00Z", "birthDate": "", "genderCode": "", "serial": "", "separator": "", "prefix": "epoch_ms=", "suffix": "", "expectedSensitive": false },
+    { "id": "epoch-sensitive-context", "kind": "epoch-ms", "iso": "2024-01-01T00:00:00Z", "birthDate": "", "genderCode": "", "serial": "", "separator": "", "prefix": "resident_number=", "suffix": "", "expectedSensitive": true }
+  ],
+  "selfTestSurfaces": [
+    "tracked",
+    "staged",
+    "unstaged",
+    "untracked",
+    "text",
+    "gzip"
+  ]
+}

@@ -1,0 +1,22 @@
+\set ON_ERROR_STOP on
+
+GRANT USAGE ON SCHEMA erp TO erp_app, erp_backup;
+
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA erp TO erp_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA erp TO erp_app;
+
+REVOKE UPDATE, DELETE ON TABLE
+    erp.audit_event,
+    erp.access_event,
+    erp.auth_event,
+    erp.system_run_event
+FROM erp_app;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA erp TO erp_backup;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE erp_owner IN SCHEMA erp
+    GRANT SELECT, INSERT, UPDATE ON TABLES TO erp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE erp_owner IN SCHEMA erp
+    GRANT USAGE, SELECT ON SEQUENCES TO erp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE erp_owner IN SCHEMA erp
+    GRANT SELECT ON TABLES TO erp_backup;

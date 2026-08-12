@@ -1,0 +1,125 @@
+.schedule-popup-page {
+  min-height: 100vh;
+  padding: 28px 32px 36px;
+  color: var(--text-main);
+  background: var(--bg-page);
+}
+
+.schedule-popup-header,
+.schedule-popup-toolbar,
+.schedule-weekdays {
+  display: flex;
+  align-items: center;
+}
+
+.schedule-popup-header {
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1180px;
+  margin: 0 auto 20px;
+}
+
+.schedule-popup-header span {
+  color: var(--color-primary);
+  font-size: 11px;
+}
+
+.schedule-popup-header h1 {
+  margin: 3px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.schedule-popup-page button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color-thin);
+  border-radius: var(--border-radius-md);
+  background: #fff;
+  color: var(--text-main);
+  font: inherit;
+  cursor: pointer;
+}
+
+.schedule-popup-page button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.schedule-popup-toolbar {
+  justify-content: center;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto 12px;
+}
+
+.schedule-popup-toolbar strong {
+  min-width: 124px;
+  text-align: center;
+}
+
+.schedule-calendar {
+  max-width: 1180px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-top: 2px solid var(--color-primary);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.schedule-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border-color-thin);
+  background: var(--bg-subtle);
+}
+
+.schedule-weekdays span {
+  padding: 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.schedule-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.schedule-calendar-grid > div {
+  min-height: 112px;
+  padding: 10px;
+  border-right: 1px solid var(--border-color-thin);
+  border-bottom: 1px solid var(--border-color-thin);
+}
+
+.schedule-calendar-grid > div:nth-child(7n) {
+  border-right: 0;
+}
+
+.schedule-calendar-grid > div.is-empty {
+  background: var(--bg-subtle);
+}
+
+.schedule-calendar-grid span {
+  font-size: 11px;
+}
+
+.schedule-popup-empty {
+  max-width: 1180px;
+  margin: 14px auto 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .schedule-popup-page {
+    padding: 20px 14px;
+  }
+
+  .schedule-calendar-grid > div {
+    min-height: 72px;
+  }
+}
