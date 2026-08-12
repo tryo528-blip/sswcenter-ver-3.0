@@ -18,7 +18,8 @@
 - 현재 장소를 `HOME` 또는 `OFFICE`로 확정한다.
 - Git 최상위가 정확히 `C:\sswcenter\3.0`인지 확인한다.
 - 위 작업환경 안내와 오케스트레이션 지침을 처음부터 끝까지 읽는다.
-- Codex에서는 `.agents\skills\location-operator-writer-routing` 스킬을 실행 어댑터로 사용한다.
+- Codex에서는 `$location-operator-writer <장소>-<오퍼레이터>-<라이터>` 형식의 스킬 호출을 실행 어댑터로 사용한다. 예: `$location-operator-writer 사무실-코덱스-그록`.
+- 호출명의 세 토큰이 장소·오퍼레이터·라이터를 확정하며, 누락·모호한 호출은 추론하지 않고 중단한다.
 - `C:\sswcenter\3.0\warpper\wrapper-config.json`의 `repositoryRoot`가 `C:\sswcenter\3.0`인지 확인한다.
 - 래퍼 호출에는 `C:\sswcenter\3.0` 또는 선택한 room worktree의 정확한 Git 최상위를 명시한다.
 - DeepSeek는 `C:\sswcenter\3.0\deepseek_runner\invoke-deepseek-writer.ps1`만 사용한다.

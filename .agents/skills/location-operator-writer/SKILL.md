@@ -1,9 +1,39 @@
 ---
-name: location-operator-writer-routing
-description: SSWCenter 3.0의 장소·오퍼레이터(Codex·Claude Code)·라이터(Grok·DeepSeek) 경로를 고정하고, 등급별 테스트·검수·7개 독립 작업방·Opus 최종검수를 적용한다. 3.0 작업, DeepSeek Writer 러너, 고정 인증 경로, Git 수동 승인 흐름, 장소-오퍼레이터-라이터 라우팅 요청에 사용한다.
+name: location-operator-writer
+description: 호출명에서 장소·오퍼레이터·라이터를 확정하는 SSWCenter 3.0 라우팅 스킬이다. `사무실-코덱스-그록` 또는 `집-코덱스-딥시크`처럼 지정된 조합의 경로·등급·독립 작업방·수동 Git 흐름을 적용한다.
 ---
 
 # 장소·오퍼레이터·라이터 선정
+
+## 호출 규격: 라우팅을 호출명에서 확정한다
+
+이 스킬은 다음 형식으로 호출한다.
+
+```text
+$location-operator-writer <장소>-<오퍼레이터>-<라이터>
+```
+
+예시:
+
+```text
+$location-operator-writer 사무실-코덱스-그록
+$location-operator-writer 집-코덱스-딥시크
+$location-operator-writer 사무실-클로드-그록
+```
+
+호출명의 세 토큰은 실행 전에 확정한다.
+
+| 호출 토큰 | 정규 값 | 허용 별칭 |
+|---|---|---|
+| 장소 | `OFFICE` / `HOME` | `사무실` / `집` |
+| 오퍼레이터 | `CODEX` / `CLAUDE_CODE` | `코덱스` / `클로드` / `클로드코드` |
+| 라이터 | `GROK` / `DEEPSEEK` | `그록` / `딥시크` |
+
+- 세 토큰이 모두 있고 허용 조합으로 해석될 때만 실행한다.
+- 호출명에 지정된 조합이 `PLACE`, `OPERATOR`, `WRITER`의 기준값이며, 실행 전 선택 보고에 그대로 표시한다.
+- 호출명에 라우팅이 없거나 토큰이 모호하면 장소·오퍼레이터·라이터를 추론하지 않는다. `ROUTE_REQUIRED` 또는 `ROUTE_INVALID`로 중단하고 올바른 호출 형식을 요청한다.
+- 현재 PC, 이전 작업, 기본 제안(`사무실 + Codex + DeepSeek`)으로 호출명의 누락값을 채우지 않는다.
+- 라우팅이 확정된 뒤에만 경로·인증·래퍼 검사를 수행하고 모델을 호출한다.
 
 ## 핵심 원칙
 
@@ -24,13 +54,13 @@ description: SSWCenter 3.0의 장소·오퍼레이터(Codex·Claude Code)·라�
 - 저장소: `C:\sswcenter\3.0`
 - 집·사무실 공통 wrapper 패키지: `C:\sswcenter\3.0\warpper`
 - DeepSeek Writer: `C:\sswcenter\3.0\deepseek_runner\invoke-deepseek-writer.ps1`
-- 프로젝트 스킬: `C:\sswcenter\3.0\.agents\skills\location-operator-writer-routing`
+- 프로젝트 스킬: `C:\sswcenter\3.0\.agents\skills\location-operator-writer`
 - DeepSeek 인증: `C:\sswcenter\api-keys.local.env`
 - 인증 파일은 위 절대 경로만 사용한다. 다른 위치를 검색하거나 `DEEPSEEK_API_KEY` 프로세스 환경변수로 대체하지 않는다. 파일이 없거나 형식이 잘못되면 호출하지 않고 `BLOCKED`로 보고한다.
 
 ## 1. 장소와 경로를 결정한다
 
-1. 사용자가 `집` 또는 `사무실`을 명시하면 그 장소를 우선한다. “오늘처럼”, “현재 환경”처럼 말하면 현재 wrapper 설정의 `activeMachineProfile`과 실행파일 존재를 확인해 추론하고, 선택 결과를 먼저 보고한다.
+1. 호출명에서 확정한 `HOME` 또는 `OFFICE`만 장소로 사용한다. “오늘처럼”, “현재 환경” 또는 현재 wrapper 설정으로 호출명의 장소를 추론하지 않는다.
 2. 저장소 내부 `C:\sswcenter\3.0\warpper\wrapper-config.json`만 읽는다. 저장소 밖 wrapper 복사본을 실행하지 않는다.
 3. 선택한 프로필의 Grok·Opus·Codex 경로 템플릿이 현재 PC에서 실제 파일로 해석되는지 확인한다. 허용 토큰은 `%USERPROFILE%`, `%APPDATA%`, `%LOCALAPPDATA%`뿐이며 `home`과 `office`는 같은 설치 규격을 사용한다.
 4. PowerShell 7은 장소에서 실제로 해석되는 `pwsh` 경로를 확인한다. `C:\tools\PowerShell7\pwsh.exe`는 현재 사무실에서 확인된 예시일 뿐, 집에 그대로 적용하지 않는다.
@@ -58,7 +88,7 @@ POWERSHELL=<실제 pwsh.exe 절대 경로>
 ### 라이터
 
 - 사용자가 `Grok` 또는 `DeepSeek`를 지정하면 그대로 사용한다.
-- 라이터가 불명확하면 선택한 장소의 인증과 실행파일을 점검한다. 현재 3.0 사무실 조합은 `Codex 오퍼레이터 + DeepSeek 라이터`로 제안한다. 형님이 Grok을 지정하면 Grok으로 전환한다.
+- 라이터는 호출명에서 확정한 값만 사용한다. 라이터가 호출명에 없거나 자연어와 충돌하면 인증·실행파일을 점검하지 말고 `ROUTE_REQUIRED` 또는 `ROUTE_INVALID`로 중단한다.
 - Grok은 `invoke-grok.ps1`와 `-WriteAllowPath`를 사용한다. DeepSeek는 `C:\sswcenter\3.0\deepseek_runner\invoke-deepseek-writer.ps1`만 사용하며 `-RepoRoot`, `-TaskPacketPath`, `-WriteAllowList`, `-ReadAllowList`, `-EnvFile C:\sswcenter\api-keys.local.env`를 명시한다.
 - DeepSeek 러너의 `-EnvFile`은 고정 인증 경로와 일치해야 하며, `-ApiKey`를 prompt·로그·보고서에 직접 넣지 않는다.
 - 라이터에게 저장소 전체 쓰기 권한을 주지 않는다. 슬라이스의 허용 경로를 먼저 정하고 그 경로만 전달한다.
@@ -191,6 +221,7 @@ Opus가 사용 한도에 걸리면 Opus를 반복 호출하지 않는다.
 실행 전에 다음처럼 짧게 확정한다.
 
 ```text
+ROUTE=사무실-코덱스-그록
 PLACE=OFFICE
 OPERATOR=CODEX
 WRITER=DEEPSEEK
