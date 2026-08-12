@@ -1,4 +1,4 @@
 interface:
   display_name: "장소·오퍼레이터·라이터 선정"
   short_description: "3.0 경로·라이터·등급별 실행과 수동 Git 흐름을 적용"
-  default_prompt: "Use $location-operator-writer <장소>-<오퍼레이터>-<라이터> for C:\\sswcenter\\3.0, for example $location-operator-writer 사무실-코덱스-그록. Treat the three tokens as fixed before verifying paths or invoking a model."
+  default_prompt: "Treat any of the 8 valid <장소>-<오퍼레이터>-<라이터>! combinations, such as 사무실-코덱스-그록! or 집-클로드-딥시크!, as invoking $location-operator-writer for C:\\sswcenter\\3.0. No $ prefix is required; fix the three tokens before verifying paths or invoking a model."
