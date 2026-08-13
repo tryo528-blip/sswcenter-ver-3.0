@@ -493,6 +493,18 @@ describe('W1A-VS3 staff training implementation behavior', () => {
     expect(within(courseList).queryByText('신규직원교육')).not.toBeInTheDocument();
   });
 
+  test('accepts the exact eight-course catalog including continuing education', async () => {
+    catalogCourses = [...COURSES, CONTINUING_EDUCATION_COURSE];
+    renderStaffPage();
+    await openEducation();
+
+    const rows = await screen.findAllByTestId('training-course-row');
+    expect(rows).toHaveLength(8);
+    expect(
+      rows.some((row) => row.getAttribute('data-course-code') === 'CONTINUING_EDUCATION'),
+    ).toBe(true);
+  });
+
   test('shows biennial continuing education only for a current care worker', async () => {
     const targetYear = new Date().getFullYear();
     catalogCourses = [...COURSES, CONTINUING_EDUCATION_COURSE];

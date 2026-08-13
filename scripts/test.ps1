@@ -1,16 +1,21 @@
 param(
     [switch]$RequirePostgres,
     [switch]$IncludeHistoricalContracts,
-    [string]$PythonExecutable = ""
+    [string]$PythonExecutable = "",
+    [string]$NpmExecutable = ""
 )
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $WorkspaceRoot = Split-Path -Parent $PSScriptRoot
-$PythonExe = Join-Path $WorkspaceRoot "backend\.venv\Scripts\python.exe"
-$NpmExe = "C:\Program Files\nodejs\npm.cmd"
-$env:Path = "$(Split-Path -Parent $NpmExe);$env:Path"
+$IsWindowsHost = [System.IO.Path]::DirectorySeparatorChar -eq '\'
+$PythonExe = if ($IsWindowsHost) {
+    Join-Path $WorkspaceRoot "backend\.venv\Scripts\python.exe"
+} else {
+    Join-Path $WorkspaceRoot "backend/.venv/bin/python"
+}
+$NpmExe = if ($IsWindowsHost) { "C:\Program Files\nodejs\npm.cmd" } else { "/usr/bin/npm" }
 
 if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
     if (-not [System.IO.Path]::IsPathRooted($PythonExecutable)) {
@@ -18,6 +23,20 @@ if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
     }
     $PythonExe = [System.IO.Path]::GetFullPath($PythonExecutable)
 }
+
+if (-not [string]::IsNullOrWhiteSpace($NpmExecutable)) {
+    if (-not [System.IO.Path]::IsPathRooted($NpmExecutable)) {
+        throw "NpmExecutable must be an absolute path"
+    }
+    $NpmExe = [System.IO.Path]::GetFullPath($NpmExecutable)
+}
+
+foreach ($tool in @($PythonExe, $NpmExe)) {
+    if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) {
+        throw "Required executable missing: $tool"
+    }
+}
+$env:Path = "$(Split-Path -Parent $NpmExe)$([System.IO.Path]::PathSeparator)$env:Path"
 
 Push-Location (Join-Path $WorkspaceRoot "backend")
 try {

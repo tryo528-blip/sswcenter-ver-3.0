@@ -1,26 +1,20 @@
-"""Pure contract tests for recipient deadline rules (no live database)."""
+"""Pure contract tests for the current recipient deadline read API."""
 
-from datetime import date
+import inspect
 
 from app.domains.recipient.schemas import RecipientDeadlineKind
-from app.domains.recipient.service import _plan_renewal_due_date
+from app.domains.recipient.service import RecipientService
 from app.main import app
 
 
-def test_plan_renewal_due_date_2026_03_02() -> None:
-    assert _plan_renewal_due_date(date(2026, 3, 2)) == date(2026, 9, 30)
-
-
-def test_plan_renewal_due_date_2026_08_31() -> None:
-    assert _plan_renewal_due_date(date(2026, 8, 31)) == date(2027, 2, 28)
-
-
-def test_plan_renewal_due_date_leap_year_target_month() -> None:
-    assert _plan_renewal_due_date(date(2023, 8, 31)) == date(2024, 2, 29)
-
-
-def test_plan_renewal_due_date_from_leap_day() -> None:
-    assert _plan_renewal_due_date(date(2024, 2, 29)) == date(2024, 8, 31)
+def test_plan_deadline_uses_current_w2_notice_and_parent_caps() -> None:
+    source = inspect.getsource(RecipientService.list_recipient_deadlines)
+    assert "W2ServicePlanNotice" in source
+    assert "deadline_date" in source
+    assert "contract_end_date" in source
+    assert "certification.end_date" in source
+    assert "RecipientPlanNotification" not in source
+    assert "_plan_renewal_due_date" not in source
 
 
 def test_recipient_deadline_kind_enum_values() -> None:

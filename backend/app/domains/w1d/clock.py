@@ -1,4 +1,4 @@
-"""Injectable UTC clock for W1D transition token expiry (RED seam)."""
+"""Injectable UTC clock for deterministic W1D contract timestamps."""
 
 from __future__ import annotations
 
@@ -22,11 +22,7 @@ def set_clock(fn: _ClockFn | None) -> None:
 
 
 def set_now_utc(value: datetime | None) -> None:
-    """Approved pg_07 seam: pin now_utc() to an aware datetime, or None to restore.
-
-    A concrete aware datetime must make now_utc() return that same value.
-    None restores the real UTC clock.
-    """
+    """Pin ``now_utc`` to an aware datetime, or restore the real clock with None."""
     global _override
     if value is None:
         _override = None

@@ -294,9 +294,7 @@
 .dashboard-summary-heading,
 .dashboard-summary-title,
 .dashboard-task-row,
-.dashboard-deadline-row,
-.dashboard-todo-form,
-.dashboard-todo-item {
+.dashboard-deadline-row {
   display: flex;
   align-items: center;
 }
@@ -487,10 +485,6 @@ button.dashboard-task-row-button:focus-visible {
   margin-top: 0;
 }
 
-.dashboard-todo-card {
-  margin-top: 0;
-}
-
 .dashboard-deadline-card {
   margin-top: 0;
 }
@@ -501,189 +495,6 @@ button.dashboard-task-row-button:focus-visible {
   grid-template-columns: repeat(auto-fill, 196px);
   justify-content: start;
   gap: 12px;
-}
-
-.dashboard-work-card {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 266px;
-  padding: 14px 12px 18px 38px;
-  background-color: color-mix(in srgb, #fff4cf 40%, #ffffff);
-  border: 1px solid var(--border-color-thin);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-subtle);
-  transition: border-color 140ms ease, box-shadow 140ms ease;
-}
-
-.dashboard-work-card-oxford {
-  background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent 24px,
-      rgb(171 68 58 / 10%) 24px,
-      rgb(171 68 58 / 10%) 25px,
-      transparent 25px,
-      transparent 28px,
-      rgb(171 68 58 / 10%) 28px,
-      rgb(171 68 58 / 10%) 29px,
-      transparent 29px,
-      transparent 42px,
-      transparent 42px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 24px,
-      rgb(154 129 83 / 8%) 24px,
-      rgb(154 129 83 / 8%) 25px
-    ),
-    repeating-linear-gradient(
-      112deg,
-      rgb(117 88 44 / 1.5%) 0,
-      rgb(117 88 44 / 1.5%) 1px,
-      transparent 1px,
-      transparent 7px
-    );
-  background-position: 0 0, 0 9px, 0 0;
-}
-
-.dashboard-work-card:hover {
-  border-color: var(--color-primary-border);
-  box-shadow: var(--shadow-card);
-}
-
-.dashboard-card-drag-handle {
-  position: absolute;
-  top: 10px;
-  right: 8px;
-  left: auto;
-  z-index: 2;
-  width: 24px;
-  height: 28px;
-  padding: 0;
-  color: var(--text-light);
-  font: inherit;
-  font-size: 15px;
-  cursor: grab;
-  touch-action: none;
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
-}
-
-.dashboard-card-drag-handle:hover,
-.dashboard-card-drag-handle:focus-visible {
-  color: var(--color-primary);
-  outline: 1px solid var(--color-primary-border);
-  outline-offset: 2px;
-}
-
-.dashboard-card-drag-handle:active {
-  cursor: grabbing;
-}
-
-.dashboard-work-card h3 {
-  margin: 0 0 0 -30px;
-  padding-right: 48px;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.015em;
-}
-
-.dashboard-work-card > p {
-  margin: 6px 0 10px -17px;
-  color: var(--text-main);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.dashboard-work-subtask-list {
-  margin-left: 16px;
-}
-
-.dashboard-dday {
-  flex: 0 0 auto;
-  padding: 1px 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.dashboard-work-subtask-list {
-  display: grid;
-  gap: 5px;
-  padding: 0;
-  margin: 0 0 0 -7px;
-  list-style: none;
-}
-
-.dashboard-work-subtask {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--text-main);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.dashboard-work-subtask::before {
-  width: 4.8px;
-  height: 4.8px;
-  content: '';
-  border-radius: 50%;
-  background: transparent;
-  border: 1px solid var(--color-primary);
-}
-
-.dashboard-work-subtask-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.dashboard-work-subtask-toggle {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-  padding: 0;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.dashboard-work-subtask-completed {
-  opacity: 0.3;
-}
-
-.dashboard-work-subtask-completed .dashboard-work-subtask-label {
-  text-decoration: line-through;
-}
-
-.dashboard-work-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 10px;
-  font-size: 12px;
-}
-
-.dashboard-work-card-due {
-  color: var(--text-light);
-  font-variant-numeric: tabular-nums;
 }
 
 .dashboard-rail-card {
@@ -708,56 +519,6 @@ button.dashboard-task-row-button:focus-visible {
   font-weight: 700;
 }
 
-.dashboard-todo-form {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.dashboard-todo-input {
-  min-width: 0;
-  flex: 1;
-  height: 32px;
-  padding: 7px;
-  color: var(--text-main);
-  font-size: 13px;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--border-color-thin);
-  border-radius: 0;
-}
-
-.dashboard-todo-item.is-complete {
-  opacity: 0.3;
-}
-
-.dashboard-todo-toggle {
-  display: flex;
-  align-items: center;
-  padding: 0;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.dashboard-todo-trash {
-  padding: 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  opacity: 0;
-  transition: opacity 140ms ease;
-}
-
-.dashboard-todo-item:hover .dashboard-todo-trash,
-.dashboard-todo-item:focus-within .dashboard-todo-trash {
-  opacity: 1;
-}
-
 /* Dashboard narrow-screen shell override */
 .app-shell-dashboard {
   width: 100%;
@@ -770,66 +531,6 @@ button.dashboard-task-row-button:focus-visible {
 
 .app-shell-dashboard .app-sidebar {
   height: 100%;
-}
-
-.dashboard-todo-trash:hover {
-  color: var(--color-primary);
-}
-
-.dashboard-todo-form button {
-  padding: 0;
-  color: var(--color-primary);
-  font-size: 13px;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.dashboard-todo-list {
-  min-height: 0;
-  overflow: hidden;
-  flex: 1;
-  display: grid;
-  gap: 10px;
-  padding: 11px 0 0;
-  margin: 0;
-  list-style: none;
-}
-
-.dashboard-todo-item {
-  align-items: flex-start;
-  gap: 7px;
-  font-size: 13px;
-}
-
-.dashboard-todo-dot {
-  flex: 0 0 7px;
-  width: 7px;
-  height: 7px;
-  margin-top: 4px;
-  border: 1px solid var(--color-primary);
-  border-radius: 50%;
-  opacity: 0.7;
-}
-
-.dashboard-todo-copy {
-  display: grid;
-  min-width: 0;
-  flex: 1;
-  gap: 1px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.dashboard-todo-copy > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.dashboard-todo-copy small {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
 }
 
 .dashboard-deadline-list {

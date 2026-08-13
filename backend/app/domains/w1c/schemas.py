@@ -58,6 +58,7 @@ class CertificationIdentityResponse(StrictModel):
 
 
 class CertificationPeriodCreateRequest(StrictModel):
+    grade_code: GradeCode
     start_date: date
     end_date: date
 
@@ -69,6 +70,7 @@ class CertificationPeriodReplacementRequest(CertificationPeriodCreateRequest):
 class CertificationPeriodResponse(StrictModel):
     id: int
     recipient_id: int
+    grade_code: GradeCode
     start_date: date
     end_date: date
     invalidated_at_utc: datetime | None
@@ -85,42 +87,10 @@ class CertificationPeriodReplacementResponse(StrictModel):
     replacement: CertificationPeriodResponse
 
 
-class GradePeriodCreateRequest(StrictModel):
-    certification_period_id: int = Field(gt=0)
-    grade_code: GradeCode
-    start_date: date
-    end_date: date
-
-
-class GradePeriodReplacementRequest(GradePeriodCreateRequest):
-    expected_row_version: PositiveVersion
-
-
-class GradePeriodResponse(StrictModel):
-    id: int
-    recipient_id: int
-    certification_period_id: int
-    grade_code: GradeCode
-    start_date: date
-    end_date: date
-    invalidated_at_utc: datetime | None
-    replacement_grade_period_id: int | None
-    row_version: int
-
-
-class GradePeriodListResponse(StrictModel):
-    items: list[GradePeriodResponse]
-
-
-class GradePeriodReplacementResponse(StrictModel):
-    original: GradePeriodResponse
-    replacement: GradePeriodResponse
-
-
 class BenefitPeriodCreateRequest(StrictModel):
     benefit_code: BenefitCode
-    start_date: date
-    end_date: date | None = None
+    # Opaque display-only text.  It must never be parsed or compared as a date.
+    start_text: str = ""
 
 
 class BenefitPeriodReplacementRequest(BenefitPeriodCreateRequest):
@@ -131,8 +101,7 @@ class BenefitPeriodResponse(StrictModel):
     id: int
     recipient_id: int
     benefit_code: BenefitCode
-    start_date: date
-    end_date: date | None
+    start_text: str
     invalidated_at_utc: datetime | None
     replacement_benefit_period_id: int | None
     row_version: int
@@ -140,11 +109,6 @@ class BenefitPeriodResponse(StrictModel):
 
 class BenefitPeriodListResponse(StrictModel):
     items: list[BenefitPeriodResponse]
-
-
-class EffectiveBenefitResponse(StrictModel):
-    on_date: date
-    item: BenefitPeriodResponse | None
 
 
 class BenefitPeriodReplacementResponse(StrictModel):

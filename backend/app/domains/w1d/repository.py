@@ -1,4 +1,4 @@
-"""W1D persistence helpers."""
+"""W1D recipient-contract persistence helpers."""
 
 from __future__ import annotations
 
@@ -12,10 +12,7 @@ from app.db.models import (
     AuditEvent,
     BusinessNumberCounter,
     Recipient,
-    RecipientCertificationIdentity,
-    RecipientCertificationPeriod,
     RecipientContract,
-    RecipientGradePeriod,
     ServiceType,
 )
 
@@ -32,60 +29,6 @@ class W1DRepository:
     def get_recipient(self, recipient_id: int) -> Recipient | None:
         return self.session.get(Recipient, recipient_id)
 
-    def get_identity_for_update(self, recipient_id: int) -> RecipientCertificationIdentity | None:
-        return self.session.scalar(
-            select(RecipientCertificationIdentity)
-            .where(RecipientCertificationIdentity.recipient_id == recipient_id)
-            .with_for_update()
-        )
-
-    def get_identity(self, recipient_id: int) -> RecipientCertificationIdentity | None:
-        return self.session.get(RecipientCertificationIdentity, recipient_id)
-
-    def get_service_type_by_code(self, code: str) -> ServiceType | None:
-        return self.session.scalar(select(ServiceType).where(ServiceType.code == code))
-
-    def list_active_cert_periods_for_update(
-        self, recipient_id: int
-    ) -> list[RecipientCertificationPeriod]:
-        return list(
-            self.session.scalars(
-                select(RecipientCertificationPeriod)
-                .where(
-                    RecipientCertificationPeriod.recipient_id == recipient_id,
-                    RecipientCertificationPeriod.invalidated_at_utc.is_(None),
-                )
-                .order_by(RecipientCertificationPeriod.id)
-                .with_for_update()
-            ).all()
-        )
-
-    def list_active_grade_periods_for_update(self, recipient_id: int) -> list[RecipientGradePeriod]:
-        return list(
-            self.session.scalars(
-                select(RecipientGradePeriod)
-                .where(
-                    RecipientGradePeriod.recipient_id == recipient_id,
-                    RecipientGradePeriod.invalidated_at_utc.is_(None),
-                )
-                .order_by(RecipientGradePeriod.id)
-                .with_for_update()
-            ).all()
-        )
-
-    def list_active_contracts_for_update(self, recipient_id: int) -> list[RecipientContract]:
-        return list(
-            self.session.scalars(
-                select(RecipientContract)
-                .where(
-                    RecipientContract.recipient_id == recipient_id,
-                    RecipientContract.invalidated_at_utc.is_(None),
-                )
-                .order_by(RecipientContract.id)
-                .with_for_update()
-            ).all()
-        )
-
     def list_contracts(self, recipient_id: int) -> list[RecipientContract]:
         return list(
             self.session.scalars(
@@ -101,20 +44,10 @@ class W1DRepository:
             return None
         return row
 
-    def service_type_map(self) -> dict[int, ServiceType]:
-        rows = self.session.scalars(select(ServiceType)).all()
-        return {row.id: row for row in rows}
-
-    def service_code_map(self) -> dict[str, ServiceType]:
-        rows = self.session.scalars(select(ServiceType)).all()
-        return {row.code: row for row in rows}
+    def get_service_types(self) -> list[ServiceType]:
+        return list(self.session.scalars(select(ServiceType)).all())
 
     def lock_or_create_recipient_no_counter(self) -> BusinessNumberCounter:
-        """Recipient-then-counter order assumed by caller.
-
-        Concurrent first contracts (different recipients) race the absent global
-        RECIPIENT_NO row: atomic insert-on-conflict then exact SELECT FOR UPDATE.
-        """
         row = self.session.scalar(
             select(BusinessNumberCounter)
             .where(
@@ -179,10 +112,3 @@ class W1DRepository:
         self.session.add(event)
         self.session.flush()
         return event
-
-    def active_ltc_contracts(
-        self, recipient_id: int, service_types: dict[int, ServiceType]
-    ) -> list[RecipientContract]:
-        rows = self.list_active_contracts_for_update(recipient_id)
-        # Without lock for preview path use unlocked list
-        return rows

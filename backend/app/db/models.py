@@ -18,6 +18,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     PrimaryKeyConstraint,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -917,17 +918,15 @@ class StaffHealthCheck(Base):
     __tablename__ = "staff_health_check"
     __table_args__ = (
         ForeignKeyConstraint(
-            ["staff_id", "employment_id"],
-            ["erp.staff_employment.staff_id", "erp.staff_employment.id"],
-            name="fk_staff_health_check_employment",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
             ["staff_id"],
             ["erp.staff.id"],
             name="fk_staff_health_check_staff_id_staff",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["staff_id", "employment_id"],
+            ["erp.staff_employment.staff_id", "erp.staff_employment.id"],
+            name="fk_staff_health_check_employment",
             ondelete="RESTRICT",
         ),
         ForeignKeyConstraint(
@@ -961,108 +960,8 @@ class StaffHealthCheck(Base):
     staff_id: Mapped[int] = mapped_column(BigInteger)
     employment_id: Mapped[int | None] = mapped_column(BigInteger)
     check_date: Mapped[date] = mapped_column(Date)
-    check_type_code: Mapped[str | None] = mapped_column(Text)
-    result_note: Mapped[str | None] = mapped_column(Text)
     invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replacement_health_check_id: Mapped[int | None] = mapped_column(BigInteger)
-    created_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    created_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    updated_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    row_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
-
-
-class StaffHealthCheckRequirement(Base):
-    __tablename__ = "staff_health_check_requirement"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["staff_id", "employment_id"],
-            ["erp.staff_employment.staff_id", "erp.staff_employment.id"],
-            name="fk_staff_health_check_requirement_employment",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
-            ["staff_id", "health_check_id"],
-            ["erp.staff_health_check.staff_id", "erp.staff_health_check.id"],
-            name="fk_staff_health_check_requirement_health_check",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
-            ["staff_id"],
-            ["erp.staff.id"],
-            name="fk_staff_health_check_requirement_staff_id_staff",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["replacement_health_check_requirement_id"],
-            ["erp.staff_health_check_requirement.id"],
-            name="fk_staff_health_check_requirement_replacement",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
-            ["created_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_staff_health_check_requirement_created_by_account",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["updated_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_staff_health_check_requirement_updated_by_account",
-            ondelete="RESTRICT",
-        ),
-        CheckConstraint(
-            "btrim(target_key) <> ''",
-            name="ck_staff_health_check_requirement_target_key_nonblank",
-        ),
-        CheckConstraint(
-            "btrim(target_rule_version_code) <> ''",
-            name="ck_staff_health_check_requirement_rule_version_nonblank",
-        ),
-        CheckConstraint(
-            "status IN ('COMPLETE', 'INCOMPLETE', 'EXEMPT')",
-            name="ck_staff_health_check_requirement_status",
-        ),
-        CheckConstraint(
-            "(status = 'COMPLETE' AND health_check_id IS NOT NULL AND exempt_reason_text IS NULL)"
-            " OR (status = 'INCOMPLETE' AND health_check_id IS NULL AND exempt_reason_text IS NULL)"
-            " OR (status = 'EXEMPT' AND health_check_id IS NULL"
-            " AND btrim(exempt_reason_text) <> '')",
-            name="ck_staff_health_check_requirement_status_truth",
-        ),
-        CheckConstraint(
-            "row_version > 0",
-            name="ck_staff_health_check_requirement_row_version_positive",
-        ),
-        Index(
-            "uq_staff_health_check_requirement_active",
-            "staff_id",
-            "target_key",
-            unique=True,
-            postgresql_where=text("invalidated_at_utc IS NULL"),
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    staff_id: Mapped[int] = mapped_column(BigInteger)
-    employment_id: Mapped[int | None] = mapped_column(BigInteger)
-    target_key: Mapped[str] = mapped_column(Text)
-    target_rule_version_code: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(Text)
-    health_check_id: Mapped[int | None] = mapped_column(BigInteger)
-    exempt_reason_text: Mapped[str | None] = mapped_column(Text)
-    invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    replacement_health_check_requirement_id: Mapped[int | None] = mapped_column(BigInteger)
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)
     created_at_utc: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -1084,14 +983,6 @@ class StaffQuarterlyConsultation(Base):
             ondelete="RESTRICT",
         ),
         ForeignKeyConstraint(
-            ["replacement_staff_quarterly_consultation_id"],
-            ["erp.staff_quarterly_consultation.id"],
-            name="fk_staff_quarterly_consultation_replacement",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
             ["created_by_account_id"],
             ["erp.user_account.id"],
             name="fk_staff_quarterly_consultation_created_by_account",
@@ -1108,38 +999,14 @@ class StaffQuarterlyConsultation(Base):
             name="ck_staff_quarterly_consultation_quarter_no",
         ),
         CheckConstraint(
-            "status IN ('COMPLETE', 'INCOMPLETE', 'EXEMPT')",
-            name="ck_staff_quarterly_consultation_status",
-        ),
-        CheckConstraint(
-            "(status = 'COMPLETE' AND counseling_date IS NOT NULL "
-            "AND content IS NOT NULL AND btrim(content) <> '' "
-            "AND incomplete_reason_text IS NULL AND exempt_reason_text IS NULL)"
-            " OR (status = 'INCOMPLETE' AND counseling_date IS NULL "
-            "AND content IS NULL AND incomplete_reason_text IS NOT NULL "
-            "AND btrim(incomplete_reason_text) <> '' AND exempt_reason_text IS NULL)"
-            " OR (status = 'EXEMPT' AND counseling_date IS NULL "
-            "AND content IS NULL AND incomplete_reason_text IS NULL "
-            "AND exempt_reason_text IS NOT NULL AND btrim(exempt_reason_text) <> '')",
-            name="ck_staff_quarterly_consultation_status_truth",
-        ),
-        CheckConstraint(
-            "(content IS NULL OR length(content) <= 4000)"
-            " AND (incomplete_reason_text IS NULL OR length(incomplete_reason_text) <= 4000)"
-            " AND (exempt_reason_text IS NULL OR length(exempt_reason_text) <= 4000)",
-            name="ck_staff_quarterly_consultation_text_length",
-        ),
-        CheckConstraint(
             "row_version > 0",
             name="ck_staff_quarterly_consultation_row_version_positive",
         ),
-        Index(
-            "uq_staff_quarterly_consultation_active",
+        UniqueConstraint(
             "staff_id",
             "calendar_year",
             "quarter_no",
-            unique=True,
-            postgresql_where=text("invalidated_at_utc IS NULL"),
+            name="uq_staff_quarterly_consultation_staff_year_quarter",
         ),
     )
 
@@ -1147,13 +1014,7 @@ class StaffQuarterlyConsultation(Base):
     staff_id: Mapped[int] = mapped_column(BigInteger)
     calendar_year: Mapped[int] = mapped_column(Integer)
     quarter_no: Mapped[int] = mapped_column(Integer)
-    status: Mapped[str] = mapped_column(Text)
-    counseling_date: Mapped[date | None] = mapped_column(Date)
-    content: Mapped[str | None] = mapped_column(Text)
-    incomplete_reason_text: Mapped[str | None] = mapped_column(Text)
-    exempt_reason_text: Mapped[str | None] = mapped_column(Text)
-    invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    replacement_staff_quarterly_consultation_id: Mapped[int | None] = mapped_column(BigInteger)
+    completed: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)
     created_at_utc: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -1245,6 +1106,10 @@ class Recipient(Base):
             "recipient_status IN ('ACTIVE','ENDED','WAITING')",
             name="recipient_status",
         ),
+        CheckConstraint(
+            "btrim(mobile_phone) <> ''",
+            name=conv("ck_recipient_mobile_phone_required"),
+        ),
         CheckConstraint("row_version > 0", name="ck_recipient_row_version_positive"),
         ForeignKeyConstraint(
             ["created_by_account_id"],
@@ -1263,22 +1128,21 @@ class Recipient(Base):
             ["id", "payer_guardian_id"],
             ["erp.recipient_guardian.recipient_id", "erp.recipient_guardian.id"],
             name="fk_recipient_payer_guardian_same_recipient",
-            ondelete="RESTRICT",
+            ondelete="SET NULL (payer_guardian_id)",
         ),
         UniqueConstraint("recipient_no", name="uq_recipient_recipient_no"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(Text)
-    birth_date: Mapped[date] = mapped_column(Date)
-    sex_code: Mapped[str] = mapped_column(Text)
+    name: Mapped[str | None] = mapped_column(Text)
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    sex_code: Mapped[str | None] = mapped_column(Text)
     recipient_status: Mapped[str] = mapped_column(Text, server_default=text("'ACTIVE'"))
     recipient_no: Mapped[str | None] = mapped_column(Text)
     memo: Mapped[str | None] = mapped_column(Text)
     postal_code: Mapped[str | None] = mapped_column(Text)
     address: Mapped[str | None] = mapped_column(Text)
-    home_phone: Mapped[str | None] = mapped_column(Text)
-    mobile_phone: Mapped[str | None] = mapped_column(Text)
+    mobile_phone: Mapped[str] = mapped_column(Text)
     # NULL = recipient self is payer; positive id = that guardian (same recipient via composite FK).
     payer_guardian_id: Mapped[int | None] = mapped_column(BigInteger)
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)
@@ -1347,6 +1211,10 @@ class RecipientGuardian(Base):
             "row_version > 0",
             name="ck_recipient_guardian_row_version_positive",
         ),
+        CheckConstraint(
+            "slot_no IN (1, 2)",
+            name="slot_no",
+        ),
         ForeignKeyConstraint(
             ["recipient_id"],
             ["erp.recipient.id"],
@@ -1370,170 +1238,21 @@ class RecipientGuardian(Base):
             "id",
             name="uq_recipient_guardian_recipient_id_id",
         ),
+        UniqueConstraint(
+            "recipient_id",
+            "slot_no",
+            name="uq_recipient_guardian_recipient_slot",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     recipient_id: Mapped[int] = mapped_column(BigInteger)
-    name: Mapped[str] = mapped_column(Text)
+    slot_no: Mapped[int] = mapped_column(SmallInteger)
+    name: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(Text)
     email: Mapped[str | None] = mapped_column(Text)
     address: Mapped[str | None] = mapped_column(Text)
     relationship_text: Mapped[str | None] = mapped_column(Text)
-    created_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    created_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    updated_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    row_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
-
-
-class RecipientGuardianPrimaryPeriod(Base):
-    __tablename__ = "recipient_guardian_primary_period"
-    __table_args__ = (
-        CheckConstraint(
-            "end_date IS NULL OR start_date <= end_date",
-            name="ck_recipient_guardian_primary_period_date_order",
-        ),
-        CheckConstraint(
-            "row_version > 0",
-            name="ck_recipient_guardian_primary_period_row_version_positive",
-        ),
-        ExcludeConstraint(
-            ("recipient_id", "="),
-            ("effective_period", "&&"),
-            where=text("invalidated_at_utc IS NULL"),
-            using="gist",
-            name="ex_recipient_guardian_primary_period",
-        ),
-        ForeignKeyConstraint(
-            ["recipient_id"],
-            ["erp.recipient.id"],
-            name="fk_recipient_guardian_primary_period_recipient",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["guardian_id"],
-            ["erp.recipient_guardian.id"],
-            name="fk_recipient_guardian_primary_period_guardian",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["recipient_id", "guardian_id"],
-            ["erp.recipient_guardian.recipient_id", "erp.recipient_guardian.id"],
-            name="fk_recipient_guardian_primary_period_recipient_guardian",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["replacement_primary_guardian_period_id"],
-            ["erp.recipient_guardian_primary_period.id"],
-            name="fk_recipient_guardian_primary_period_replacement",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
-            ["created_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_recipient_guardian_primary_period_created_by_account",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["updated_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_recipient_guardian_primary_period_updated_by_account",
-            ondelete="RESTRICT",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    recipient_id: Mapped[int] = mapped_column(BigInteger)
-    guardian_id: Mapped[int] = mapped_column(BigInteger)
-    start_date: Mapped[date] = mapped_column(Date)
-    end_date: Mapped[date | None] = mapped_column(Date)
-    effective_period: Mapped[Any] = mapped_column(
-        DATERANGE,
-        Computed("daterange(start_date, end_date + 1, '[)')", persisted=True),
-    )
-    invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    replacement_primary_guardian_period_id: Mapped[int | None] = mapped_column(BigInteger)
-    created_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    created_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    updated_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    row_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
-
-
-class RecipientPayerSnapshot(Base):
-    __tablename__ = "recipient_payer_snapshot"
-    __table_args__ = (
-        CheckConstraint(
-            "btrim(name) <> ''",
-            name="ck_recipient_payer_snapshot_name_nonblank",
-        ),
-        CheckConstraint(
-            "end_date IS NULL OR start_date <= end_date",
-            name="ck_recipient_payer_snapshot_date_order",
-        ),
-        CheckConstraint(
-            "row_version > 0",
-            name="ck_recipient_payer_snapshot_row_version_positive",
-        ),
-        ExcludeConstraint(
-            ("recipient_id", "="),
-            ("effective_period", "&&"),
-            where=text("invalidated_at_utc IS NULL"),
-            using="gist",
-            name="ex_recipient_payer_snapshot_period",
-        ),
-        ForeignKeyConstraint(
-            ["recipient_id"],
-            ["erp.recipient.id"],
-            name="fk_recipient_payer_snapshot_recipient",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["replacement_payer_snapshot_id"],
-            ["erp.recipient_payer_snapshot.id"],
-            name="fk_recipient_payer_snapshot_replacement",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
-            ["created_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_recipient_payer_snapshot_created_by_account",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["updated_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_recipient_payer_snapshot_updated_by_account",
-            ondelete="RESTRICT",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    recipient_id: Mapped[int] = mapped_column(BigInteger)
-    name: Mapped[str] = mapped_column(Text)
-    phone: Mapped[str | None] = mapped_column(Text)
-    address: Mapped[str | None] = mapped_column(Text)
-    relationship_text: Mapped[str | None] = mapped_column(Text)
-    start_date: Mapped[date] = mapped_column(Date)
-    end_date: Mapped[date | None] = mapped_column(Date)
-    effective_period: Mapped[Any] = mapped_column(
-        DATERANGE,
-        Computed("daterange(start_date, end_date + 1, '[)')", persisted=True),
-    )
-    invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    replacement_payer_snapshot_id: Mapped[int | None] = mapped_column(BigInteger)
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)
     created_at_utc: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -1689,6 +1408,10 @@ class RecipientCertificationPeriod(Base):
             name="ck_recipient_certification_period_date_order",
         ),
         CheckConstraint(
+            "grade_code IN ('1','2','3','4','5')",
+            name=conv("ck_recipient_certification_period_grade_code"),
+        ),
+        CheckConstraint(
             "row_version > 0",
             name="ck_recipient_certification_period_row_version_positive",
         ),
@@ -1734,6 +1457,7 @@ class RecipientCertificationPeriod(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     recipient_id: Mapped[int] = mapped_column(BigInteger)
+    grade_code: Mapped[str] = mapped_column(Text)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
     certification_period: Mapped[Any] = mapped_column(
@@ -1742,82 +1466,6 @@ class RecipientCertificationPeriod(Base):
     )
     invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replacement_certification_period_id: Mapped[int | None] = mapped_column(BigInteger)
-    created_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    created_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_by_account_id: Mapped[int] = mapped_column(BigInteger)
-    updated_at_utc: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    row_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
-
-
-class RecipientGradePeriod(Base):
-    __tablename__ = "recipient_grade_period"
-    __table_args__ = (
-        CheckConstraint(
-            "grade_code IN ('1','2','3','4','5')",
-            name="ck_recipient_grade_period_grade_code",
-        ),
-        CheckConstraint(
-            "start_date <= end_date",
-            name="ck_recipient_grade_period_date_order",
-        ),
-        CheckConstraint(
-            "row_version > 0",
-            name="ck_recipient_grade_period_row_version_positive",
-        ),
-        ExcludeConstraint(
-            ("recipient_id", "="),
-            ("grade_period", "&&"),
-            where=text("invalidated_at_utc IS NULL"),
-            using="gist",
-            name="ex_recipient_grade_period",
-        ),
-        ForeignKeyConstraint(
-            ["recipient_id", "certification_period_id"],
-            [
-                "erp.recipient_certification_period.recipient_id",
-                "erp.recipient_certification_period.id",
-            ],
-            name="fk_recipient_grade_period_certification",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["replacement_grade_period_id"],
-            ["erp.recipient_grade_period.id"],
-            name="fk_recipient_grade_period_replacement",
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        ),
-        ForeignKeyConstraint(
-            ["created_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_recipient_grade_period_created_by_account",
-            ondelete="RESTRICT",
-        ),
-        ForeignKeyConstraint(
-            ["updated_by_account_id"],
-            ["erp.user_account.id"],
-            name="fk_recipient_grade_period_updated_by_account",
-            ondelete="RESTRICT",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    recipient_id: Mapped[int] = mapped_column(BigInteger)
-    certification_period_id: Mapped[int] = mapped_column(BigInteger)
-    grade_code: Mapped[str] = mapped_column(Text)
-    start_date: Mapped[date] = mapped_column(Date)
-    end_date: Mapped[date] = mapped_column(Date)
-    grade_period: Mapped[Any] = mapped_column(
-        DATERANGE,
-        Computed("daterange(start_date, end_date + 1, '[)')", persisted=True),
-    )
-    invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    replacement_grade_period_id: Mapped[int | None] = mapped_column(BigInteger)
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)
     created_at_utc: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -1846,19 +1494,14 @@ class RecipientBenefitPeriod(Base):
             name="ck_recipient_benefit_period_benefit_code",
         ),
         CheckConstraint(
-            "end_date IS NULL OR start_date <= end_date",
-            name="ck_recipient_benefit_period_date_order",
-        ),
-        CheckConstraint(
             "row_version > 0",
             name="ck_recipient_benefit_period_row_version_positive",
         ),
-        ExcludeConstraint(
-            ("recipient_id", "="),
-            ("benefit_period", "&&"),
-            where=text("invalidated_at_utc IS NULL"),
-            using="gist",
-            name="ex_recipient_benefit_period",
+        Index(
+            "uq_recipient_benefit_period_active_recipient",
+            "recipient_id",
+            unique=True,
+            postgresql_where=text("invalidated_at_utc IS NULL"),
         ),
         ForeignKeyConstraint(
             ["recipient_id"],
@@ -1891,12 +1534,7 @@ class RecipientBenefitPeriod(Base):
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     recipient_id: Mapped[int] = mapped_column(BigInteger)
     benefit_code: Mapped[str] = mapped_column(Text)
-    start_date: Mapped[date] = mapped_column(Date)
-    end_date: Mapped[date | None] = mapped_column(Date)
-    benefit_period: Mapped[Any] = mapped_column(
-        DATERANGE,
-        Computed("daterange(start_date, end_date + 1, '[)')", persisted=True),
-    )
+    start_text: Mapped[str] = mapped_column(Text, server_default=text("''"))
     invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replacement_benefit_period_id: Mapped[int | None] = mapped_column(BigInteger)
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)
@@ -2047,9 +1685,6 @@ class RecipientContract(Base):
     )
     service_start_date: Mapped[date | None] = mapped_column(Date)
     end_reason_text: Mapped[str | None] = mapped_column(Text)
-    signer_name: Mapped[str | None] = mapped_column(Text)
-    signer_relationship_text: Mapped[str | None] = mapped_column(Text)
-    signer_phone: Mapped[str | None] = mapped_column(Text)
     invalidated_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replacement_contract_id: Mapped[int | None] = mapped_column(BigInteger)
     created_by_account_id: Mapped[int] = mapped_column(BigInteger)

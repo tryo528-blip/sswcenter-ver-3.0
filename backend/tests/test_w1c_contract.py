@@ -14,8 +14,8 @@ from app.domains.w1c.schemas import (
     BenefitPeriodCreateRequest,
     CertificationIdentityCreateRequest,
     CertificationIdentityResponse,
+    CertificationPeriodCreateRequest,
     GradeCode,
-    GradePeriodCreateRequest,
 )
 
 
@@ -67,8 +67,7 @@ def test_w1c_public_enums_and_period_validation_are_exact() -> None:
         validate_period(date(2026, 7, 2), date(2026, 7, 1))
 
     with pytest.raises(ValidationError):
-        GradePeriodCreateRequest(
-            certification_period_id=1,
+        CertificationPeriodCreateRequest(
             grade_code="COGNITIVE_SUPPORT",
             start_date=date(2026, 7, 1),
             end_date=date(2026, 7, 31),
@@ -76,7 +75,6 @@ def test_w1c_public_enums_and_period_validation_are_exact() -> None:
     with pytest.raises(ValidationError):
         BenefitPeriodCreateRequest(
             benefit_code="UNCONFIRMED_RATE",
-            start_date=date(2026, 7, 1),
         )
     with pytest.raises(ValidationError):
         ApprovalAmountPeriodCreateRequest(
@@ -106,9 +104,16 @@ def test_w1c_schemas_exclude_unapproved_fields_and_defaults() -> None:
     )
     assert identity_output["properties"]["certification_number"]["pattern"] == (r"^L[0-9]{10}$")
 
-    grade_properties = GradePeriodCreateRequest.model_json_schema()["properties"]
-    assert "grade_changed_date" not in grade_properties
+    certification_properties = CertificationPeriodCreateRequest.model_json_schema()[
+        "properties"
+    ]
+    assert "grade_code" in certification_properties
+    assert "certification_period_id" not in certification_properties
+    assert "grade_changed_date" not in certification_properties
     benefit_properties = BenefitPeriodCreateRequest.model_json_schema()["properties"]
+    assert "start_text" in benefit_properties
+    assert "start_date" not in benefit_properties
+    assert "end_date" not in benefit_properties
     assert "rate" not in benefit_properties
     assert "benefit_rate" not in benefit_properties
     assert "default" not in benefit_properties["benefit_code"]
@@ -130,7 +135,6 @@ def test_w1c_openapi_routes_and_named_models_are_registered() -> None:
     collection_paths = (
         "/api/v1/recipients/{recipient_id}/certification-identity",
         "/api/v1/recipients/{recipient_id}/certification-periods",
-        "/api/v1/recipients/{recipient_id}/grade-periods",
         "/api/v1/recipients/{recipient_id}/benefit-periods",
         "/api/v1/recipients/{recipient_id}/approval-amount-periods",
     )
@@ -139,7 +143,6 @@ def test_w1c_openapi_routes_and_named_models_are_registered() -> None:
 
     action_bases = (
         "/api/v1/recipients/{recipient_id}/certification-periods/{period_id}",
-        "/api/v1/recipients/{recipient_id}/grade-periods/{period_id}",
         "/api/v1/recipients/{recipient_id}/benefit-periods/{period_id}",
         "/api/v1/recipients/{recipient_id}/approval-amount-periods/{period_id}",
     )
@@ -147,12 +150,8 @@ def test_w1c_openapi_routes_and_named_models_are_registered() -> None:
         assert "post" in paths[f"{base}/invalidate"]
         assert "post" in paths[f"{base}/replacements"]
 
-    effective_path = paths["/api/v1/recipients/{recipient_id}/benefit-periods/effective"]["get"]
-    on_date = next(
-        parameter for parameter in effective_path["parameters"] if parameter["name"] == "on_date"
-    )
-    assert on_date["required"] is True
-    assert on_date["schema"]["format"] == "date"
+    assert not any("grade-period" in path for path in paths)
+    assert not any("effective" in path and "benefit-period" in path for path in paths)
 
     schemas: dict[str, Any] = spec["components"]["schemas"]
     required_schemas = {
@@ -161,11 +160,8 @@ def test_w1c_openapi_routes_and_named_models_are_registered() -> None:
         "CertificationPeriodCreateRequest",
         "CertificationPeriodListResponse",
         "CertificationPeriodReplacementRequest",
-        "GradePeriodCreateRequest",
-        "GradePeriodListResponse",
         "BenefitPeriodCreateRequest",
         "BenefitPeriodListResponse",
-        "EffectiveBenefitResponse",
         "ApprovalAmountPeriodCreateRequest",
         "ApprovalAmountPeriodListResponse",
         "HistoryInvalidateRequest",
@@ -188,14 +184,12 @@ def test_w1c_database_models_preserve_required_absences() -> None:
         RecipientBenefitPeriod,
         RecipientCertificationIdentity,
         RecipientCertificationPeriod,
-        RecipientGradePeriod,
         RecipientLocalApprovalAmountPeriod,
     )
 
     tables = (
         RecipientCertificationIdentity.__table__,
         RecipientCertificationPeriod.__table__,
-        RecipientGradePeriod.__table__,
         RecipientBenefitPeriod.__table__,
         RecipientLocalApprovalAmountPeriod.__table__,
     )
@@ -204,6 +198,11 @@ def test_w1c_database_models_preserve_required_absences() -> None:
     assert "grade_changed_date" not in all_columns
     assert "benefit_rate" not in all_columns
     assert "monthly_maximum" not in all_columns
+    assert "grade_code" in RecipientCertificationPeriod.__table__.c
+    assert "start_text" in RecipientBenefitPeriod.__table__.c
+    assert {"start_date", "end_date", "benefit_period"}.isdisjoint(
+        RecipientBenefitPeriod.__table__.c.keys()
+    )
 
     identity_constraints = {
         constraint.name for constraint in RecipientCertificationIdentity.__table__.constraints

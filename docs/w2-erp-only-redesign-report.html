@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102a43">
+  <title>W2 ERP 단독 재설계 작업보고</title>
+  <style>
+    :root {
+      --ink:#172b4d; --muted:#627d98; --line:#d9e2ec; --bg:#f5f7fa;
+      --navy:#102a43; --blue:#186faf; --green:#087f5b; --amber:#a15c00;
+      --red:#b42318; --white:#fff; --shadow:0 8px 24px rgba(16,42,67,.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",sans-serif;-webkit-text-size-adjust:100%}
+    .wrap{width:min(100% - 28px,760px);margin:0 auto}
+    .hero{padding:38px 0 28px;padding-top:calc(38px + env(safe-area-inset-top));color:var(--white);background:linear-gradient(145deg,#102a43,#186faf)}
+    .eyebrow{margin:0 0 8px;color:#cfe8ff;font-size:.78rem;font-weight:800;letter-spacing:.08em}
+    h1,h2,h3{line-height:1.25} h1{margin:0;font-size:clamp(2rem,9vw,3rem);letter-spacing:-.04em} h2{margin:0 0 12px;font-size:1.4rem} h3{margin:0 0 7px;font-size:1.03rem}
+    p{margin:0 0 12px}.lead{margin-top:14px;color:#e6f4ff;font-size:1.04rem}.meta{margin-top:15px;color:#d7e8f5;font-size:.86rem}
+    .status{display:inline-flex;margin-top:18px;padding:6px 12px;border-radius:999px;background:#fff;color:var(--green);font-weight:800;font-size:.86rem}
+    .gate{margin-top:18px;padding:16px 18px;border:2px solid #fecaca;border-radius:14px;background:rgba(255,255,255,.12);color:#fff}
+    .gate strong{display:block;margin-bottom:6px;font-size:1.08rem;color:#fee2e2}
+    main{padding:24px 0 42px} section{scroll-margin-top:58px;margin-bottom:28px}.kicker{margin-bottom:6px;color:var(--blue);font-size:.78rem;font-weight:800;letter-spacing:.08em}
+    .card{margin:12px 0;padding:17px;border:1px solid var(--line);border-radius:17px;background:var(--white);box-shadow:var(--shadow)}
+    .card.soft{background:#eef5fb;box-shadow:none}.grid{display:grid;gap:11px}.grid.two{grid-template-columns:1fr}.mini{padding:13px;border-radius:13px;background:#f0f5f9}.mini p:last-child,.card p:last-child{margin-bottom:0}
+    .badge{display:inline-flex;padding:3px 9px;border-radius:999px;font-size:.8rem;font-weight:800}.badge.green{color:var(--green);background:#e7f7f1}.badge.amber{color:var(--amber);background:#fff3d6}.badge.red{color:var(--red);background:#fff0ee}.badge.blue{color:#155b8a;background:#e8f3fb}
+    .list{margin:8px 0 0;padding-left:21px}.list li{margin:5px 0}.code{padding:1px 5px;border-radius:5px;background:#edf2f7;color:#34495e;font: .88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+    .flow{display:grid;gap:9px;counter-reset:item}.step{position:relative;padding:13px 13px 13px 47px;border:1px solid var(--line);border-radius:13px;background:var(--white)}.step:before{counter-increment:item;content:counter(item);position:absolute;left:13px;top:13px;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;color:#fff;background:var(--blue);font-weight:800}.step p{margin:0;color:var(--muted);font-size:.93rem}
+    .callout{margin:13px 0;padding:14px;border-left:4px solid var(--blue);border-radius:0 13px 13px 0;background:#e8f3fb}.callout.warn{border-left-color:var(--amber);background:#fff3d6}.callout.gate{border-left-color:var(--red);background:#fff0ee}.callout strong{display:block;margin-bottom:3px}
+    .file{display:block;margin:8px 0;padding:9px 10px;border-radius:9px;background:#f2f5f8;color:#40566e;font: .82rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+    .source{color:var(--muted);font-size:.82rem}.toc{position:sticky;top:0;z-index:3;padding:9px 0;border-bottom:1px solid var(--line);background:rgba(255,255,255,.94);backdrop-filter:blur(9px)}.toc-row{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}.toc-row::-webkit-scrollbar{display:none}.toc a{flex:0 0 auto;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink);background:#fff;text-decoration:none;font-size:.82rem;white-space:nowrap}
+    footer{padding:22px 0 calc(30px + env(safe-area-inset-bottom));border-top:1px solid var(--line);color:var(--muted);font-size:.83rem}
+    @media (min-width:600px){.wrap{width:min(100% - 44px,860px)}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+  <header class="hero"><div class="wrap">
+    <p class="eyebrow">SSWCENTER · WAVE 2 · 작업보고</p>
+    <h1>ERP 단독<br>재설계 반영</h1>
+    <p class="lead">공식 업무카드와 개인 할 일을 모두 ERP가 소유하되, 화면은 분리합니다.</p>
+    <p class="meta">보고일: 2026-08-12 · 대상: SSWCenter 3.0</p>
+    <span class="status">정본·설계 문서 반영 · 구현은 승인 후</span>
+    <div class="gate">
+      <strong>🚨 형님 승인 절대 게이트</strong>
+      형님 승인 없이 어떠한 계약도 추가하거나 삭제하지 않는다.<br>
+      업무·UI·API·DB·기술·보안·로드맵 계약은 형님 사전 승인을 받은 정본 개정으로만 추가·삭제·변경한다.<br>
+      승인 전에는 구현을 시작하지 않는다.
+    </div>
+  </div></header>
+  <nav class="toc" aria-label="보고서 목차"><div class="wrap toc-row">
+    <a href="#result">결과</a><a href="#design">새 설계</a><a href="#personal">개인 할 일</a><a href="#files">파일</a><a href="#check">검증</a><a href="#next">다음</a>
+  </div></nav>
+  <main class="wrap">
+    <section id="result"><p class="kicker">01 · 한눈에 보기</p><h2>이번에 바뀐 결론</h2>
+      <div class="card"><p><strong>외부 업무앱 연동 전제는 폐기</strong>하고, 업무카드와 개인 할 일을 모두 ERP 안에서 관리하는 구조로 설계했습니다.</p><ul class="list"><li>공식 업무카드 원장과 개인 할 일 원장은 분리</li><li>공식 카드는 Dashboard에만, 개인 할 일은 사회복지사 달력형 일정표에만 표시</li><li>공식 업무목록 다섯 가지·카드 정보 다섯 가지로 봉인</li><li>브라우저 저장소는 업무 원장으로 사용하지 않음</li><li>합침 API·이중 fetch·결정적 union을 만들지 않음</li></ul></div>
+    </section>
+    <section id="design"><p class="kicker">02 · 핵심 설계</p><h2>새 구조는 이렇게 단순합니다.</h2>
+      <div class="grid two"><div class="mini"><span class="badge blue">공식 업무카드</span><h3>시스템이 만든 업무</h3><p>업무별 원천 슬라이스가 발생 조건을 계산하고, ERP가 공식 업무카드를 저장·조회합니다. 표시 위치는 Dashboard입니다.</p></div><div class="mini"><span class="badge green">개인 할 일</span><h3>사용자가 만든 업무</h3><p>ERP 계정 소유의 별도 원장입니다. 사회복지사 달력형 일정표에서 생성자 본인만 봅니다.</p></div></div>
+      <div class="card"><strong>공식 업무목록</strong><ul class="list"><li>인정만료</li><li>계약만료</li><li>계획서통보</li><li>직원교체상담</li><li>신규직원업무</li></ul><p style="margin:8px 0 0"><strong>목록 밖 업무 또는 정보 추가·삭제는 형님 사전 승인 필요</strong></p></div>
+      <div class="card"><strong>카드 정보</strong><ul class="list"><li>업무제목</li><li>대상자이름</li><li>상세업무</li><li>마감일</li><li>D-day</li></ul><p style="margin:8px 0 0"><strong>목록 밖 업무 또는 정보 추가·삭제는 형님 사전 승인 필요</strong></p></div>
+      <div class="flow"><div class="step"><strong>업무 원천</strong><p>계획서 등 각 업무 슬라이스가 마감일을 계산합니다.</p></div><div class="step"><strong>ERP 원장</strong><p>공식 업무카드와 개인 할 일을 서버 DB에 분리 저장합니다.</p></div><div class="step"><strong>화면 분리</strong><p>공식 카드는 Dashboard, 개인 할 일은 사회복지사 달력형 일정표에만 표시합니다.</p></div></div>
+    </section>
+    <section id="personal"><p class="kicker">03 · 개인 할 일</p><h2>최종 결정</h2>
+      <div class="card"><ul class="list"><li>표시 위치: 사회복지사 메뉴 달력형 일정표 하나뿐</li><li>Dashboard에는 개인 할 일을 표시하지 않음</li><li>생성·수정·완료 토글·삭제·조회는 생성자 본인만</li><li>로그인한 다른 사람과 관리자에게 보이지 않음 · 관리자 대행 없음</li><li>완료는 별도 상태명/enum 없이 토글 · 완료 줄은 회색의 연한 글씨</li><li>삭제는 완전 삭제 · 순서는 드래그로 변경</li></ul></div>
+    </section>
+    <section id="files"><p class="kicker">04 · 변경 경로</p><h2>읽어 볼 파일</h2>
+      <div class="card"><strong>새 설계 문서</strong><span class="file">review/plans/W2_OFFICIAL_WORK_CARD_ERP_PLAN.md</span><strong>휴대폰용 설계 안내</strong><span class="file">docs/w2-official-work-card-erp-guide.html</span><strong>이 작업보고</strong><span class="file">docs/w2-erp-only-redesign-report.html</span><strong>제품 정본</strong><span class="file">docs/00_정본_문서_목록.md ~ docs/06_개발로드맵_결정현황_v1.2.md</span></div>
+      <div class="callout gate"><strong>형님 승인 절대 게이트</strong>형님 승인 없이 어떠한 계약도 추가하거나 삭제하지 않는다. 승인 전에는 구현을 시작하지 않는다.</div>
+    </section>
+    <section id="check"><p class="kicker">05 · 검증</p><h2>현재 확인된 것</h2>
+      <div class="card"><ul class="list"><li>정본 00~06 상단에 승인 게이트 배너 반영</li><li>공식 카드 문맥에서 합침·이중 fetch·미승인 선택지 표 제거</li><li>개인 할 일 최종 규칙을 사회복지사 달력형 일정표·본인만으로 정합화</li><li>HTML: 한글 lang, 모바일 viewport, 외부 스크립트 없음, HTML 닫힘 태그 유지</li><li>Git: 커밋·푸시·스테이징하지 않음 · 테스트 실행 없음</li></ul></div>
+    </section>
+    <section id="next"><p class="kicker">06 · 다음 단계</p><h2>형님 승인 후 실행 절차</h2>
+      <div class="card"><ol class="list"><li>형님 승인</li><li>좁은 DDL·API·RED Task Packet 작성</li><li>RED 실패 확인</li><li>구현</li><li>GREEN·독립검수</li></ol></div>
+      <p class="source">현재 상태는 설계 승인 대기이며, 이 보고서는 구현 완료 보고서가 아닙니다. 승인 전에는 구현을 시작하지 않습니다.</p>
+    </section>
+  </main>
+  <footer><div class="wrap"><p><strong>SSWCenter 3.0</strong> · 휴대폰용 작업보고</p><p>이 문서는 현재 작업 결과를 쉽게 읽도록 정리한 보고서입니다.</p></div></footer>
+</body>
+</html>

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import (
     BaseModel,
@@ -10,9 +10,6 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
-    ValidationInfo,
-    field_validator,
-    model_validator,
 )
 
 
@@ -49,18 +46,6 @@ class TrainingCycleType(StrEnum):
     HALF_YEAR = "HALF_YEAR"
     ANNUAL = "ANNUAL"
     BIENNIAL = "BIENNIAL"
-
-
-class HealthCheckRequirementStatus(StrEnum):
-    COMPLETE = "COMPLETE"
-    INCOMPLETE = "INCOMPLETE"
-    EXEMPT = "EXEMPT"
-
-
-class QuarterlyConsultationStatus(StrEnum):
-    COMPLETE = "COMPLETE"
-    INCOMPLETE = "INCOMPLETE"
-    EXEMPT = "EXEMPT"
 
 
 def _normalize_role_input(value: object) -> object:
@@ -483,26 +468,17 @@ class ErrorEnvelope(StrictModel):
 
 class StaffHealthCheckCreateRequest(StrictModel):
     check_date: date
-    employment_id: int | None = Field(default=None, gt=0)
-    check_type_code: str | None = Field(default=None, min_length=1, max_length=100)
-    result_note: str | None = Field(default=None, max_length=4000)
 
 
 class StaffHealthCheckUpdateRequest(StrictModel):
     check_date: date | None = None
-    employment_id: int | None = Field(default=None, gt=0)
-    check_type_code: str | None = Field(default=None, min_length=1, max_length=100)
-    result_note: str | None = Field(default=None, max_length=4000)
     expected_row_version: PositiveVersion
 
 
 class StaffHealthCheckResponse(StrictModel):
     id: int
     staff_id: int
-    employment_id: int | None
     check_date: date
-    check_type_code: str | None
-    result_note: str | None
     invalidated_at_utc: datetime | None
     replacement_health_check_id: int | None
     created_by_account_id: int
@@ -516,226 +492,15 @@ class StaffHealthCheckListResponse(StrictModel):
     items: list[StaffHealthCheckResponse] = Field(default_factory=list)
 
 
-class StaffHealthCheckRequirementUpdateRequest(StrictModel):
-    status: HealthCheckRequirementStatus | None = Field(
-        default=None,
-        description=(
-            "COMPLETE requires a fact and no exemption reason; INCOMPLETE requires neither; "
-            "EXEMPT requires a nonblank exemption reason and no fact."
-        ),
-    )
-    health_check_id: int | None = Field(
-        default=None,
-        gt=0,
-        description="Required only for COMPLETE and must reference the same staff's active fact.",
-    )
-    exempt_reason_text: str | None = Field(
-        default=None,
-        max_length=4000,
-        description="Required and nonblank only for EXEMPT.",
-    )
-    expected_row_version: PositiveVersion
-
-    @model_validator(mode="after")
-    def validate_truth_table(self) -> StaffHealthCheckRequirementUpdateRequest:
-        if self.status is None:
-            return self
-        if self.status is HealthCheckRequirementStatus.COMPLETE:
-            if self.health_check_id is None or self.exempt_reason_text is not None:
-                raise ValueError("COMPLETE requires a health_check_id and no exempt_reason_text")
-        elif self.status is HealthCheckRequirementStatus.INCOMPLETE:
-            if self.health_check_id is not None or self.exempt_reason_text is not None:
-                raise ValueError("INCOMPLETE cannot reference a fact or exemption reason")
-        elif self.status is HealthCheckRequirementStatus.EXEMPT:
-            if self.health_check_id is not None or not (self.exempt_reason_text or "").strip():
-                raise ValueError("EXEMPT requires a nonblank exempt_reason_text and no fact")
-        return self
-
-
-class StaffHealthCheckRequirementResponse(StrictModel):
-    id: int
-    staff_id: int
-    employment_id: int | None
-    target_key: str
-    target_rule_version_code: str
-    status: Literal["COMPLETE", "INCOMPLETE", "EXEMPT"] = Field(
-        description="COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields."
-    )
-    health_check_id: int | None
-    exempt_reason_text: str | None
-    invalidated_at_utc: datetime | None
-    replacement_health_check_requirement_id: int | None
-    created_by_account_id: int
-    created_at_utc: datetime
-    updated_by_account_id: int
-    updated_at_utc: datetime
-    row_version: int
-
-
-class StaffHealthCheckRequirementListResponse(StrictModel):
-    items: list[StaffHealthCheckRequirementResponse] = Field(default_factory=list)
-
-
-def _normalize_quarterly_text(value: object) -> object:
-    return value.strip() if isinstance(value, str) else value
-
-
-def _validate_quarterly_conditional_field(value: object, info: ValidationInfo) -> object:
-    status = info.data.get("status")
-    field_name = str(info.field_name)
-    if not isinstance(status, QuarterlyConsultationStatus):
-        return value
-    if field_name == "counseling_date":
-        if status is QuarterlyConsultationStatus.COMPLETE and value is None:
-            raise ValueError("counseling_date is required for COMPLETE")
-        if status is not QuarterlyConsultationStatus.COMPLETE and value is not None:
-            raise ValueError(f"counseling_date must be empty for {status.value}")
-    elif field_name == "content":
-        if status is QuarterlyConsultationStatus.COMPLETE and value is None:
-            raise ValueError("content is required for COMPLETE")
-        if status is not QuarterlyConsultationStatus.COMPLETE and value is not None:
-            raise ValueError(f"content must be empty for {status.value}")
-    elif field_name == "incomplete_reason_text":
-        if status is QuarterlyConsultationStatus.INCOMPLETE and value is None:
-            raise ValueError("incomplete_reason_text is required for INCOMPLETE")
-        if status is not QuarterlyConsultationStatus.INCOMPLETE and value is not None:
-            raise ValueError(f"incomplete_reason_text must be empty for {status.value}")
-    elif field_name == "exempt_reason_text":
-        if status is QuarterlyConsultationStatus.EXEMPT and value is None:
-            raise ValueError("exempt_reason_text is required for EXEMPT")
-        if status is not QuarterlyConsultationStatus.EXEMPT and value is not None:
-            raise ValueError(f"exempt_reason_text must be empty for {status.value}")
-    return value
-
-
 class StaffQuarterlyConsultationCreateRequest(StrictModel):
     calendar_year: int
     quarter_no: int = Field(ge=1, le=4)
-    status: QuarterlyConsultationStatus = Field(
-        description="COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields."
-    )
-    counseling_date: Annotated[date | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        description="Required only for COMPLETE; empty for INCOMPLETE and EXEMPT.",
-        validate_default=True,
-    )
-    content: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        min_length=1,
-        max_length=4000,
-        description="Required and nonblank only for COMPLETE; empty otherwise.",
-        validate_default=True,
-    )
-    incomplete_reason_text: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = (
-        Field(
-            default=None,
-            min_length=1,
-            max_length=4000,
-            description="Required and nonblank only for INCOMPLETE; empty otherwise.",
-            validate_default=True,
-        )
-    )
-    exempt_reason_text: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        min_length=1,
-        max_length=4000,
-        description="Required and nonblank only for EXEMPT; empty otherwise.",
-        validate_default=True,
-    )
-
-    _validate_conditionals = field_validator(
-        "counseling_date",
-        "content",
-        "incomplete_reason_text",
-        "exempt_reason_text",
-        mode="after",
-    )(_validate_quarterly_conditional_field)
+    completed: bool = False
 
 
 class StaffQuarterlyConsultationUpdateRequest(StrictModel):
-    status: QuarterlyConsultationStatus = Field(
-        description="COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields."
-    )
-    counseling_date: Annotated[date | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        description="Required only for COMPLETE; empty for INCOMPLETE and EXEMPT.",
-        validate_default=True,
-    )
-    content: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        min_length=1,
-        max_length=4000,
-        description="Required and nonblank only for COMPLETE; empty otherwise.",
-        validate_default=True,
-    )
-    incomplete_reason_text: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = (
-        Field(
-            default=None,
-            min_length=1,
-            max_length=4000,
-            description="Required and nonblank only for INCOMPLETE; empty otherwise.",
-            validate_default=True,
-        )
-    )
-    exempt_reason_text: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        min_length=1,
-        max_length=4000,
-        description="Required and nonblank only for EXEMPT; empty otherwise.",
-        validate_default=True,
-    )
+    completed: bool
     expected_row_version: PositiveVersion
-
-    _validate_conditionals = field_validator(
-        "counseling_date",
-        "content",
-        "incomplete_reason_text",
-        "exempt_reason_text",
-        mode="after",
-    )(_validate_quarterly_conditional_field)
-
-
-class StaffQuarterlyConsultationReplaceRequest(StrictModel):
-    status: QuarterlyConsultationStatus = Field(
-        description="Replacement status: COMPLETE, INCOMPLETE, or EXEMPT."
-    )
-    counseling_date: Annotated[date | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        description="Required only for COMPLETE; empty for INCOMPLETE and EXEMPT.",
-        validate_default=True,
-    )
-    content: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        min_length=1,
-        max_length=4000,
-        description="Required and nonblank only for COMPLETE; empty otherwise.",
-        validate_default=True,
-    )
-    incomplete_reason_text: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = (
-        Field(
-            default=None,
-            min_length=1,
-            max_length=4000,
-            description="Required and nonblank only for INCOMPLETE; empty otherwise.",
-            validate_default=True,
-        )
-    )
-    exempt_reason_text: Annotated[str | None, BeforeValidator(_normalize_quarterly_text)] = Field(
-        default=None,
-        min_length=1,
-        max_length=4000,
-        description="Required and nonblank only for EXEMPT; empty for other statuses.",
-        validate_default=True,
-    )
-    expected_row_version: PositiveVersion
-
-    _validate_conditionals = field_validator(
-        "counseling_date",
-        "content",
-        "incomplete_reason_text",
-        "exempt_reason_text",
-        mode="after",
-    )(_validate_quarterly_conditional_field)
 
 
 class StaffQuarterlyConsultationResponse(StrictModel):
@@ -743,21 +508,7 @@ class StaffQuarterlyConsultationResponse(StrictModel):
     staff_id: int
     calendar_year: int
     quarter_no: int
-    status: QuarterlyConsultationStatus = Field(
-        description="COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields."
-    )
-    counseling_date: date | None = Field(description="Present only for COMPLETE consultations.")
-    content: str | None = Field(
-        description="Nonblank consultation content only for COMPLETE consultations."
-    )
-    incomplete_reason_text: str | None = Field(
-        description="Nonblank reason only for INCOMPLETE consultations."
-    )
-    exempt_reason_text: str | None = Field(
-        description="Nonblank reason only for EXEMPT consultations."
-    )
-    invalidated_at_utc: datetime | None
-    replacement_staff_quarterly_consultation_id: int | None
+    completed: bool
     created_by_account_id: int
     created_at_utc: datetime
     updated_by_account_id: int

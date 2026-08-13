@@ -1,6 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router';
+import { PersonalTodoPanel } from '../components/schedule/PersonalTodoPanel';
+import { ScheduleLedger } from '../components/schedule/ScheduleLedger';
 import { SCHEDULE_TYPES, type ScheduleKind } from '../components/schedule/schedulePopups';
+import { useAuthSafe } from '../context/useAuth';
 import { getMonthlyColorToken } from '../design-system/tokens';
 
 function currentMonthKey(): string {
@@ -19,23 +22,14 @@ function moveMonth(monthKey: string, offset: number): string {
   return `${moved.getFullYear()}-${String(moved.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function monthCells(monthKey: string): Array<number | null> {
-  const [year, month] = monthKey.split('-').map(Number);
-  const firstDay = new Date(year, month - 1, 1).getDay();
-  const lastDate = new Date(year, month, 0).getDate();
-  const cells: Array<number | null> = Array.from({ length: firstDay }, () => null);
-  for (let day = 1; day <= lastDate; day += 1) cells.push(day);
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
 export const SchedulePopupPage = () => {
+  const { user } = useAuthSafe();
   const { scheduleKind } = useParams<{ scheduleKind: ScheduleKind }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const monthKey = normalizedMonth(searchParams.get('month'));
   const scheduleType = SCHEDULE_TYPES.find((item) => item.kind === scheduleKind);
-  const cells = useMemo(() => monthCells(monthKey), [monthKey]);
   const monthNumber = Number(monthKey.slice(5, 7));
+  const showPersonalTodos = scheduleKind === 'social-worker' && user?.role_code !== 'ADMIN';
 
   useEffect(() => {
     const token = getMonthlyColorToken(monthNumber);
@@ -43,7 +37,7 @@ export const SchedulePopupPage = () => {
     document.documentElement.dataset.themeMonth = String(monthNumber);
   }, [monthNumber]);
 
-  if (!scheduleType) {
+  if (!scheduleType || !scheduleKind) {
     return <main className="schedule-popup-page">일정표 종류를 확인해주세요.</main>;
   }
 
@@ -58,34 +52,19 @@ export const SchedulePopupPage = () => {
           <span>{scheduleType.label}</span>
           <h1>월간 일정표</h1>
         </div>
-        <button type="button" onClick={() => window.close()} aria-label="일정표 닫기">
-          닫기
-        </button>
+        <button type="button" onClick={() => window.close()} aria-label="일정표 닫기">닫기</button>
       </header>
 
       <div className="schedule-popup-toolbar">
-        <button type="button" onClick={() => changeMonth(-1)} aria-label="이전 달">
-          ←
-        </button>
+        <button type="button" onClick={() => changeMonth(-1)} aria-label="이전 달">←</button>
         <strong>{monthKey.replace('-', '년 ')}월</strong>
-        <button type="button" onClick={() => changeMonth(1)} aria-label="다음 달">
-          →
-        </button>
+        <button type="button" onClick={() => changeMonth(1)} aria-label="다음 달">→</button>
       </div>
 
-      <section className="schedule-calendar" aria-label={`${scheduleType.label} ${monthKey} 일정`}>
-        <div className="schedule-weekdays" aria-hidden="true">
-          {['일', '월', '화', '수', '목', '금', '토'].map((day) => <span key={day}>{day}</span>)}
-        </div>
-        <div className="schedule-calendar-grid">
-          {cells.map((day, index) => (
-            <div className={day === null ? 'is-empty' : ''} key={`${monthKey}-${index}`}>
-              {day === null ? null : <span>{day}</span>}
-            </div>
-          ))}
-        </div>
-      </section>
-      <p className="schedule-popup-empty">등록된 일정이 없습니다.</p>
+      <div className={`schedule-popup-layout${showPersonalTodos ? ' has-personal-todos' : ''}`}>
+        <ScheduleLedger kind={scheduleKind} month={monthKey} />
+        {showPersonalTodos && <PersonalTodoPanel />}
+      </div>
     </main>
   );
 };

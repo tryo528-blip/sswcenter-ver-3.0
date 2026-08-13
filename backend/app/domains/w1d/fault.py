@@ -1,4 +1,4 @@
-"""Fault-injection seam for deterministic transition apply RED labels."""
+"""Fault-injection seam for contract transaction rollback tests."""
 
 from __future__ import annotations
 

@@ -8,28 +8,69 @@ type PeriodId = number | string;
 export type CertificationIdentity = Schemas['CertificationIdentityResponse'];
 export type CertificationIdentityCreateRequest =
   Schemas['CertificationIdentityCreateRequest'];
-export type CertificationPeriod = Schemas['CertificationPeriodResponse'];
-export type CertificationPeriodCreateRequest =
-  Schemas['CertificationPeriodCreateRequest'];
-export type CertificationPeriodReplacementRequest =
-  Schemas['CertificationPeriodReplacementRequest'];
-export type CertificationPeriodReplacementResponse =
-  Schemas['CertificationPeriodReplacementResponse'];
-export type GradePeriod = Schemas['GradePeriodResponse'];
-export type GradePeriodCreateRequest = Schemas['GradePeriodCreateRequest'];
-export type GradePeriodReplacementRequest =
-  Schemas['GradePeriodReplacementRequest'];
-export type GradePeriodReplacementResponse =
-  Schemas['GradePeriodReplacementResponse'];
-export type GradeCode = Schemas['GradeCode'];
-export type BenefitPeriod = Schemas['BenefitPeriodResponse'];
-export type BenefitPeriodCreateRequest = Schemas['BenefitPeriodCreateRequest'];
-export type BenefitPeriodReplacementRequest =
-  Schemas['BenefitPeriodReplacementRequest'];
-export type BenefitPeriodReplacementResponse =
-  Schemas['BenefitPeriodReplacementResponse'];
-export type BenefitCode = Schemas['BenefitCode'];
-export type EffectiveBenefit = Schemas['EffectiveBenefitResponse'];
+export type GradeCode = '1' | '2' | '3' | '4' | '5';
+export type BenefitCode =
+  | 'GENERAL'
+  | 'BASIC_LIVELIHOOD'
+  | 'REDUCTION_6'
+  | 'REDUCTION_9'
+  | 'MEDICAL_6'
+  | 'MEDICAL_9';
+
+// Current backend W1 certification schema keeps grade on the certification period.
+export interface CertificationPeriodCreateRequest {
+  grade_code: GradeCode;
+  start_date: string;
+  end_date: string;
+}
+
+export interface CertificationPeriodReplacementRequest
+  extends CertificationPeriodCreateRequest {
+  expected_row_version: number;
+}
+
+export interface CertificationPeriod {
+  id: number;
+  recipient_id: number;
+  grade_code: GradeCode;
+  start_date: string;
+  end_date: string;
+  invalidated_at_utc: string | null;
+  replacement_certification_period_id: number | null;
+  row_version: number;
+}
+
+export interface CertificationPeriodReplacementResponse {
+  original: CertificationPeriod;
+  replacement: CertificationPeriod;
+}
+
+// start_text is opaque display text. It is never parsed, ordered, or validated
+// as a date by the frontend.
+export interface BenefitPeriodCreateRequest {
+  benefit_code: BenefitCode;
+  start_text?: string;
+}
+
+export interface BenefitPeriodReplacementRequest
+  extends BenefitPeriodCreateRequest {
+  expected_row_version: number;
+}
+
+export interface BenefitPeriod {
+  id: number;
+  recipient_id: number;
+  benefit_code: BenefitCode;
+  start_text: string;
+  invalidated_at_utc: string | null;
+  replacement_benefit_period_id: number | null;
+  row_version: number;
+}
+
+export interface BenefitPeriodReplacementResponse {
+  original: BenefitPeriod;
+  replacement: BenefitPeriod;
+}
 type GeneratedApprovalAmountPeriod = Schemas['ApprovalAmountPeriodResponse'];
 export type ApprovalAmountPeriod = Omit<
   GeneratedApprovalAmountPeriod,
@@ -188,7 +229,7 @@ export async function listCertificationPeriods(
   recipientId: RecipientId,
   signal?: AbortSignal,
 ): Promise<CertificationPeriod[]> {
-  const response = await apiRequest<Schemas['CertificationPeriodListResponse']>(
+  const response = await apiRequest<{ items: CertificationPeriod[] }>(
     collectionPath(recipientId, 'certification-periods'),
     { method: 'GET', signal },
   );
@@ -230,58 +271,11 @@ export function replaceCertificationPeriod(
   );
 }
 
-export async function listGradePeriods(
-  recipientId: RecipientId,
-  signal?: AbortSignal,
-): Promise<GradePeriod[]> {
-  const response = await apiRequest<Schemas['GradePeriodListResponse']>(
-    collectionPath(recipientId, 'grade-periods'),
-    { method: 'GET', signal },
-  );
-  return response.items;
-}
-
-export function createGradePeriod(
-  recipientId: RecipientId,
-  payload: GradePeriodCreateRequest,
-  signal?: AbortSignal,
-): Promise<GradePeriod> {
-  return apiRequest<GradePeriod>(collectionPath(recipientId, 'grade-periods'), {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    signal,
-  });
-}
-
-export function invalidateGradePeriod(
-  recipientId: RecipientId,
-  periodId: PeriodId,
-  payload: HistoryInvalidateRequest,
-  signal?: AbortSignal,
-): Promise<GradePeriod> {
-  return apiRequest<GradePeriod>(
-    `${periodPath(recipientId, 'grade-periods', periodId)}/invalidate`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function replaceGradePeriod(
-  recipientId: RecipientId,
-  periodId: PeriodId,
-  payload: GradePeriodReplacementRequest,
-  signal?: AbortSignal,
-): Promise<GradePeriodReplacementResponse> {
-  return apiRequest<GradePeriodReplacementResponse>(
-    `${periodPath(recipientId, 'grade-periods', periodId)}/replacements`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
 export async function listBenefitPeriods(
   recipientId: RecipientId,
   signal?: AbortSignal,
 ): Promise<BenefitPeriod[]> {
-  const response = await apiRequest<Schemas['BenefitPeriodListResponse']>(
+  const response = await apiRequest<{ items: BenefitPeriod[] }>(
     collectionPath(recipientId, 'benefit-periods'),
     { method: 'GET', signal },
   );
@@ -298,18 +292,6 @@ export function createBenefitPeriod(
     body: JSON.stringify(payload),
     signal,
   });
-}
-
-export function getEffectiveBenefit(
-  recipientId: RecipientId,
-  onDate: string,
-  signal?: AbortSignal,
-): Promise<EffectiveBenefit> {
-  const query = new URLSearchParams({ on_date: onDate });
-  return apiRequest<EffectiveBenefit>(
-    `${collectionPath(recipientId, 'benefit-periods')}/effective?${query.toString()}`,
-    { method: 'GET', signal },
-  );
 }
 
 export function invalidateBenefitPeriod(

@@ -24,20 +24,6 @@ from app.domains.recipient.schemas import (
     GuardianListResponse,
     GuardianResponse,
     GuardianUpdateRequest,
-    HistoryInvalidateRequest,
-    PayerSnapshotCreateRequest,
-    PayerSnapshotListResponse,
-    PayerSnapshotReplacementRequest,
-    PayerSnapshotReplacementResponse,
-    PayerSnapshotResponse,
-    PlanNotificationCreateRequest,
-    PlanNotificationListResponse,
-    PlanNotificationResponse,
-    PrimaryGuardianPeriodCreateRequest,
-    PrimaryGuardianPeriodListResponse,
-    PrimaryGuardianPeriodReplacementRequest,
-    PrimaryGuardianPeriodReplacementResponse,
-    PrimaryGuardianPeriodResponse,
     RecipientCreateRequest,
     RecipientDeadlineListResponse,
     RecipientErrorEnvelope,
@@ -82,9 +68,9 @@ def list_recipients(
     current_account: RecipientViewAccountDependency,
     service: RecipientServiceDependency,
     search: str | None = Query(default=None, max_length=200),
-    status: Annotated[
+    status_filter: Annotated[
         RecipientListStatusFilter,
-        Query(),
+        Query(alias="status"),
     ] = RecipientListStatusFilter.ALL,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
@@ -92,7 +78,7 @@ def list_recipients(
     del current_account
     return service.list_recipients(
         search=search,
-        status=status,
+        status=status_filter,
         page=page,
         page_size=page_size,
     )
@@ -198,225 +184,6 @@ def update_guardian(
     return service.update_guardian(
         recipient_id,
         guardian_id,
-        payload,
-        current_account,
-    )
-
-
-@router.get(
-    "/recipients/{recipient_id}/primary-guardian-periods",
-    response_model=PrimaryGuardianPeriodListResponse,
-    responses=ERROR_RESPONSES,
-)
-def list_primary_guardian_periods(
-    recipient_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: RecipientServiceDependency,
-) -> PrimaryGuardianPeriodListResponse:
-    del current_account
-    return service.list_primary_periods(recipient_id)
-
-
-@router.post(
-    "/recipients/{recipient_id}/primary-guardian-periods",
-    response_model=PrimaryGuardianPeriodResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def create_primary_guardian_period(
-    recipient_id: int,
-    payload: PrimaryGuardianPeriodCreateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PrimaryGuardianPeriodResponse:
-    return service.create_primary_period(recipient_id, payload, current_account)
-
-
-@router.get(
-    "/recipients/{recipient_id}/primary-guardian-periods/{period_id}",
-    response_model=PrimaryGuardianPeriodResponse,
-    responses=ERROR_RESPONSES,
-)
-def get_primary_guardian_period(
-    recipient_id: int,
-    period_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: RecipientServiceDependency,
-) -> PrimaryGuardianPeriodResponse:
-    del current_account
-    return service.get_primary_period(recipient_id, period_id)
-
-
-@router.post(
-    "/recipients/{recipient_id}/primary-guardian-periods/{period_id}/invalidate",
-    response_model=PrimaryGuardianPeriodResponse,
-    responses=ERROR_RESPONSES,
-)
-def invalidate_primary_guardian_period(
-    recipient_id: int,
-    period_id: int,
-    payload: HistoryInvalidateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PrimaryGuardianPeriodResponse:
-    return service.invalidate_primary_period(
-        recipient_id,
-        period_id,
-        payload,
-        current_account,
-    )
-
-
-@router.post(
-    "/recipients/{recipient_id}/primary-guardian-periods/{period_id}/replacements",
-    response_model=PrimaryGuardianPeriodReplacementResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def replace_primary_guardian_period(
-    recipient_id: int,
-    period_id: int,
-    payload: PrimaryGuardianPeriodReplacementRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PrimaryGuardianPeriodReplacementResponse:
-    return service.replace_primary_period(
-        recipient_id,
-        period_id,
-        payload,
-        current_account,
-    )
-
-
-@router.get(
-    "/recipients/{recipient_id}/payer-snapshots",
-    response_model=PayerSnapshotListResponse,
-    responses=ERROR_RESPONSES,
-)
-def list_payer_snapshots(
-    recipient_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: RecipientServiceDependency,
-) -> PayerSnapshotListResponse:
-    del current_account
-    return service.list_payer_snapshots(recipient_id)
-
-
-@router.post(
-    "/recipients/{recipient_id}/payer-snapshots",
-    response_model=PayerSnapshotResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def create_payer_snapshot(
-    recipient_id: int,
-    payload: PayerSnapshotCreateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PayerSnapshotResponse:
-    return service.create_payer_snapshot(recipient_id, payload, current_account)
-
-
-@router.get(
-    "/recipients/{recipient_id}/payer-snapshots/{snapshot_id}",
-    response_model=PayerSnapshotResponse,
-    responses=ERROR_RESPONSES,
-)
-def get_payer_snapshot(
-    recipient_id: int,
-    snapshot_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: RecipientServiceDependency,
-) -> PayerSnapshotResponse:
-    del current_account
-    return service.get_payer_snapshot(recipient_id, snapshot_id)
-
-
-@router.post(
-    "/recipients/{recipient_id}/payer-snapshots/{snapshot_id}/invalidate",
-    response_model=PayerSnapshotResponse,
-    responses=ERROR_RESPONSES,
-)
-def invalidate_payer_snapshot(
-    recipient_id: int,
-    snapshot_id: int,
-    payload: HistoryInvalidateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PayerSnapshotResponse:
-    return service.invalidate_payer_snapshot(
-        recipient_id,
-        snapshot_id,
-        payload,
-        current_account,
-    )
-
-
-@router.post(
-    "/recipients/{recipient_id}/payer-snapshots/{snapshot_id}/replacements",
-    response_model=PayerSnapshotReplacementResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def replace_payer_snapshot(
-    recipient_id: int,
-    snapshot_id: int,
-    payload: PayerSnapshotReplacementRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PayerSnapshotReplacementResponse:
-    return service.replace_payer_snapshot(
-        recipient_id,
-        snapshot_id,
-        payload,
-        current_account,
-    )
-
-
-@router.post(
-    "/recipients/{recipient_id}/plan-notifications",
-    response_model=PlanNotificationResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def create_plan_notification(
-    recipient_id: int,
-    payload: PlanNotificationCreateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PlanNotificationResponse:
-    return service.create_plan_notification(recipient_id, payload, current_account)
-
-
-@router.get(
-    "/recipients/{recipient_id}/plan-notifications",
-    response_model=PlanNotificationListResponse,
-    responses=ERROR_RESPONSES,
-)
-def list_plan_notifications(
-    recipient_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: RecipientServiceDependency,
-) -> PlanNotificationListResponse:
-    del current_account
-    return service.list_plan_notifications(recipient_id)
-
-
-@router.post(
-    "/recipients/{recipient_id}/plan-notifications/{notification_id}/invalidate",
-    response_model=PlanNotificationResponse,
-    responses=ERROR_RESPONSES,
-)
-def invalidate_plan_notification(
-    recipient_id: int,
-    notification_id: int,
-    payload: HistoryInvalidateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: RecipientServiceDependency,
-) -> PlanNotificationResponse:
-    return service.invalidate_plan_notification(
-        recipient_id,
-        notification_id,
         payload,
         current_account,
     )

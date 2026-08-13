@@ -469,57 +469,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/staff/{staff_id}/health-check-requirements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Health Check Requirements */
-        get: operations["list_health_check_requirements_api_v1_staff__staff_id__health_check_requirements_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/staff/{staff_id}/health-check-requirements/{requirement_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Health Check Requirement */
-        patch: operations["update_health_check_requirement_api_v1_staff__staff_id__health_check_requirements__requirement_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/staff/{staff_id}/health-check-requirements/{requirement_id}/invalidate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invalidate Health Check Requirement */
-        post: operations["invalidate_health_check_requirement_api_v1_staff__staff_id__health_check_requirements__requirement_id__invalidate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/staff/{staff_id}/quarterly-consultations": {
         parameters: {
             query?: never;
@@ -553,23 +502,6 @@ export interface paths {
         head?: never;
         /** Update Quarterly Consultation */
         patch: operations["update_quarterly_consultation_api_v1_staff__staff_id__quarterly_consultations__consultation_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/staff/{staff_id}/quarterly-consultations/{consultation_id}/invalidate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invalidate Quarterly Consultation */
-        post: operations["invalidate_quarterly_consultation_api_v1_staff__staff_id__quarterly_consultations__consultation_id__invalidate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/staff/{staff_id}/employments": {
@@ -848,179 +780,6 @@ export interface paths {
         patch: operations["update_guardian_api_v1_recipients__recipient_id__guardians__guardian_id__patch"];
         trace?: never;
     };
-    "/api/v1/recipients/{recipient_id}/primary-guardian-periods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Primary Guardian Periods */
-        get: operations["list_primary_guardian_periods_api_v1_recipients__recipient_id__primary_guardian_periods_get"];
-        put?: never;
-        /** Create Primary Guardian Period */
-        post: operations["create_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/primary-guardian-periods/{period_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Primary Guardian Period */
-        get: operations["get_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods__period_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/primary-guardian-periods/{period_id}/invalidate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invalidate Primary Guardian Period */
-        post: operations["invalidate_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods__period_id__invalidate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/primary-guardian-periods/{period_id}/replacements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Replace Primary Guardian Period */
-        post: operations["replace_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods__period_id__replacements_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/payer-snapshots": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Payer Snapshots */
-        get: operations["list_payer_snapshots_api_v1_recipients__recipient_id__payer_snapshots_get"];
-        put?: never;
-        /** Create Payer Snapshot */
-        post: operations["create_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/payer-snapshots/{snapshot_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Payer Snapshot */
-        get: operations["get_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots__snapshot_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/payer-snapshots/{snapshot_id}/invalidate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invalidate Payer Snapshot */
-        post: operations["invalidate_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots__snapshot_id__invalidate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/payer-snapshots/{snapshot_id}/replacements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Replace Payer Snapshot */
-        post: operations["replace_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots__snapshot_id__replacements_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/plan-notifications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Plan Notifications */
-        get: operations["list_plan_notifications_api_v1_recipients__recipient_id__plan_notifications_get"];
-        put?: never;
-        /** Create Plan Notification */
-        post: operations["create_plan_notification_api_v1_recipients__recipient_id__plan_notifications_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/plan-notifications/{notification_id}/invalidate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invalidate Plan Notification */
-        post: operations["invalidate_plan_notification_api_v1_recipients__recipient_id__plan_notifications__notification_id__invalidate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/recipients/{recipient_id}/detail-batch": {
         parameters: {
             query?: never;
@@ -1142,58 +901,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/recipients/{recipient_id}/grade-periods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Grade Periods */
-        get: operations["list_grade_periods_api_v1_recipients__recipient_id__grade_periods_get"];
-        put?: never;
-        /** Create Grade Period */
-        post: operations["create_grade_period_api_v1_recipients__recipient_id__grade_periods_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/grade-periods/{period_id}/invalidate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invalidate Grade Period */
-        post: operations["invalidate_grade_period_api_v1_recipients__recipient_id__grade_periods__period_id__invalidate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/grade-periods/{period_id}/replacements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Replace Grade Period */
-        post: operations["replace_grade_period_api_v1_recipients__recipient_id__grade_periods__period_id__replacements_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/recipients/{recipient_id}/benefit-periods": {
         parameters: {
             query?: never;
@@ -1206,23 +913,6 @@ export interface paths {
         put?: never;
         /** Create Benefit Period */
         post: operations["create_benefit_period_api_v1_recipients__recipient_id__benefit_periods_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/recipients/{recipient_id}/benefit-periods/effective": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Effective Benefit */
-        get: operations["get_effective_benefit_api_v1_recipients__recipient_id__benefit_periods_effective_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1325,10 +1015,7 @@ export interface paths {
         /** List Recipient Contracts */
         get: operations["listRecipientContracts"];
         put?: never;
-        /**
-         * Create Recipient Contract
-         * @description Create a service contract. Errors: CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN.
-         */
+        /** Create Recipient Contract */
         post: operations["createRecipientContract"];
         delete?: never;
         options?: never;
@@ -1370,24 +1057,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/recipients/{recipient_id}/certification-transitions/preview": {
+    "/api/v1/professional-assignments/{recipient_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Professional Assignments */
+        get: operations["listW2ProfessionalAssignmentHistory"];
         put?: never;
-        /** Preview Certification Transition */
-        post: operations["previewCertificationTransition"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/recipients/{recipient_id}/certification-transitions/apply": {
+    "/api/v1/professional-assignments/{recipient_id}/{service_month}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1396,11 +1083,200 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Apply Certification Transition
-         * @description Apply a certification transition. Errors: CERTIFICATION_TRANSITION_STALE, CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED, CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH, CERTIFICATION_TRANSITION_TOKEN_INVALID, CERTIFICATION_TRANSITION_PREVIEW_REQUIRED.
-         */
-        post: operations["applyCertificationTransition"];
+        /** Create Professional Assignment */
+        post: operations["createW2ProfessionalAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/professional-assignments/{recipient_id}/{service_month}/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Professional Assignment */
+        put: operations["replaceW2ProfessionalAssignment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipients/{recipient_id}/service-plan-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Service Plan Notices */
+        get: operations["listW2ServicePlanNotices"];
+        put?: never;
+        /** Create Service Plan Notice */
+        post: operations["createW2ServicePlanNotice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipients/{recipient_id}/service-plan-notices/{notice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Service Plan Notice */
+        put: operations["replaceW2ServicePlanNotice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Schedules */
+        get: operations["listW2Schedules"];
+        put?: never;
+        /** Create Schedule */
+        post: operations["createW2Schedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/schedules/{schedule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Schedule */
+        put: operations["replaceW2Schedule"];
+        post?: never;
+        /** Delete Schedule */
+        delete: operations["deleteW2Schedule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/schedule-months/{schedule_month}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize Schedule Month */
+        post: operations["finalizeW2ScheduleMonth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/personal-todos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Personal Todos */
+        get: operations["listW2PersonalTodos"];
+        put?: never;
+        /** Create Personal Todo */
+        post: operations["createW2PersonalTodo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/personal-todos/{todo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Personal Todo */
+        delete: operations["deleteW2PersonalTodo"];
+        options?: never;
+        head?: never;
+        /** Update Personal Todo */
+        patch: operations["updateW2PersonalTodo"];
+        trace?: never;
+    };
+    "/api/v1/personal-todos/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reorder Personal Todos */
+        post: operations["reorderW2PersonalTodos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/official-work-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Official Work Cards */
+        get: operations["listW2OfficialWorkCards"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/official-work-cards/{card_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Official Work Card */
+        post: operations["closeW2OfficialWorkCard"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1506,12 +1382,10 @@ export interface components {
         BenefitPeriodCreateRequest: {
             benefit_code: components["schemas"]["BenefitCode"];
             /**
-             * Start Date
-             * Format: date
+             * Start Text
+             * @default
              */
-            start_date: string;
-            /** End Date */
-            end_date?: string | null;
+            start_text: string;
         };
         /** BenefitPeriodListResponse */
         BenefitPeriodListResponse: {
@@ -1529,12 +1403,10 @@ export interface components {
         BenefitPeriodReplacementRequest: {
             benefit_code: components["schemas"]["BenefitCode"];
             /**
-             * Start Date
-             * Format: date
+             * Start Text
+             * @default
              */
-            start_date: string;
-            /** End Date */
-            end_date?: string | null;
+            start_text: string;
             /** Expected Row Version */
             expected_row_version: number;
         };
@@ -1550,13 +1422,8 @@ export interface components {
             /** Recipient Id */
             recipient_id: number;
             benefit_code: components["schemas"]["BenefitCode"];
-            /**
-             * Start Date
-             * Format: date
-             */
-            start_date: string;
-            /** End Date */
-            end_date: string | null;
+            /** Start Text */
+            start_text: string;
             /** Invalidated At Utc */
             invalidated_at_utc: string | null;
             /** Replacement Benefit Period Id */
@@ -1608,6 +1475,7 @@ export interface components {
         };
         /** CertificationPeriodCreateRequest */
         CertificationPeriodCreateRequest: {
+            grade_code: components["schemas"]["GradeCode"];
             /**
              * Start Date
              * Format: date
@@ -1633,6 +1501,7 @@ export interface components {
         };
         /** CertificationPeriodReplacementRequest */
         CertificationPeriodReplacementRequest: {
+            grade_code: components["schemas"]["GradeCode"];
             /**
              * Start Date
              * Format: date
@@ -1657,6 +1526,7 @@ export interface components {
             id: number;
             /** Recipient Id */
             recipient_id: number;
+            grade_code: components["schemas"]["GradeCode"];
             /**
              * Start Date
              * Format: date
@@ -1673,98 +1543,6 @@ export interface components {
             replacement_certification_period_id: number | null;
             /** Row Version */
             row_version: number;
-        };
-        /** CertificationTransitionApplyRequest */
-        CertificationTransitionApplyRequest: {
-            /** Preview Token */
-            preview_token: string | null;
-            /** Confirmed */
-            confirmed: boolean;
-            /** Replacement Contracts */
-            replacement_contracts: components["schemas"]["TransitionReplacementItem"][];
-        };
-        /** CertificationTransitionApplyResponse */
-        CertificationTransitionApplyResponse: {
-            /**
-             * Recipient Id
-             * Format: int64
-             */
-            recipient_id: number;
-            /** Ended Certification Period Ids */
-            ended_certification_period_ids: number[];
-            /** Ended Grade Period Ids */
-            ended_grade_period_ids: number[];
-            /** Ended Contract Ids */
-            ended_contract_ids: number[];
-            /**
-             * New Certification Period Id
-             * Format: int64
-             */
-            new_certification_period_id: number;
-            /**
-             * New Grade Period Id
-             * Format: int64
-             */
-            new_grade_period_id: number;
-            /** New Contract Ids */
-            new_contract_ids: number[];
-            /**
-             * Audit Correlation Id
-             * Format: uuid
-             */
-            audit_correlation_id: string;
-            /** Recipient No */
-            recipient_no: string;
-        };
-        /** CertificationTransitionPreviewRequest */
-        CertificationTransitionPreviewRequest: {
-            /**
-             * New Start Date
-             * Format: date
-             */
-            new_start_date: string;
-            /**
-             * New End Date
-             * Format: date
-             */
-            new_end_date: string;
-            new_grade_code: components["schemas"]["GradeCode"];
-            /**
-             * New Grade Start Date
-             * Format: date
-             */
-            new_grade_start_date: string;
-            /**
-             * New Grade End Date
-             * Format: date
-             */
-            new_grade_end_date: string;
-            /** Replacement Contracts */
-            replacement_contracts: components["schemas"]["TransitionReplacementItem"][];
-        };
-        /** CertificationTransitionPreviewResponse */
-        CertificationTransitionPreviewResponse: {
-            /** Preview Token */
-            preview_token: string;
-            /** Canonical Hash */
-            canonical_hash: string;
-            /** Serialization Version */
-            serialization_version: string;
-            /**
-             * Proposed End Date
-             * Format: date
-             */
-            proposed_end_date: string;
-            /** Affected Certification Period Ids */
-            affected_certification_period_ids: number[];
-            /** Affected Grade Period Ids */
-            affected_grade_period_ids: number[];
-            /** Affected Contract Ids */
-            affected_contract_ids: number[];
-            /** Service Multiset */
-            service_multiset: string[];
-            /** Replacement Preview */
-            replacement_preview: components["schemas"]["ReplacementPreviewItem"][];
         };
         /** ChildPeriodVersion */
         ChildPeriodVersion: {
@@ -1785,12 +1563,6 @@ export interface components {
             end_date?: string | null;
             /** Service Start Date */
             service_start_date?: string | null;
-            /** Signer Name */
-            signer_name?: string | null;
-            /** Signer Relationship Text */
-            signer_relationship_text?: string | null;
-            /** Signer Phone */
-            signer_phone?: string | null;
             /** End Reason Text */
             end_reason_text?: string | null;
         };
@@ -1836,12 +1608,6 @@ export interface components {
             end_date: string | null;
             /** Service Start Date */
             service_start_date: string | null;
-            /** Signer Name */
-            signer_name: string | null;
-            /** Signer Relationship Text */
-            signer_relationship_text: string | null;
-            /** Signer Phone */
-            signer_phone: string | null;
             /** End Reason Text */
             end_reason_text: string | null;
             /** Invalidated At Utc */
@@ -1850,15 +1616,6 @@ export interface components {
             replacement_contract_id: number | null;
             /** Row Version */
             row_version: number;
-        };
-        /** EffectiveBenefitResponse */
-        EffectiveBenefitResponse: {
-            /**
-             * On Date
-             * Format: date
-             */
-            on_date: string;
-            item: components["schemas"]["BenefitPeriodResponse"] | null;
         };
         /**
          * EmploymentStatus
@@ -1915,87 +1672,10 @@ export interface components {
          * @enum {string}
          */
         GradeCode: "1" | "2" | "3" | "4" | "5";
-        /** GradePeriodCreateRequest */
-        GradePeriodCreateRequest: {
-            /** Certification Period Id */
-            certification_period_id: number;
-            grade_code: components["schemas"]["GradeCode"];
-            /**
-             * Start Date
-             * Format: date
-             */
-            start_date: string;
-            /**
-             * End Date
-             * Format: date
-             */
-            end_date: string;
-        };
-        /** GradePeriodListResponse */
-        GradePeriodListResponse: {
-            /** Items */
-            items: components["schemas"]["GradePeriodResponse"][];
-        };
-        /** GradePeriodMutation */
-        GradePeriodMutation: {
-            /** Period Id */
-            period_id?: number | null;
-            /** Payload */
-            payload: components["schemas"]["GradePeriodCreateRequest"] | components["schemas"]["GradePeriodReplacementRequest"];
-        };
-        /** GradePeriodReplacementRequest */
-        GradePeriodReplacementRequest: {
-            /** Certification Period Id */
-            certification_period_id: number;
-            grade_code: components["schemas"]["GradeCode"];
-            /**
-             * Start Date
-             * Format: date
-             */
-            start_date: string;
-            /**
-             * End Date
-             * Format: date
-             */
-            end_date: string;
-            /** Expected Row Version */
-            expected_row_version: number;
-        };
-        /** GradePeriodReplacementResponse */
-        GradePeriodReplacementResponse: {
-            original: components["schemas"]["GradePeriodResponse"];
-            replacement: components["schemas"]["GradePeriodResponse"];
-        };
-        /** GradePeriodResponse */
-        GradePeriodResponse: {
-            /** Id */
-            id: number;
-            /** Recipient Id */
-            recipient_id: number;
-            /** Certification Period Id */
-            certification_period_id: number;
-            grade_code: components["schemas"]["GradeCode"];
-            /**
-             * Start Date
-             * Format: date
-             */
-            start_date: string;
-            /**
-             * End Date
-             * Format: date
-             */
-            end_date: string;
-            /** Invalidated At Utc */
-            invalidated_at_utc: string | null;
-            /** Replacement Grade Period Id */
-            replacement_grade_period_id: number | null;
-            /** Row Version */
-            row_version: number;
-        };
         /** GuardianCreateRequest */
         GuardianCreateRequest: {
             /** Name */
-            name: string;
+            name?: string | null;
             /** Phone */
             phone?: string | null;
             /** Email */
@@ -2016,8 +1696,13 @@ export interface components {
             id: number;
             /** Recipient Id */
             recipient_id: number;
+            /**
+             * Slot No
+             * @enum {integer}
+             */
+            slot_no: 1 | 2;
             /** Name */
-            name: string;
+            name: string | null;
             /** Phone */
             phone: string | null;
             /** Email */
@@ -2049,11 +1734,6 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /**
-         * HealthCheckRequirementStatus
-         * @enum {string}
-         */
-        HealthCheckRequirementStatus: "COMPLETE" | "INCOMPLETE" | "EXEMPT";
         /** HistoryInvalidateRequest */
         HistoryInvalidateRequest: {
             /** Expected Row Version */
@@ -2115,179 +1795,223 @@ export interface components {
             /** Pin */
             pin: string;
         };
-        /** PayerSnapshotCreateRequest */
-        PayerSnapshotCreateRequest: {
-            /** Name */
-            name: string;
-            /**
-             * Start Date
-             * Format: date
-             */
-            start_date: string;
-            /** Phone */
-            phone?: string | null;
-            /** Address */
-            address?: string | null;
-            /** Relationship Text */
-            relationship_text?: string | null;
-            /** End Date */
-            end_date?: string | null;
-        };
-        /** PayerSnapshotListResponse */
-        PayerSnapshotListResponse: {
-            /** Items */
-            items: components["schemas"]["PayerSnapshotResponse"][];
-        };
-        /** PayerSnapshotReplacementRequest */
-        PayerSnapshotReplacementRequest: {
+        /** OfficialWorkCardCloseRequest */
+        OfficialWorkCardCloseRequest: {
             /** Expected Row Version */
             expected_row_version: number;
-            /** Name */
-            name: string;
+        };
+        /** OfficialWorkCardDisplay */
+        OfficialWorkCardDisplay: {
+            /** Work Title */
+            work_title: string;
+            /** Target Name */
+            target_name: string;
+            /** Detail */
+            detail: string;
             /**
-             * Start Date
+             * Due Date
              * Format: date
              */
-            start_date: string;
-            /** Phone */
-            phone?: string | null;
-            /** Address */
-            address?: string | null;
-            /** Relationship Text */
-            relationship_text?: string | null;
-            /** End Date */
-            end_date?: string | null;
+            due_date: string;
+            /** D Day */
+            d_day: number;
         };
-        /** PayerSnapshotReplacementResponse */
-        PayerSnapshotReplacementResponse: {
-            original: components["schemas"]["PayerSnapshotResponse"];
-            replacement: components["schemas"]["PayerSnapshotResponse"];
-        };
-        /** PayerSnapshotResponse */
-        PayerSnapshotResponse: {
-            /** Id */
-            id: number;
-            /** Recipient Id */
-            recipient_id: number;
-            /** Name */
-            name: string;
-            /** Phone */
-            phone: string | null;
-            /** Address */
-            address: string | null;
-            /** Relationship Text */
-            relationship_text: string | null;
+        /** OfficialWorkCardGroup */
+        OfficialWorkCardGroup: {
             /**
-             * Start Date
-             * Format: date
+             * Staff Id
+             * Format: int64
              */
-            start_date: string;
-            /** End Date */
-            end_date: string | null;
-            /** Invalidated At Utc */
-            invalidated_at_utc: string | null;
-            /** Replacement Payer Snapshot Id */
-            replacement_payer_snapshot_id: number | null;
-            /** Row Version */
-            row_version: number;
-        };
-        /** PlanNotificationCreateRequest */
-        PlanNotificationCreateRequest: {
-            /**
-             * Notified Date
-             * Format: date
-             */
-            notified_date: string;
-        };
-        /** PlanNotificationListResponse */
-        PlanNotificationListResponse: {
+            staff_id: number;
+            /** Staff Name */
+            staff_name: string;
             /** Items */
-            items: components["schemas"]["PlanNotificationResponse"][];
+            items: components["schemas"]["OfficialWorkCardItem"][];
         };
-        /** PlanNotificationResponse */
-        PlanNotificationResponse: {
-            /** Id */
-            id: number;
-            /** Recipient Id */
-            recipient_id: number;
+        /** OfficialWorkCardItem */
+        OfficialWorkCardItem: {
             /**
-             * Notified Date
-             * Format: date
+             * Id
+             * Format: int64
              */
-            notified_date: string;
-            /** Invalidated At Utc */
-            invalidated_at_utc: string | null;
+            id: number;
             /** Row Version */
             row_version: number;
+            kind: components["schemas"]["OfficialWorkCardKind"];
+            display: components["schemas"]["OfficialWorkCardDisplay"];
+        };
+        /**
+         * OfficialWorkCardKind
+         * @enum {string}
+         */
+        OfficialWorkCardKind: "RECOGNITION_EXPIRY" | "CONTRACT_EXPIRY" | "PLAN_NOTICE" | "STAFF_REPLACEMENT_CONSULTATION" | "NEW_STAFF_WORK";
+        /** OfficialWorkCardListResponse */
+        OfficialWorkCardListResponse: {
+            /**
+             * As Of Date
+             * Format: date
+             */
+            as_of_date: string;
+            /** Groups */
+            groups: components["schemas"]["OfficialWorkCardGroup"][];
+        };
+        /** PersonalTodoCreateRequest */
+        PersonalTodoCreateRequest: {
+            /** Title */
+            title: string;
+            /** Expected List Revision */
+            expected_list_revision: number;
+        };
+        /** PersonalTodoDeleteRequest */
+        PersonalTodoDeleteRequest: {
+            /** Expected List Revision */
+            expected_list_revision: number;
+            /** Expected Row Version */
+            expected_row_version: number;
+        };
+        /** PersonalTodoListResponse */
+        PersonalTodoListResponse: {
+            /** List Revision */
+            list_revision: number;
+            /** Items */
+            items: components["schemas"]["PersonalTodoResponse"][];
+        };
+        /** PersonalTodoReorderRequest */
+        PersonalTodoReorderRequest: {
+            /** Expected List Revision */
+            expected_list_revision: number;
+            /** Ordered Ids */
+            ordered_ids: number[];
+        };
+        /** PersonalTodoResponse */
+        PersonalTodoResponse: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /** Title */
+            title: string;
+            /** Completed */
+            completed: boolean;
+            /** Sort Order */
+            sort_order: number;
+            /** Row Version */
+            row_version: number;
+        };
+        /** PersonalTodoUpdateRequest */
+        PersonalTodoUpdateRequest: {
+            /** Expected List Revision */
+            expected_list_revision: number;
+            /** Expected Row Version */
+            expected_row_version: number;
+            /** Title */
+            title?: string | null;
+            /** Completed */
+            completed?: boolean | null;
         };
         /**
          * PositionCode
          * @enum {string}
          */
         PositionCode: "CARE_WORKER" | "SOCIAL_WORKER" | "MANAGER" | "NURSE" | "OTHER";
-        /** PrimaryGuardianPeriodCreateRequest */
-        PrimaryGuardianPeriodCreateRequest: {
-            /** Guardian Id */
-            guardian_id: number;
+        /** ProfessionalAssignmentCreateRequest */
+        ProfessionalAssignmentCreateRequest: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
             /**
              * Start Date
              * Format: date
              */
             start_date: string;
-            /** End Date */
-            end_date?: string | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
         };
-        /** PrimaryGuardianPeriodListResponse */
-        PrimaryGuardianPeriodListResponse: {
+        /** ProfessionalAssignmentHistoryResponse */
+        ProfessionalAssignmentHistoryResponse: {
             /** Items */
-            items: components["schemas"]["PrimaryGuardianPeriodResponse"][];
+            items: components["schemas"]["ProfessionalAssignmentResponse"][];
         };
-        /** PrimaryGuardianPeriodReplacementRequest */
-        PrimaryGuardianPeriodReplacementRequest: {
+        /** ProfessionalAssignmentReplaceRequest */
+        ProfessionalAssignmentReplaceRequest: {
             /** Expected Row Version */
             expected_row_version: number;
-            /** Guardian Id */
-            guardian_id: number;
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
             /**
              * Start Date
              * Format: date
              */
             start_date: string;
-            /** End Date */
-            end_date?: string | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
         };
-        /** PrimaryGuardianPeriodReplacementResponse */
-        PrimaryGuardianPeriodReplacementResponse: {
-            original: components["schemas"]["PrimaryGuardianPeriodResponse"];
-            replacement: components["schemas"]["PrimaryGuardianPeriodResponse"];
-        };
-        /** PrimaryGuardianPeriodResponse */
-        PrimaryGuardianPeriodResponse: {
-            /** Id */
+        /** ProfessionalAssignmentResponse */
+        ProfessionalAssignmentResponse: {
+            /**
+             * Id
+             * Format: int64
+             */
             id: number;
-            /** Recipient Id */
+            /**
+             * Recipient Id
+             * Format: int64
+             */
             recipient_id: number;
-            /** Guardian Id */
-            guardian_id: number;
+            /**
+             * Service Month
+             * Format: date
+             */
+            service_month: string;
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
             /**
              * Start Date
              * Format: date
              */
             start_date: string;
-            /** End Date */
-            end_date: string | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
             /** Invalidated At Utc */
             invalidated_at_utc: string | null;
-            /** Replacement Primary Guardian Period Id */
-            replacement_primary_guardian_period_id: number | null;
+            /** Replacement Assignment Id */
+            replacement_assignment_id: number | null;
             /** Row Version */
             row_version: number;
         };
-        /**
-         * QuarterlyConsultationStatus
-         * @enum {string}
-         */
-        QuarterlyConsultationStatus: "COMPLETE" | "INCOMPLETE" | "EXEMPT";
         /** RecipientBasicBatchResponse */
         RecipientBasicBatchResponse: {
             recipient: components["schemas"]["RecipientResponse"];
@@ -2303,8 +2027,6 @@ export interface components {
             guardians?: components["schemas"]["BasicGuardianMutation"][];
             /** Payer Guardian Slot */
             payer_guardian_slot?: (0 | 1) | null;
-            /** Benefit Periods */
-            benefit_periods?: components["schemas"]["BenefitPeriodMutation"][];
         };
         /** RecipientBasicUpdateBatchRequest */
         RecipientBasicUpdateBatchRequest: {
@@ -2318,27 +2040,21 @@ export interface components {
              * @default false
              */
             preserve_payer: boolean;
-            /** Benefit Periods */
-            benefit_periods?: components["schemas"]["BenefitPeriodMutation"][];
+            benefit_period?: components["schemas"]["BenefitPeriodMutation"] | null;
         };
         /** RecipientCreateRequest */
         RecipientCreateRequest: {
             /** Name */
-            name: string;
-            /**
-             * Birth Date
-             * Format: date
-             */
-            birth_date: string;
-            sex_code: components["schemas"]["RecipientSexCode"];
+            name?: string | null;
+            /** Birth Date */
+            birth_date?: string | null;
+            sex_code?: components["schemas"]["RecipientSexCode"] | null;
             /** Postal Code */
             postal_code?: string | null;
             /** Address */
             address?: string | null;
-            /** Home Phone */
-            home_phone?: string | null;
             /** Mobile Phone */
-            mobile_phone?: string | null;
+            mobile_phone: string;
             /** Memo */
             memo?: string | null;
         };
@@ -2347,7 +2063,7 @@ export interface components {
             /** Recipient Id */
             recipient_id: number;
             /** Recipient Name */
-            recipient_name: string;
+            recipient_name: string | null;
             kind: components["schemas"]["RecipientDeadlineKind"];
             /** Source Id */
             source_id: number | null;
@@ -2376,10 +2092,8 @@ export interface components {
         RecipientDetailBatchRequest: {
             certification_identity?: components["schemas"]["CertificationIdentityCreateRequest"] | null;
             certification_period?: components["schemas"]["CertificationPeriodMutation"] | null;
-            grade_period?: components["schemas"]["GradePeriodMutation"] | null;
             benefit_period?: components["schemas"]["BenefitPeriodMutation"] | null;
             approval_amount_period?: components["schemas"]["ApprovalAmountPeriodMutation"] | null;
-            plan_notification?: components["schemas"]["PlanNotificationCreateRequest"] | null;
             contract?: components["schemas"]["ContractCreateRequest"] | null;
         };
         /** RecipientDetailBatchResponse */
@@ -2429,23 +2143,18 @@ export interface components {
             /** Id */
             id: number;
             /** Name */
-            name: string;
-            /**
-             * Birth Date
-             * Format: date
-             */
-            birth_date: string;
-            sex_code: components["schemas"]["RecipientSexCode"];
+            name: string | null;
+            /** Birth Date */
+            birth_date: string | null;
+            sex_code: components["schemas"]["RecipientSexCode"] | null;
             /** Recipient No */
             recipient_no: string | null;
             /** Postal Code */
             postal_code: string | null;
             /** Address */
             address: string | null;
-            /** Home Phone */
-            home_phone: string | null;
             /** Mobile Phone */
-            mobile_phone: string | null;
+            mobile_phone: string;
             /** Memo */
             memo: string | null;
             /** Row Version */
@@ -2497,13 +2206,10 @@ export interface components {
             /** Id */
             id: number;
             /** Name */
-            name: string;
-            /**
-             * Birth Date
-             * Format: date
-             */
-            birth_date: string;
-            sex_code: components["schemas"]["RecipientSexCode"];
+            name: string | null;
+            /** Birth Date */
+            birth_date: string | null;
+            sex_code: components["schemas"]["RecipientSexCode"] | null;
             recipient_status: components["schemas"]["RecipientStatus"];
             /** Recipient No */
             recipient_no: string | null;
@@ -2511,10 +2217,8 @@ export interface components {
             postal_code: string | null;
             /** Address */
             address: string | null;
-            /** Home Phone */
-            home_phone: string | null;
             /** Mobile Phone */
-            mobile_phone: string | null;
+            mobile_phone: string;
             /** Memo */
             memo: string | null;
             /** Payer Guardian Id */
@@ -2551,31 +2255,164 @@ export interface components {
             postal_code?: string | null;
             /** Address */
             address?: string | null;
-            /** Home Phone */
-            home_phone?: string | null;
             /** Mobile Phone */
-            mobile_phone?: string | null;
+            mobile_phone?: string;
             /** Memo */
             memo?: string | null;
             /** Payer Guardian Id */
             payer_guardian_id?: number | null;
         };
-        /** ReplacementPreviewItem */
-        ReplacementPreviewItem: {
+        /** ScheduleAssignedStaffResponse */
+        ScheduleAssignedStaffResponse: {
             /**
-             * Ended Contract Id
+             * Staff Id
              * Format: int64
              */
-            ended_contract_id: number;
-            /** Service Type Code */
-            service_type_code: string;
+            staff_id: number;
             /**
-             * Start Date
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+        };
+        /** ScheduleCreateRequest */
+        ScheduleCreateRequest: {
+            /**
+             * Schedule Month
              * Format: date
              */
-            start_date: string;
-            /** End Date */
-            end_date: string | null;
+            schedule_month: string;
+            /**
+             * Recipient Id
+             * Format: int64
+             */
+            recipient_id: number;
+            /**
+             * Service Type Id
+             * Format: int64
+             */
+            service_type_id: number;
+            /** Assigned Staff */
+            assigned_staff: components["schemas"]["ScheduleStaffInput"][];
+            /**
+             * Starts At Utc
+             * Format: date-time
+             */
+            starts_at_utc: string;
+            /**
+             * Ends At Utc
+             * Format: date-time
+             */
+            ends_at_utc: string;
+            /** Expected Month Row Version */
+            expected_month_row_version: number;
+        };
+        /** ScheduleDeleteRequest */
+        ScheduleDeleteRequest: {
+            /** Expected Month Row Version */
+            expected_month_row_version: number;
+            /** Expected Row Version */
+            expected_row_version: number;
+        };
+        /** ScheduleFinalizeRequest */
+        ScheduleFinalizeRequest: {
+            /** Expected Month Row Version */
+            expected_month_row_version: number;
+        };
+        /** ScheduleItemResponse */
+        ScheduleItemResponse: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /**
+             * Schedule Month
+             * Format: date
+             */
+            schedule_month: string;
+            /**
+             * Recipient Id
+             * Format: int64
+             */
+            recipient_id: number;
+            /**
+             * Service Type Id
+             * Format: int64
+             */
+            service_type_id: number;
+            /** Assigned Staff */
+            assigned_staff: components["schemas"]["ScheduleAssignedStaffResponse"][];
+            /**
+             * Starts At Utc
+             * Format: date-time
+             */
+            starts_at_utc: string;
+            /**
+             * Ends At Utc
+             * Format: date-time
+             */
+            ends_at_utc: string;
+            /** Row Version */
+            row_version: number;
+        };
+        /** ScheduleMonthResponse */
+        ScheduleMonthResponse: {
+            /**
+             * Schedule Month
+             * Format: date
+             */
+            schedule_month: string;
+            /** Finalized */
+            finalized: boolean;
+            /** Finalized At Utc */
+            finalized_at_utc: string | null;
+            /** Row Version */
+            row_version: number;
+            /** Items */
+            items: components["schemas"]["ScheduleItemResponse"][];
+        };
+        /** ScheduleReplaceRequest */
+        ScheduleReplaceRequest: {
+            /** Expected Month Row Version */
+            expected_month_row_version: number;
+            /** Expected Row Version */
+            expected_row_version: number;
+            /**
+             * Recipient Id
+             * Format: int64
+             */
+            recipient_id: number;
+            /**
+             * Service Type Id
+             * Format: int64
+             */
+            service_type_id: number;
+            /** Assigned Staff */
+            assigned_staff: components["schemas"]["ScheduleStaffInput"][];
+            /**
+             * Starts At Utc
+             * Format: date-time
+             */
+            starts_at_utc: string;
+            /**
+             * Ends At Utc
+             * Format: date-time
+             */
+            ends_at_utc: string;
+        };
+        /** ScheduleStaffInput */
+        ScheduleStaffInput: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
         };
         /** SensitiveIdentityRevealRequest */
         SensitiveIdentityRevealRequest: {
@@ -2591,6 +2428,92 @@ export interface components {
         ServiceCatalogResponse: {
             /** Items */
             items?: components["schemas"]["ServiceTypeResponse"][];
+        };
+        /** ServicePlanNoticeCreateRequest */
+        ServicePlanNoticeCreateRequest: {
+            /**
+             * Recipient Contract Id
+             * Format: int64
+             */
+            recipient_contract_id: number;
+            /**
+             * Notification Date
+             * Format: date
+             */
+            notification_date: string;
+            /**
+             * Applied Start Date
+             * Format: date
+             */
+            applied_start_date: string;
+            /** Applied End Date */
+            applied_end_date?: string | null;
+        };
+        /** ServicePlanNoticeHistoryResponse */
+        ServicePlanNoticeHistoryResponse: {
+            /** Items */
+            items: components["schemas"]["ServicePlanNoticeResponse"][];
+        };
+        /** ServicePlanNoticeReplaceRequest */
+        ServicePlanNoticeReplaceRequest: {
+            /**
+             * Recipient Contract Id
+             * Format: int64
+             */
+            recipient_contract_id: number;
+            /**
+             * Notification Date
+             * Format: date
+             */
+            notification_date: string;
+            /**
+             * Applied Start Date
+             * Format: date
+             */
+            applied_start_date: string;
+            /** Applied End Date */
+            applied_end_date?: string | null;
+            /** Expected Row Version */
+            expected_row_version: number;
+        };
+        /** ServicePlanNoticeResponse */
+        ServicePlanNoticeResponse: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /**
+             * Recipient Id
+             * Format: int64
+             */
+            recipient_id: number;
+            /**
+             * Recipient Contract Id
+             * Format: int64
+             */
+            recipient_contract_id: number;
+            /**
+             * Notification Date
+             * Format: date
+             */
+            notification_date: string;
+            /**
+             * Applied Start Date
+             * Format: date
+             */
+            applied_start_date: string;
+            /**
+             * Applied End Date
+             * Format: date
+             */
+            applied_end_date: string;
+            /** Invalidated At Utc */
+            invalidated_at_utc: string | null;
+            /** Replacement Service Plan Notice Id */
+            replacement_service_plan_notice_id: number | null;
+            /** Row Version */
+            row_version: number;
         };
         /**
          * ServiceTypeCode
@@ -2815,82 +2738,11 @@ export interface components {
              * Format: date
              */
             check_date: string;
-            /** Employment Id */
-            employment_id?: number | null;
-            /** Check Type Code */
-            check_type_code?: string | null;
-            /** Result Note */
-            result_note?: string | null;
         };
         /** StaffHealthCheckListResponse */
         StaffHealthCheckListResponse: {
             /** Items */
             items?: components["schemas"]["StaffHealthCheckResponse"][];
-        };
-        /** StaffHealthCheckRequirementListResponse */
-        StaffHealthCheckRequirementListResponse: {
-            /** Items */
-            items?: components["schemas"]["StaffHealthCheckRequirementResponse"][];
-        };
-        /** StaffHealthCheckRequirementResponse */
-        StaffHealthCheckRequirementResponse: {
-            /** Id */
-            id: number;
-            /** Staff Id */
-            staff_id: number;
-            /** Employment Id */
-            employment_id: number | null;
-            /** Target Key */
-            target_key: string;
-            /** Target Rule Version Code */
-            target_rule_version_code: string;
-            /**
-             * Status
-             * @description COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields.
-             * @enum {string}
-             */
-            status: "COMPLETE" | "INCOMPLETE" | "EXEMPT";
-            /** Health Check Id */
-            health_check_id: number | null;
-            /** Exempt Reason Text */
-            exempt_reason_text: string | null;
-            /** Invalidated At Utc */
-            invalidated_at_utc: string | null;
-            /** Replacement Health Check Requirement Id */
-            replacement_health_check_requirement_id: number | null;
-            /** Created By Account Id */
-            created_by_account_id: number;
-            /**
-             * Created At Utc
-             * Format: date-time
-             */
-            created_at_utc: string;
-            /** Updated By Account Id */
-            updated_by_account_id: number;
-            /**
-             * Updated At Utc
-             * Format: date-time
-             */
-            updated_at_utc: string;
-            /** Row Version */
-            row_version: number;
-        };
-        /** StaffHealthCheckRequirementUpdateRequest */
-        StaffHealthCheckRequirementUpdateRequest: {
-            /** @description COMPLETE requires a fact and no exemption reason; INCOMPLETE requires neither; EXEMPT requires a nonblank exemption reason and no fact. */
-            status?: components["schemas"]["HealthCheckRequirementStatus"] | null;
-            /**
-             * Health Check Id
-             * @description Required only for COMPLETE and must reference the same staff's active fact.
-             */
-            health_check_id?: number | null;
-            /**
-             * Exempt Reason Text
-             * @description Required and nonblank only for EXEMPT.
-             */
-            exempt_reason_text?: string | null;
-            /** Expected Row Version */
-            expected_row_version: number;
         };
         /** StaffHealthCheckResponse */
         StaffHealthCheckResponse: {
@@ -2898,17 +2750,11 @@ export interface components {
             id: number;
             /** Staff Id */
             staff_id: number;
-            /** Employment Id */
-            employment_id: number | null;
             /**
              * Check Date
              * Format: date
              */
             check_date: string;
-            /** Check Type Code */
-            check_type_code: string | null;
-            /** Result Note */
-            result_note: string | null;
             /** Invalidated At Utc */
             invalidated_at_utc: string | null;
             /** Replacement Health Check Id */
@@ -2934,12 +2780,6 @@ export interface components {
         StaffHealthCheckUpdateRequest: {
             /** Check Date */
             check_date?: string | null;
-            /** Employment Id */
-            employment_id?: number | null;
-            /** Check Type Code */
-            check_type_code?: string | null;
-            /** Result Note */
-            result_note?: string | null;
             /** Expected Row Version */
             expected_row_version: number;
         };
@@ -3234,60 +3074,16 @@ export interface components {
             calendar_year: number;
             /** Quarter No */
             quarter_no: number;
-            /** @description COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields. */
-            status: components["schemas"]["QuarterlyConsultationStatus"];
             /**
-             * Counseling Date
-             * @description Required only for COMPLETE; empty for INCOMPLETE and EXEMPT.
+             * Completed
+             * @default false
              */
-            counseling_date?: string | null;
-            /**
-             * Content
-             * @description Required and nonblank only for COMPLETE; empty otherwise.
-             */
-            content?: string | null;
-            /**
-             * Incomplete Reason Text
-             * @description Required and nonblank only for INCOMPLETE; empty otherwise.
-             */
-            incomplete_reason_text?: string | null;
-            /**
-             * Exempt Reason Text
-             * @description Required and nonblank only for EXEMPT; empty otherwise.
-             */
-            exempt_reason_text?: string | null;
+            completed: boolean;
         };
         /** StaffQuarterlyConsultationListResponse */
         StaffQuarterlyConsultationListResponse: {
             /** Items */
             items?: components["schemas"]["StaffQuarterlyConsultationResponse"][];
-        };
-        /** StaffQuarterlyConsultationReplaceRequest */
-        StaffQuarterlyConsultationReplaceRequest: {
-            /** @description Replacement status: COMPLETE, INCOMPLETE, or EXEMPT. */
-            status: components["schemas"]["QuarterlyConsultationStatus"];
-            /**
-             * Counseling Date
-             * @description Required only for COMPLETE; empty for INCOMPLETE and EXEMPT.
-             */
-            counseling_date?: string | null;
-            /**
-             * Content
-             * @description Required and nonblank only for COMPLETE; empty otherwise.
-             */
-            content?: string | null;
-            /**
-             * Incomplete Reason Text
-             * @description Required and nonblank only for INCOMPLETE; empty otherwise.
-             */
-            incomplete_reason_text?: string | null;
-            /**
-             * Exempt Reason Text
-             * @description Required and nonblank only for EXEMPT; empty for other statuses.
-             */
-            exempt_reason_text?: string | null;
-            /** Expected Row Version */
-            expected_row_version: number;
         };
         /** StaffQuarterlyConsultationResponse */
         StaffQuarterlyConsultationResponse: {
@@ -3299,32 +3095,8 @@ export interface components {
             calendar_year: number;
             /** Quarter No */
             quarter_no: number;
-            /** @description COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields. */
-            status: components["schemas"]["QuarterlyConsultationStatus"];
-            /**
-             * Counseling Date
-             * @description Present only for COMPLETE consultations.
-             */
-            counseling_date: string | null;
-            /**
-             * Content
-             * @description Nonblank consultation content only for COMPLETE consultations.
-             */
-            content: string | null;
-            /**
-             * Incomplete Reason Text
-             * @description Nonblank reason only for INCOMPLETE consultations.
-             */
-            incomplete_reason_text: string | null;
-            /**
-             * Exempt Reason Text
-             * @description Nonblank reason only for EXEMPT consultations.
-             */
-            exempt_reason_text: string | null;
-            /** Invalidated At Utc */
-            invalidated_at_utc: string | null;
-            /** Replacement Staff Quarterly Consultation Id */
-            replacement_staff_quarterly_consultation_id: number | null;
+            /** Completed */
+            completed: boolean;
             /** Created By Account Id */
             created_by_account_id: number;
             /**
@@ -3344,28 +3116,8 @@ export interface components {
         };
         /** StaffQuarterlyConsultationUpdateRequest */
         StaffQuarterlyConsultationUpdateRequest: {
-            /** @description COMPLETE, INCOMPLETE, or EXEMPT with the corresponding conditional fields. */
-            status: components["schemas"]["QuarterlyConsultationStatus"];
-            /**
-             * Counseling Date
-             * @description Required only for COMPLETE; empty for INCOMPLETE and EXEMPT.
-             */
-            counseling_date?: string | null;
-            /**
-             * Content
-             * @description Required and nonblank only for COMPLETE; empty otherwise.
-             */
-            content?: string | null;
-            /**
-             * Incomplete Reason Text
-             * @description Required and nonblank only for INCOMPLETE; empty otherwise.
-             */
-            incomplete_reason_text?: string | null;
-            /**
-             * Exempt Reason Text
-             * @description Required and nonblank only for EXEMPT; empty otherwise.
-             */
-            exempt_reason_text?: string | null;
+            /** Completed */
+            completed: boolean;
             /** Expected Row Version */
             expected_row_version: number;
         };
@@ -3522,32 +3274,6 @@ export interface components {
          * @enum {string}
          */
         TrainingCycleType: "ON_HIRE" | "HALF_YEAR" | "ANNUAL" | "BIENNIAL";
-        /** TransitionReplacementItem */
-        TransitionReplacementItem: {
-            /**
-             * Ended Contract Id
-             * Format: int64
-             */
-            ended_contract_id: number;
-            service_type_code: components["schemas"]["ServiceTypeCode"];
-            /**
-             * Start Date
-             * Format: date
-             */
-            start_date: string;
-            /** End Date */
-            end_date?: string | null;
-            /** Service Start Date */
-            service_start_date?: string | null;
-            /** Signer Name */
-            signer_name?: string | null;
-            /** Signer Relationship Text */
-            signer_relationship_text?: string | null;
-            /** Signer Phone */
-            signer_phone?: string | null;
-            /** End Reason Text */
-            end_reason_text?: string | null;
-        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -3809,15 +3535,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -3887,15 +3604,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3984,15 +3692,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4062,15 +3761,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4151,15 +3841,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4248,15 +3929,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4338,15 +4010,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4421,15 +4084,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4497,15 +4151,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4591,15 +4236,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4678,15 +4314,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4756,15 +4383,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4852,15 +4470,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -4930,15 +4539,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5019,15 +4619,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5116,15 +4707,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -5199,15 +4781,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5291,15 +4864,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -5373,15 +4937,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5470,15 +5025,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -5553,15 +5099,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5650,15 +5187,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -5728,15 +5256,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5817,15 +5336,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5914,15 +5424,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -5997,280 +5498,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_health_check_requirements_api_v1_staff__staff_id__health_check_requirements_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                staff_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaffHealthCheckRequirementListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    update_health_check_requirement_api_v1_staff__staff_id__health_check_requirements__requirement_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                staff_id: number;
-                requirement_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffHealthCheckRequirementUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaffHealthCheckRequirementResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    invalidate_health_check_requirement_api_v1_staff__staff_id__health_check_requirements__requirement_id__invalidate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                staff_id: number;
-                requirement_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffHealthCheckRequirementUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaffHealthCheckRequirementResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6354,15 +5581,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -6436,15 +5654,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6533,105 +5742,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    invalidate_quarterly_consultation_api_v1_staff__staff_id__quarterly_consultations__consultation_id__invalidate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                staff_id: number;
-                consultation_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffQuarterlyConsultationReplaceRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaffQuarterlyConsultationResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -6705,15 +5815,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6802,15 +5903,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -6892,15 +5984,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -6975,15 +6058,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7073,15 +6147,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -7164,15 +6229,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -7247,15 +6303,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7345,15 +6392,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -7429,15 +6467,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7601,15 +6630,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Locked */
-            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8271,1033 +7291,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GuardianResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_primary_guardian_periods_api_v1_recipients__recipient_id__primary_guardian_periods_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrimaryGuardianPeriodListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    create_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrimaryGuardianPeriodCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrimaryGuardianPeriodResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods__period_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                period_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrimaryGuardianPeriodResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    invalidate_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods__period_id__invalidate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                period_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HistoryInvalidateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrimaryGuardianPeriodResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    replace_primary_guardian_period_api_v1_recipients__recipient_id__primary_guardian_periods__period_id__replacements_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                period_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrimaryGuardianPeriodReplacementRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrimaryGuardianPeriodReplacementResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_payer_snapshots_api_v1_recipients__recipient_id__payer_snapshots_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PayerSnapshotListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    create_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PayerSnapshotCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PayerSnapshotResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots__snapshot_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                snapshot_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PayerSnapshotResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    invalidate_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots__snapshot_id__invalidate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                snapshot_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HistoryInvalidateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PayerSnapshotResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    replace_payer_snapshot_api_v1_recipients__recipient_id__payer_snapshots__snapshot_id__replacements_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                snapshot_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PayerSnapshotReplacementRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PayerSnapshotReplacementResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    list_plan_notifications_api_v1_recipients__recipient_id__plan_notifications_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanNotificationListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    create_plan_notification_api_v1_recipients__recipient_id__plan_notifications_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlanNotificationCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanNotificationResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    invalidate_plan_notification_api_v1_recipients__recipient_id__plan_notifications__notification_id__invalidate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                notification_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HistoryInvalidateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanNotificationResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -10068,324 +8061,6 @@ export interface operations {
             };
         };
     };
-    list_grade_periods_api_v1_recipients__recipient_id__grade_periods_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GradePeriodListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    create_grade_period_api_v1_recipients__recipient_id__grade_periods_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GradePeriodCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GradePeriodResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    invalidate_grade_period_api_v1_recipients__recipient_id__grade_periods__period_id__invalidate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                period_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HistoryInvalidateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GradePeriodResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    replace_grade_period_api_v1_recipients__recipient_id__grade_periods__period_id__replacements_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipient_id: number;
-                period_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GradePeriodReplacementRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GradePeriodReplacementResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
     list_benefit_periods_api_v1_recipients__recipient_id__benefit_periods_get: {
         parameters: {
             query?: never;
@@ -10484,84 +8159,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BenefitPeriodResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_effective_benefit_api_v1_recipients__recipient_id__benefit_periods_effective_get: {
-        parameters: {
-            query: {
-                on_date: string;
-            };
-            header?: never;
-            path: {
-                recipient_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EffectiveBenefitResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -11147,7 +8744,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -11227,7 +8824,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -11304,7 +8901,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -11385,7 +8982,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -11414,20 +9011,18 @@ export interface operations {
             };
         };
     };
-    previewCertificationTransition: {
+    listW2ProfessionalAssignmentHistory: {
         parameters: {
-            query?: never;
+            query: {
+                service_month: string;
+            };
             header?: never;
             path: {
                 recipient_id: number;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CertificationTransitionPreviewRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -11435,7 +9030,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CertificationTransitionPreviewResponse"];
+                    "application/json": components["schemas"]["ProfessionalAssignmentHistoryResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -11444,7 +9039,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Forbidden */
@@ -11453,7 +9048,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Not Found */
@@ -11462,7 +9057,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Conflict */
@@ -11471,7 +9066,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -11480,7 +9075,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Internal Server Error */
@@ -11489,12 +9084,251 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
     };
-    applyCertificationTransition: {
+    createW2ProfessionalAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                service_month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfessionalAssignmentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfessionalAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceW2ProfessionalAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                service_month: string;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfessionalAssignmentReplaceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfessionalAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listW2ServicePlanNotices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServicePlanNoticeHistoryResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createW2ServicePlanNotice: {
         parameters: {
             query?: never;
             header?: never;
@@ -11505,7 +9339,88 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CertificationTransitionApplyRequest"];
+                "application/json": components["schemas"]["ServicePlanNoticeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServicePlanNoticeResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceW2ServicePlanNotice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                notice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServicePlanNoticeReplaceRequest"];
             };
         };
         responses: {
@@ -11515,7 +9430,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CertificationTransitionApplyResponse"];
+                    "application/json": components["schemas"]["ServicePlanNoticeResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -11524,7 +9439,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Forbidden */
@@ -11533,7 +9448,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Not Found */
@@ -11542,7 +9457,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Conflict */
@@ -11551,7 +9466,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -11560,7 +9475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Internal Server Error */
@@ -11569,7 +9484,983 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listW2Schedules: {
+        parameters: {
+            query: {
+                month: string;
+                recipient_id?: number | null;
+                staff_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleMonthResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createW2Schedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleMonthResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceW2Schedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schedule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleReplaceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleMonthResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteW2Schedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schedule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleMonthResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    finalizeW2ScheduleMonth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schedule_month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleFinalizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleMonthResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listW2PersonalTodos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalTodoListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createW2PersonalTodo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalTodoCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalTodoListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteW2PersonalTodo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalTodoDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalTodoListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateW2PersonalTodo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalTodoUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalTodoListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reorderW2PersonalTodos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalTodoReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalTodoListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listW2OfficialWorkCards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialWorkCardListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    closeW2OfficialWorkCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                card_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfficialWorkCardCloseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialWorkCardListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

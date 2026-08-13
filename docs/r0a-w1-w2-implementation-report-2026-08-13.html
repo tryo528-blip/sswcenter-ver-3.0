@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSWCenter 3.0 R0-A · W1 · W2 구현 보고서</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e1ec;
+      --paper: #ffffff;
+      --wash: #f4f7fb;
+      --green: #0b7a53;
+      --green-bg: #eaf8f1;
+      --blue: #2357c6;
+      --blue-bg: #edf3ff;
+      --amber: #9a6200;
+      --amber-bg: #fff6de;
+      --red: #b42318;
+      --shadow: 0 12px 32px rgba(23, 32, 51, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--wash);
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+      line-height: 1.62;
+      word-break: keep-all;
+    }
+    main { width: min(100% - 28px, 920px); margin: 24px auto 72px; }
+    header, section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+    header { padding: 28px; background: linear-gradient(145deg, #11244d, #274f9f); color: #fff; }
+    header p { color: #dce7ff; margin: 10px 0 0; }
+    h1 { margin: 0; font-size: clamp(1.65rem, 6vw, 2.7rem); line-height: 1.25; letter-spacing: -.03em; }
+    h2 { margin: 0 0 16px; font-size: 1.28rem; letter-spacing: -.02em; }
+    h3 { margin: 18px 0 8px; font-size: 1.02rem; }
+    section { margin-top: 16px; padding: 24px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 0; padding-left: 1.2rem; }
+    li + li { margin-top: 6px; }
+    code {
+      padding: .12rem .35rem;
+      border-radius: 6px;
+      background: #eef2f7;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .88em;
+      overflow-wrap: anywhere;
+    }
+    .stamp { display: inline-flex; margin-bottom: 14px; padding: 5px 11px; border-radius: 999px; background: rgba(255,255,255,.14); font-weight: 800; }
+    .lead { font-size: 1.06rem; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: #fff; }
+    .card strong { display: block; margin-bottom: 4px; }
+    .metric { font-size: 1.55rem; font-weight: 900; line-height: 1.2; }
+    .muted { color: var(--muted); }
+    .ok { color: var(--green); }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 999px; font-size: .88rem; font-weight: 800; }
+    .pill.ok { color: var(--green); background: var(--green-bg); }
+    .pill.info { color: var(--blue); background: var(--blue-bg); }
+    .pill.wait { color: var(--amber); background: var(--amber-bg); }
+    .callout { margin-top: 12px; padding: 14px 16px; border-left: 4px solid var(--blue); border-radius: 10px; background: var(--blue-bg); }
+    .callout.warn { border-left-color: var(--amber); background: var(--amber-bg); }
+    .hash { display: block; margin-top: 8px; padding: 12px; border-radius: 10px; background: #101828; color: #d0e1ff; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; overflow-wrap: anywhere; }
+    .test-row { display: grid; grid-template-columns: 1.4fr .8fr; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .test-row:last-child { border-bottom: 0; }
+    .test-row b { text-align: right; color: var(--green); }
+    footer { padding: 20px 4px; text-align: center; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 640px) {
+      main { width: min(100% - 18px, 920px); margin-top: 9px; }
+      header, section { border-radius: 14px; }
+      header, section { padding: 19px; }
+      .grid { grid-template-columns: 1fr; }
+      .test-row { grid-template-columns: 1fr; gap: 2px; }
+      .test-row b { text-align: left; }
+      body { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="stamp">2026-08-13 · 구현 결과</span>
+    <h1>R0-A 이후 계약 교정과<br>독립 가능한 W2 구현</h1>
+    <p class="lead">전면 재작성 없이 검증된 기반은 보존하고, 잘못된 계약을 0020~0025 전진 migration과 현재 API·화면으로 교체했습니다.</p>
+  </header>
+
+  <section>
+    <h2>결론</h2>
+    <p><span class="pill ok">● 구현·통합검증 GREEN</span></p>
+    <p>R0-A 읽기 전용 전환, 승인된 W1 계약 교정, 현재 승인만으로 독립 구현 가능한 W2 원장·API·화면까지 완료했습니다. 운영 데이터는 건드리지 않았고 기존 dirty 작업과 기존 worktree도 초기화하지 않았습니다.</p>
+    <div class="callout"><strong>봉인 원칙</strong><br>형님 승인 없이 어떠한 계약도 추가하거나 삭제하지 않습니다.</div>
+  </section>
+
+  <section>
+    <h2>후보 작업본 지문</h2>
+    <div class="grid">
+      <div class="card"><strong>기준 HEAD</strong><span class="metric">a5367f2</span><span class="muted">기존 dirty main 보존</span></div>
+      <div class="card"><strong>검수 범위</strong><span class="metric">254개</span><span class="muted">제품·정본·시험 파일</span></div>
+    </div>
+    <span class="hash">BASE_HEAD: a5367f212acc6c70efeedb202e7999e90d9f7fc5<br>MAIN_RAW_BYTES_SHA256: 26191cbd233ab950238084a8dcb6ef5c1ac670cb5974c3c9d16b0b68c22d94da<br>WORKTREE_NORMALIZED_SHA256: 0a422b124b96b1a09988de5c168298edb0e4473d920a7ab5d2abdcd0f17f220e</span>
+    <p class="muted">커밋을 만들지 않고 현재 바이트를 고정하기 위해 상대경로와 각 파일 SHA-256으로 후보 지문을 계산했습니다. Git worktree checkout에서 CRLF/LF가 달라질 수 있어 main 원시 바이트 지문과 줄바꿈 정규화 지문을 함께 보존했습니다.</p>
+  </section>
+
+  <section>
+    <h2>정리한 W1 계약</h2>
+    <div class="grid">
+      <div class="card"><strong>직원</strong>건강검진의 공개 입력·표시는 검진일만 두고, DB 내부에는 같은 직원 재직행을 가리키는 선택 연결만 둡니다. 분기상담은 완료 토글뿐이며 교육 seed는 정확히 8개입니다.</div>
+      <div class="card"><strong>수급자·보호자</strong>수급자는 휴대전화만 필수입니다. 보호자는 고정 슬롯 1·2에 최대 2명이며 5개 필드는 모두 선택값입니다. 선택된 보호자 삭제 시 납부자는 수급자 본인으로 복귀합니다.</div>
+      <div class="card"><strong>폐기 원장</strong>대표보호자·별도 납부자·서명자·인정전환 API/화면을 제거했습니다. 과거 테이블은 전진 migration에서 안전하게 교정합니다.</div>
+      <div class="card"><strong>인정·혜택</strong>등급을 인정기간 값으로 통합했고, 수급자 생성 시 GENERAL을 자동 생성합니다. <code>start_text</code>는 계산에 쓰지 않는 빈 표시 텍스트입니다.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>구현한 W2</h2>
+    <h3>월별 전문직 담당</h3>
+    <ul>
+      <li>방문요양·방문목욕을 합쳐 수급자·월별 담당 슬롯 1개입니다.</li>
+      <li>사회복지사·간호사는 같은 슬롯에 들어가며 직종명과 월중 교체 이력은 보존합니다.</li>
+    </ul>
+    <h3>수급자·직원 공용 일정</h3>
+    <ul>
+      <li>두 화면이 같은 일정행을 조회합니다. 재직·자격 밖 입력은 임시저장만 되고 월 확정은 거부됩니다.</li>
+      <li>저장과 확정은 같은 월 제어행을 잠그고, 열린 달의 경합 패자는 최신 snapshot을 담은 409를 받습니다. 이미 확정된 달의 변경은 423으로 거부합니다.</li>
+      <li>화면은 사용자의 미저장 입력을 보존하며 자동 병합하지 않습니다.</li>
+    </ul>
+    <h3>개인 할 일</h3>
+    <ul>
+      <li>사회복지사 달력에서만 보이며 생성자 본인만 조회·생성·수정·완료·완전삭제할 수 있습니다.</li>
+      <li>완료는 내부 상태 종류를 늘리지 않는 토글이며 회색으로 표시합니다. 드래그 순서는 목록 revision으로 보호합니다.</li>
+    </ul>
+    <h3>공식 업무카드</h3>
+    <ul>
+      <li>종류는 인정만료·계약만료·계획서통보·직원교체상담·신규직원업무 5개로 봉인했습니다.</li>
+      <li>본문 표시는 업무제목·대상자이름·상세업무·마감일·D-day 5개뿐입니다.</li>
+      <li>담당자는 자기 카드만 닫고, 관리자는 직원별 열린 카드만 읽습니다. 관리자 카드·대행·진행률·재개방·공개 생성/삭제 API는 없습니다.</li>
+      <li>같은 갱신 묶음은 인정 &gt; 계약 &gt; 계획서 순으로 한 장만 남기며, 열린 하위 카드는 상위 카드로 원자 교체됩니다.</li>
+    </ul>
+    <h3>급여계획서 통보·Dashboard</h3>
+    <ul>
+      <li>현행 <code>w2_service_plan_notice</code> 원장에 통보일·적용 시작일·적용 종료일과 교체 이력을 저장합니다.</li>
+      <li>폐기된 <code>recipient_plan_notification</code>은 현재 API·화면·Dashboard 계산에서 끊고 DB 읽기 전용으로 봉인했습니다.</li>
+      <li>다가오는 계획서 마감일은 현행 통보일의 6개월 뒤를 기본으로 하되 계약·인정 종료일 중 빠른 날로 제한합니다.</li>
+      <li>Dashboard 마감일은 페이지당 15건 이상이며 초과할 때만 페이지 이동을 표시합니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>검증 결과</h2>
+    <div class="test-row"><span>백엔드 전체 pytest</span><b>306 passed · 126 skipped</b></div>
+    <div class="test-row"><span>프론트 전체 Vitest</span><b>25 files · 229 passed</b></div>
+    <div class="test-row"><span>실제 PostgreSQL W2</span><b>16 passed</b></div>
+    <div class="test-row"><span>실제 PostgreSQL W1/W2 통합</span><b>22 passed</b></div>
+    <div class="test-row"><span>fresh DB + 0019 upgrade</span><b>둘 다 revision 0025</b></div>
+    <div class="test-row"><span>PostgreSQL 정리</span><b>listener 0 · temp DB 0</b></div>
+    <div class="test-row"><span>OpenAPI 생성 타입</span><b>UP TO DATE</b></div>
+    <div class="test-row"><span>변경범위 Ruff / frontend build</span><b>PASS / PASS</b></div>
+    <div class="test-row"><span>git diff whitespace 검사</span><b>PASS</b></div>
+    <p class="muted">비차단 경고: Python 의존성 deprecation 1건, 순환 FK 정렬 경고 1건, frontend lint 경고 5건, 500KB 초과 bundle 경고 1건. R0-A 바이트 봉인 대상 0018의 기존 장문 SQL은 해시 보존을 위해 Ruff 전체검사에서 제외했고 변경범위 Ruff는 통과했습니다.</p>
+  </section>
+
+  <section>
+    <h2>의도적으로 자동화하지 않은 것</h2>
+    <div class="callout warn">
+      <ul>
+        <li><strong>신규직원업무:</strong> 발생조건을 형님이 별도 승인하기 전 자동 생성기를 만들지 않았습니다.</li>
+        <li><strong>직원교체상담:</strong> Wave 3 실제근무 원장이 생기기 전 가짜 발생자료를 만들지 않았습니다.</li>
+        <li><strong>계획서 카드 담당자 선택:</strong> 어느 월 담당자가 소유할지 승인된 규칙이 없어 내부 bridge는 담당자를 신뢰 가능한 worker가 명시하도록 두고 공개 API로 열지 않았습니다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>운영 데이터와 Git 상태</h2>
+    <ul>
+      <li>운영 DB URL이 제공되지 않아 실제 운영 DB의 <code>pg_dump</code>·복원시험은 실행하지 않았습니다. 대신 격리 PostgreSQL에서 fresh/upgrade/실패 원자성/동시성을 검증했습니다.</li>
+      <li>기존 운영 데이터를 새 DB에 자동 이관하지 않습니다.</li>
+      <li>기존 dirty 변경과 worktree를 초기화·삭제·덮어쓰기하지 않았습니다.</li>
+      <li>stage·commit·push는 하지 않았습니다.</li>
+    </ul>
+  </section>
+
+  <section id="independent-review">
+    <h2>독립 검수</h2>
+    <p><span class="pill ok">● 최종 독립검수 PASS</span></p>
+    <p id="review-result">첫 검수의 3건은 0025와 실 PostgreSQL 16+22건으로 폐쇄했습니다. 두 번째 검수에서 직원 API 39개에 423이 과잉 문서화된 새 결함을 찾아, 실제 계정잠금이 가능한 민감정보 reveal 1개에만 남기고 전체 423 경로를 닫힌 집합 테스트로 봉인했습니다.</p>
+    <ul>
+      <li>최종 독립 worktree에서 254개 정규화 지문이 <code>0a422b12…f220e</code>로 정확히 일치했습니다.</li>
+      <li>집중 테스트 5건 통과, OpenAPI 423 경로는 reveal 1개 + 일정 변경 4개로 정확히 5개였습니다.</li>
+      <li>보호자 슬롯·납부자 자동복귀, 검진 재직연결, 확정월 423 우선순위가 유지됐고 새 finding은 0건입니다.</li>
+      <li>독립방은 읽기 전용을 유지했으며 수정·stage·commit·push·설치·운영 DB 접근을 하지 않았습니다.</li>
+    </ul>
+  </section>
+
+  <footer>SSWCenter 3.0 · R0-A/W1/W2 implementation closeout · 2026-08-13</footer>
+</main>
+</body>
+</html>

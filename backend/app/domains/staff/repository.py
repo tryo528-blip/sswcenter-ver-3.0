@@ -12,7 +12,6 @@ from app.db.models import (
     Staff,
     StaffEmployment,
     StaffHealthCheck,
-    StaffHealthCheckRequirement,
     StaffLicense,
     StaffOnboardingTraining,
     StaffOperationalRolePeriod,
@@ -576,58 +575,6 @@ class StaffRepository:
             statement = statement.with_for_update()
         return self.database_session.scalar(statement)
 
-    def list_health_check_requirements(
-        self,
-        staff_id: int,
-    ) -> list[StaffHealthCheckRequirement]:
-        return list(
-            self.database_session.scalars(
-                select(StaffHealthCheckRequirement)
-                .where(
-                    StaffHealthCheckRequirement.staff_id == staff_id,
-                    StaffHealthCheckRequirement.invalidated_at_utc.is_(None),
-                )
-                .order_by(
-                    StaffHealthCheckRequirement.target_key.asc(),
-                    StaffHealthCheckRequirement.id.asc(),
-                )
-            )
-        )
-
-    def get_health_check_requirement(
-        self,
-        staff_id: int,
-        requirement_id: int,
-        *,
-        for_update: bool = False,
-        active_only: bool = True,
-    ) -> StaffHealthCheckRequirement | None:
-        statement = select(StaffHealthCheckRequirement).where(
-            StaffHealthCheckRequirement.staff_id == staff_id,
-            StaffHealthCheckRequirement.id == requirement_id,
-        )
-        if active_only:
-            statement = statement.where(StaffHealthCheckRequirement.invalidated_at_utc.is_(None))
-        if for_update:
-            statement = statement.with_for_update()
-        return self.database_session.scalar(statement)
-
-    def get_health_check_requirement_by_id(
-        self,
-        requirement_id: int,
-        *,
-        for_update: bool = False,
-        active_only: bool = True,
-    ) -> StaffHealthCheckRequirement | None:
-        statement = select(StaffHealthCheckRequirement).where(
-            StaffHealthCheckRequirement.id == requirement_id
-        )
-        if active_only:
-            statement = statement.where(StaffHealthCheckRequirement.invalidated_at_utc.is_(None))
-        if for_update:
-            statement = statement.with_for_update()
-        return self.database_session.scalar(statement)
-
     def list_quarterly_consultations(
         self,
         staff_id: int,
@@ -637,7 +584,6 @@ class StaffRepository:
                 select(StaffQuarterlyConsultation)
                 .where(
                     StaffQuarterlyConsultation.staff_id == staff_id,
-                    StaffQuarterlyConsultation.invalidated_at_utc.is_(None),
                 )
                 .order_by(
                     StaffQuarterlyConsultation.calendar_year.desc(),
@@ -653,14 +599,11 @@ class StaffRepository:
         consultation_id: int,
         *,
         for_update: bool = False,
-        active_only: bool = True,
     ) -> StaffQuarterlyConsultation | None:
         statement = select(StaffQuarterlyConsultation).where(
             StaffQuarterlyConsultation.staff_id == staff_id,
             StaffQuarterlyConsultation.id == consultation_id,
         )
-        if active_only:
-            statement = statement.where(StaffQuarterlyConsultation.invalidated_at_utc.is_(None))
         if for_update:
             statement = statement.with_for_update()
         return self.database_session.scalar(statement)
@@ -670,13 +613,10 @@ class StaffRepository:
         consultation_id: int,
         *,
         for_update: bool = False,
-        active_only: bool = True,
     ) -> StaffQuarterlyConsultation | None:
         statement = select(StaffQuarterlyConsultation).where(
             StaffQuarterlyConsultation.id == consultation_id
         )
-        if active_only:
-            statement = statement.where(StaffQuarterlyConsultation.invalidated_at_utc.is_(None))
         if for_update:
             statement = statement.with_for_update()
         return self.database_session.scalar(statement)

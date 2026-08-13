@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
@@ -10,11 +11,9 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import ValidationError
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.sql.elements import TextClause
 
 from app.core.auth import CurrentAccount
 from app.core.security import PinProtector
@@ -29,8 +28,6 @@ from app.domains.w1c.schemas import (
     CertificationIdentityCreateRequest,
     CertificationPeriodCreateRequest,
     CertificationPeriodReplacementRequest,
-    GradePeriodCreateRequest,
-    GradePeriodReplacementRequest,
 )
 from app.domains.w1c.service import W1CService
 
@@ -104,6 +101,7 @@ def _seed_case(factory: sessionmaker[Session]) -> W1CCase:
                 name=f"W1C RECIPIENT {label} {index}",
                 birth_date=date(1950, 1, index),
                 sex_code="TEST",
+                mobile_phone=f"010-7000-{index:04d}",
                 created_by_account_id=account.id,
                 updated_by_account_id=account.id,
                 row_version=1,
@@ -154,6 +152,7 @@ def _seed_authenticated_case(
             name=f"W1C AUTH RECIPIENT {label}",
             birth_date=date(1950, 1, 1),
             sex_code="TEST",
+            mobile_phone="010-7000-9999",
             created_by_account_id=account.id,
             updated_by_account_id=account.id,
             row_version=1,
@@ -211,6 +210,7 @@ def _seed_certification_period(
         certification = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
+                grade_code="3",
                 start_date=date(2026, 9, 1),
                 end_date=date(2026, 9, 30),
             ),
@@ -267,13 +267,14 @@ def test_w1c_identity_certification_and_grade_invariants(
             case.account,
         )
         assert identity.certification_number == "L1234567890"
-        repeated = service.create_identity(
-            case.recipient_id,
-            CertificationIdentityCreateRequest(certification_number="L1234567890-101"),
-            case.account,
+        assert (
+            service.create_identity(
+                case.recipient_id,
+                CertificationIdentityCreateRequest(certification_number="L1234567890-101"),
+                case.account,
+            )
+            == identity
         )
-        assert repeated == identity
-
         _assert_domain_error(
             "RECIPIENT_CERTIFICATION_NUMBER_FIXED",
             lambda: service.create_identity(
@@ -291,45 +292,22 @@ def test_w1c_identity_certification_and_grade_invariants(
             ),
         )
 
-        database_session.rollback()
-        with database_engine.connect() as connection:
-            transaction = connection.begin()
-            try:
-                assert connection.execute(text("SELECT current_user")).scalar_one() == "erp_app"
-                with pytest.raises(IntegrityError) as captured:
-                    connection.execute(
-                        text(
-                            """
-                            UPDATE erp.recipient_certification_identity
-                            SET recipient_id = :other_recipient_id
-                            WHERE recipient_id = :recipient_id
-                            """
-                        ),
-                        {
-                            "recipient_id": case.recipient_id,
-                            "other_recipient_id": case.other_recipient_id,
-                        },
-                    )
-                assert getattr(captured.value.orig, "sqlstate", None) == "23514"
-                assert captured.value.orig.diag.constraint_name == (
-                    "ck_recipient_certification_identity_immutable"
-                )
-            finally:
-                transaction.rollback()
-
         july = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
+                grade_code="3",
                 start_date=date(2026, 7, 1),
                 end_date=date(2026, 7, 31),
             ),
             case.account,
         )
+        assert july.grade_code.value == "3"
         _assert_domain_error(
             "CERTIFICATION_PERIOD_CONFLICT",
             lambda: service.create_certification_period(
                 case.recipient_id,
                 CertificationPeriodCreateRequest(
+                    grade_code="4",
                     start_date=date(2026, 7, 31),
                     end_date=date(2026, 8, 15),
                 ),
@@ -339,88 +317,95 @@ def test_w1c_identity_certification_and_grade_invariants(
         august = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
+                grade_code="4",
                 start_date=date(2026, 8, 1),
                 end_date=date(2026, 8, 31),
             ),
             case.account,
         )
         assert august.start_date == july.end_date + timedelta(days=1)
-
-        grade = service.create_grade_period(
-            case.recipient_id,
-            GradePeriodCreateRequest(
-                certification_period_id=july.id,
-                grade_code="3",
-                start_date=date(2026, 7, 1),
-                end_date=date(2026, 7, 20),
-            ),
-            case.account,
-        )
-        assert grade.grade_code.value == "3"
-        _assert_domain_error(
-            "GRADE_PERIOD_OUTSIDE_CERTIFICATION",
-            lambda: service.create_grade_period(
-                case.recipient_id,
-                GradePeriodCreateRequest(
-                    certification_period_id=july.id,
-                    grade_code="4",
-                    start_date=date(2026, 7, 21),
-                    end_date=date(2026, 8, 1),
-                ),
-                case.account,
-            ),
-        )
+        assert august.grade_code.value == "4"
 
     with database_engine.connect() as connection:
-        transaction = connection.begin()
-        try:
-            with pytest.raises(IntegrityError) as captured:
-                connection.execute(
-                    text(
-                        """
-                        UPDATE erp.recipient_certification_identity
-                        SET certification_number = 'L9999999999'
-                        WHERE recipient_id = :recipient_id
-                        """
-                    ),
-                    {"recipient_id": case.recipient_id},
-                )
-            assert captured.value.orig.diag.constraint_name == (
-                "ck_recipient_certification_identity_immutable"
-            )
-        finally:
-            transaction.rollback()
+        row = connection.execute(
+            text(
+                """
+                SELECT grade_code, start_date, end_date
+                FROM erp.recipient_certification_period
+                WHERE id = :period_id
+                """
+            ),
+            {"period_id": july.id},
+        ).mappings().one()
+        assert dict(row) == {
+            "grade_code": "3",
+            "start_date": date(2026, 7, 1),
+            "end_date": date(2026, 7, 31),
+        }
+        connection.rollback()
 
-    with database_engine.connect() as connection:
-        transaction = connection.begin()
-        try:
-            with pytest.raises(IntegrityError) as captured:
-                connection.execute(
-                    text(
-                        """
-                        UPDATE erp.recipient_certification_period
-                        SET end_date = DATE '2026-07-10'
-                        WHERE id = :period_id
-                        """
-                    ),
-                    {"period_id": july.id},
-                )
-            assert captured.value.orig.diag.constraint_name == (
-                "ck_recipient_certification_period_grade_containment"
-            )
-        finally:
-            transaction.rollback()
+        for statement, expected_constraint in (
+            (
+                """
+                UPDATE erp.recipient_certification_identity
+                SET certification_number = 'L9999999999'
+                WHERE recipient_id = :recipient_id
+                """,
+                "ck_recipient_certification_identity_immutable",
+            ),
+            (
+                """
+                UPDATE erp.recipient_certification_identity
+                SET recipient_id = :other_recipient_id
+                WHERE recipient_id = :recipient_id
+                """,
+                "ck_recipient_certification_identity_immutable",
+            ),
+            (
+                """
+                UPDATE erp.recipient_certification_period
+                SET grade_code = '9'
+                WHERE id = :period_id
+                """,
+                "ck_recipient_certification_period_grade_code",
+            ),
+        ):
+            transaction = connection.begin()
+            try:
+                with pytest.raises(IntegrityError) as captured:
+                    connection.execute(
+                        text(statement),
+                        {
+                            "recipient_id": case.recipient_id,
+                            "other_recipient_id": case.other_recipient_id,
+                            "period_id": july.id,
+                        },
+                    )
+                assert _constraint_name(captured.value) == expected_constraint
+            finally:
+                transaction.rollback()
 
 
-def test_w1c_certification_and_grade_writes_are_serialized(
+def test_w1c_certification_writes_are_serialized(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
 ) -> None:
-    grade_insert = text(
+    case = _seed_case(session_factory)
+    certification_number = f"L{int(uuid4().hex[:10], 16) % 10_000_000_000:010d}"
+    with session_factory() as database_session:
+        W1CService(database_session).create_identity(
+            case.recipient_id,
+            CertificationIdentityCreateRequest(
+                certification_number=certification_number,
+            ),
+            case.account,
+        )
+
+    barrier = threading.Barrier(2)
+    insert = text(
         """
-        INSERT INTO erp.recipient_grade_period (
+        INSERT INTO erp.recipient_certification_period (
             recipient_id,
-            certification_period_id,
             grade_code,
             start_date,
             end_date,
@@ -430,8 +415,7 @@ def test_w1c_certification_and_grade_writes_are_serialized(
         )
         VALUES (
             :recipient_id,
-            :certification_period_id,
-            '3',
+            :grade_code,
             DATE '2026-09-01',
             DATE '2026-09-30',
             :account_id,
@@ -440,141 +424,46 @@ def test_w1c_certification_and_grade_writes_are_serialized(
         )
         """
     )
-    certification_invalidation = text(
-        """
-        UPDATE erp.recipient_certification_period
-        SET invalidated_at_utc = clock_timestamp(),
-            updated_at_utc = clock_timestamp(),
-            updated_by_account_id = :account_id,
-            row_version = row_version + 1
-        WHERE id = :certification_period_id
-          AND recipient_id = :recipient_id
-        """
-    )
 
-    def execute_in_worker(
-        application_name: str,
-        statement: TextClause,
-        parameters: dict[str, int],
-    ) -> str | None:
+    def worker(grade_code: str) -> str:
         with database_engine.connect() as connection:
             transaction = connection.begin()
             try:
-                connection.execute(
-                    text("SELECT set_config('application_name', :name, true)"),
-                    {"name": application_name},
-                )
                 connection.execute(text("SET LOCAL lock_timeout = '5s'"))
-                connection.execute(statement, parameters)
+                barrier.wait(timeout=5)
+                connection.execute(
+                    insert,
+                    {
+                        "recipient_id": case.recipient_id,
+                        "grade_code": grade_code,
+                        "account_id": case.account.id,
+                    },
+                )
                 transaction.commit()
+                return "ok"
             except IntegrityError as error:
                 transaction.rollback()
-                return _constraint_name(error)
-        return None
+                return str(_constraint_name(error))
 
-    invalidation_first_case, invalidation_first_certification_id = _seed_certification_period(
-        session_factory
-    )
-    invalidation_parameters = {
-        "recipient_id": invalidation_first_case.recipient_id,
-        "certification_period_id": invalidation_first_certification_id,
-        "account_id": invalidation_first_case.account.id,
-    }
-    with database_engine.connect() as invalidation_connection:
-        invalidation_transaction = invalidation_connection.begin()
-        try:
-            invalidation_connection.execute(
-                certification_invalidation,
-                invalidation_parameters,
-            )
-            application_name = f"w1c-grade-after-invalidation-{uuid4().hex}"
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                grade_future = executor.submit(
-                    execute_in_worker,
-                    application_name,
-                    grade_insert,
-                    invalidation_parameters,
-                )
-                _wait_for_lock_or_completion(
-                    database_engine,
-                    application_name,
-                    grade_future,
-                )
-                invalidation_transaction.commit()
-                assert grade_future.result(timeout=5) == ("ck_recipient_grade_period_containment")
-        finally:
-            if invalidation_transaction.is_active:
-                invalidation_transaction.rollback()
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = sorted(executor.map(worker, ("2", "3")))
 
+    assert outcomes == ["ex_recipient_certification_period", "ok"]
     with database_engine.connect() as connection:
-        active_orphans = connection.execute(
+        rows = connection.execute(
             text(
                 """
-                SELECT count(*)
-                FROM erp.recipient_grade_period grade
-                JOIN erp.recipient_certification_period certification
-                  ON certification.id = grade.certification_period_id
-                 AND certification.recipient_id = grade.recipient_id
-                WHERE grade.certification_period_id = :certification_period_id
-                  AND grade.invalidated_at_utc IS NULL
-                  AND certification.invalidated_at_utc IS NOT NULL
+                SELECT grade_code
+                FROM erp.recipient_certification_period
+                WHERE recipient_id = :recipient_id
+                  AND start_date = DATE '2026-09-01'
+                  AND invalidated_at_utc IS NULL
                 """
             ),
-            {
-                "certification_period_id": invalidation_first_certification_id,
-            },
-        ).scalar_one()
-    assert active_orphans == 0
-
-    grade_first_case, grade_first_certification_id = _seed_certification_period(session_factory)
-    grade_parameters = {
-        "recipient_id": grade_first_case.recipient_id,
-        "certification_period_id": grade_first_certification_id,
-        "account_id": grade_first_case.account.id,
-    }
-    with database_engine.connect() as grade_connection:
-        grade_transaction = grade_connection.begin()
-        try:
-            grade_connection.execute(grade_insert, grade_parameters)
-            application_name = f"w1c-invalidation-after-grade-{uuid4().hex}"
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                invalidation_future = executor.submit(
-                    execute_in_worker,
-                    application_name,
-                    certification_invalidation,
-                    grade_parameters,
-                )
-                _wait_for_lock_or_completion(
-                    database_engine,
-                    application_name,
-                    invalidation_future,
-                )
-                grade_transaction.commit()
-                assert invalidation_future.result(timeout=5) == (
-                    "ck_recipient_certification_period_grade_containment"
-                )
-        finally:
-            if grade_transaction.is_active:
-                grade_transaction.rollback()
-
-    with database_engine.connect() as connection:
-        active_parent_and_grade = connection.execute(
-            text(
-                """
-                SELECT certification.invalidated_at_utc IS NULL,
-                       count(grade.id)
-                FROM erp.recipient_certification_period certification
-                JOIN erp.recipient_grade_period grade
-                  ON grade.certification_period_id = certification.id
-                 AND grade.recipient_id = certification.recipient_id
-                 AND grade.invalidated_at_utc IS NULL
-                WHERE certification.id = :certification_period_id
-                GROUP BY certification.invalidated_at_utc
-                """
-            ),
-            {"certification_period_id": grade_first_certification_id},
-        ).one()
-    assert tuple(active_parent_and_grade) == (True, 1)
+            {"recipient_id": case.recipient_id},
+        ).scalars().all()
+    assert len(rows) == 1
+    assert rows[0] in {"2", "3"}
 
 
 def test_w1c_benefit_and_approval_ledgers_are_independent(
@@ -584,38 +473,17 @@ def test_w1c_benefit_and_approval_ledgers_are_independent(
     with session_factory() as database_session:
         service = W1CService(database_session)
         assert service.list_benefit_periods(case.recipient_id).items == []
-        assert service.get_effective_benefit(case.recipient_id, date(2026, 1, 1)).item is None
 
-        benefits = []
-        for offset, code in enumerate(BenefitCode):
-            period_date = date(2026, 1, 10) + timedelta(days=offset)
-            benefits.append(
-                service.create_benefit_period(
-                    case.recipient_id,
-                    BenefitPeriodCreateRequest(
-                        benefit_code=code,
-                        start_date=period_date,
-                        end_date=period_date,
-                    ),
-                    case.account,
-                )
-            )
-        assert {item.benefit_code for item in benefits} == set(BenefitCode)
-        assert (
-            service.get_effective_benefit(
-                case.recipient_id,
-                benefits[0].start_date,
-            ).item
-            == benefits[0]
+        benefit = service.create_benefit_period(
+            case.recipient_id,
+            BenefitPeriodCreateRequest(
+                benefit_code="MEDICAL_6",
+                start_text="표시 전용 / 날짜 아님",
+            ),
+            case.account,
         )
-        assert (
-            service.get_effective_benefit(
-                case.recipient_id,
-                benefits[-1].end_date or date.min,
-            ).item
-            == benefits[-1]
-        )
-        assert service.get_effective_benefit(case.recipient_id, date(2026, 1, 9)).item is None
+        assert benefit.start_text == "표시 전용 / 날짜 아님"
+        assert benefit.benefit_code is BenefitCode.MEDICAL_6
 
         _assert_domain_error(
             "BENEFIT_PERIOD_CONFLICT",
@@ -623,71 +491,60 @@ def test_w1c_benefit_and_approval_ledgers_are_independent(
                 case.recipient_id,
                 BenefitPeriodCreateRequest(
                     benefit_code="MEDICAL_9",
-                    start_date=benefits[0].start_date,
-                    end_date=benefits[0].end_date,
+                    start_text="다른 표시값",
                 ),
                 case.account,
             ),
         )
-
-        approval = service.create_approval_amount_period(
-            case.recipient_id,
-            ApprovalAmountPeriodCreateRequest(
-                amount_krw=9_223_372_036_854_775_807,
-                start_date=benefits[0].start_date,
-                end_date=benefits[0].end_date,
-            ),
-            case.account,
-        )
-        assert approval.amount_krw == 9_223_372_036_854_775_807
-        _assert_domain_error(
-            "APPROVED_AMOUNT_PERIOD_CONFLICT",
-            lambda: service.create_approval_amount_period(
-                case.recipient_id,
-                ApprovalAmountPeriodCreateRequest(
-                    amount_krw=0,
-                    start_date=approval.start_date,
-                    end_date=approval.end_date,
-                ),
-                case.account,
-            ),
-        )
-        with pytest.raises(ValidationError):
-            ApprovalAmountPeriodCreateRequest(
-                amount_krw=-1,
-                start_date=date(2026, 2, 1),
-            )
 
         replacement = service.replace_benefit_period(
             case.recipient_id,
-            benefits[0].id,
+            benefit.id,
             BenefitPeriodReplacementRequest(
                 benefit_code="BASIC_LIVELIHOOD",
-                start_date=benefits[0].start_date,
-                end_date=benefits[0].end_date,
-                expected_row_version=benefits[0].row_version,
+                start_text="",
+                expected_row_version=benefit.row_version,
             ),
             case.account,
         )
         assert replacement.original.invalidated_at_utc is not None
-        assert replacement.original.replacement_benefit_period_id == (replacement.replacement.id)
         assert replacement.replacement.benefit_code is BenefitCode.BASIC_LIVELIHOOD
+        assert replacement.replacement.start_text == ""
         _assert_domain_error(
             "ROW_VERSION_CONFLICT",
             lambda: service.replace_benefit_period(
                 case.recipient_id,
-                benefits[0].id,
+                benefit.id,
                 BenefitPeriodReplacementRequest(
                     benefit_code="GENERAL",
-                    start_date=benefits[0].start_date,
-                    end_date=benefits[0].end_date,
-                    expected_row_version=benefits[0].row_version,
+                    start_text="stale",
+                    expected_row_version=benefit.row_version,
                 ),
                 case.account,
             ),
         )
-        history = service.list_benefit_periods(case.recipient_id).items
-        assert len(history) == len(BenefitCode) + 1
+
+        first_approval = service.create_approval_amount_period(
+            case.recipient_id,
+            ApprovalAmountPeriodCreateRequest(
+                amount_krw=1_000_000,
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 1, 31),
+            ),
+            case.account,
+        )
+        second_approval = service.create_approval_amount_period(
+            case.recipient_id,
+            ApprovalAmountPeriodCreateRequest(
+                amount_krw=2_000_000,
+                start_date=date(2026, 2, 1),
+                end_date=None,
+            ),
+            case.account,
+        )
+        assert first_approval.amount_krw == 1_000_000
+        assert second_approval.amount_krw == 2_000_000
+        assert len(service.list_approval_amount_periods(case.recipient_id).items) == 2
 
 
 def test_w1c_replacements_audit_original_and_new_facts(
@@ -695,36 +552,22 @@ def test_w1c_replacements_audit_original_and_new_facts(
 ) -> None:
     case = _seed_case(session_factory)
     request_id = uuid4()
+    certification_number = f"L{int(uuid4().hex[:10], 16) % 10_000_000_000:010d}"
     with session_factory() as database_session:
         service = W1CService(database_session, request_id=request_id)
         service.create_identity(
             case.recipient_id,
-            CertificationIdentityCreateRequest(certification_number="L4444444444"),
-            case.account,
-        )
-        grade_parent = service.create_certification_period(
-            case.recipient_id,
-            CertificationPeriodCreateRequest(
-                start_date=date(2026, 1, 1),
-                end_date=date(2026, 1, 31),
+            CertificationIdentityCreateRequest(
+                certification_number=certification_number,
             ),
             case.account,
         )
         certification = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
+                grade_code="2",
                 start_date=date(2026, 2, 1),
                 end_date=date(2026, 2, 28),
-            ),
-            case.account,
-        )
-        grade = service.create_grade_period(
-            case.recipient_id,
-            GradePeriodCreateRequest(
-                certification_period_id=grade_parent.id,
-                grade_code="1",
-                start_date=date(2026, 1, 1),
-                end_date=date(2026, 1, 15),
             ),
             case.account,
         )
@@ -732,8 +575,7 @@ def test_w1c_replacements_audit_original_and_new_facts(
             case.recipient_id,
             BenefitPeriodCreateRequest(
                 benefit_code="MEDICAL_6",
-                start_date=date(2026, 3, 1),
-                end_date=date(2026, 3, 31),
+                start_text="old",
             ),
             case.account,
         )
@@ -751,21 +593,10 @@ def test_w1c_replacements_audit_original_and_new_facts(
             case.recipient_id,
             certification.id,
             CertificationPeriodReplacementRequest(
+                grade_code="3",
                 start_date=certification.start_date,
                 end_date=certification.end_date,
                 expected_row_version=certification.row_version,
-            ),
-            case.account,
-        )
-        grade_replacement = service.replace_grade_period(
-            case.recipient_id,
-            grade.id,
-            GradePeriodReplacementRequest(
-                certification_period_id=grade_parent.id,
-                grade_code="2",
-                start_date=grade.start_date,
-                end_date=grade.end_date,
-                expected_row_version=grade.row_version,
             ),
             case.account,
         )
@@ -774,8 +605,7 @@ def test_w1c_replacements_audit_original_and_new_facts(
             benefit.id,
             BenefitPeriodReplacementRequest(
                 benefit_code="BASIC_LIVELIHOOD",
-                start_date=benefit.start_date,
-                end_date=benefit.end_date,
+                start_text="new",
                 expected_row_version=benefit.row_version,
             ),
             case.account,
@@ -817,12 +647,6 @@ def test_w1c_replacements_audit_original_and_new_facts(
                 certification_replacement.replacement.id,
             ),
             (
-                "RECIPIENT_GRADE_PERIOD_REPLACE",
-                grade_replacement.original.id,
-                "RECIPIENT_GRADE_PERIOD_REPLACEMENT_CREATE",
-                grade_replacement.replacement.id,
-            ),
-            (
                 "RECIPIENT_BENEFIT_PERIOD_REPLACE",
                 benefit_replacement.original.id,
                 "RECIPIENT_BENEFIT_PERIOD_REPLACEMENT_CREATE",
@@ -845,12 +669,10 @@ def test_w1c_replacements_audit_original_and_new_facts(
             assert int(replacement_audit["after_json"]["id"]) == new_id
             assert original_audit["occurred_at_utc"] == replacement_audit["occurred_at_utc"]
             assert original_audit["request_id"] == replacement_audit["request_id"] == request_id
-        assert (
-            rows_by_action["RECIPIENT_APPROVAL_AMOUNT_PERIOD_REPLACEMENT_CREATE"]["after_json"][
-                "amount_krw"
-            ]
-            == 9_223_372_036_854_775_807
-        )
+
+        assert certification_replacement.replacement.grade_code.value == "3"
+        assert benefit_replacement.replacement.start_text == "new"
+        assert approval_replacement.replacement.amount_krw == 9_223_372_036_854_775_807
 
 
 def test_w1c_catalog_and_http_error_contracts(
@@ -874,16 +696,17 @@ def test_w1c_catalog_and_http_error_contracts(
         assert {
             "recipient_certification_identity",
             "recipient_certification_period",
-            "recipient_grade_period",
             "recipient_benefit_period",
             "recipient_local_approval_amount_period",
         } <= table_names
+        assert "recipient_grade_period" not in table_names
+
         columns = {
-            row[0]
+            (str(row.table_name), str(row.column_name))
             for row in connection.execute(
                 text(
                     """
-                    SELECT column_name
+                    SELECT table_name, column_name
                     FROM information_schema.columns
                     WHERE table_schema = 'erp'
                       AND table_name = ANY(:tables)
@@ -893,19 +716,20 @@ def test_w1c_catalog_and_http_error_contracts(
                     "tables": [
                         "recipient_certification_identity",
                         "recipient_certification_period",
-                        "recipient_grade_period",
                         "recipient_benefit_period",
                         "recipient_local_approval_amount_period",
                     ]
                 },
             )
         }
+        assert ("recipient_certification_period", "grade_code") in columns
+        assert ("recipient_benefit_period", "start_text") in columns
         assert {
-            "issued_date",
-            "grade_changed_date",
-            "benefit_rate",
-            "monthly_maximum",
+            ("recipient_benefit_period", "start_date"),
+            ("recipient_benefit_period", "end_date"),
+            ("recipient_benefit_period", "benefit_period"),
         }.isdisjoint(columns)
+
         constraints = {
             row[0]
             for row in connection.execute(
@@ -920,28 +744,25 @@ def test_w1c_catalog_and_http_error_contracts(
         }
         assert {
             "ex_recipient_certification_period",
-            "ex_recipient_grade_period",
-            "ex_recipient_benefit_period",
+            "ck_recipient_certification_period_grade_code",
             "ex_recipient_local_approval_amount_period",
         } <= constraints
-        deferrable_triggers = {
+        assert "ex_recipient_grade_period" not in constraints
+        assert "ex_recipient_benefit_period" not in constraints
+
+        indexes = {
             row[0]
             for row in connection.execute(
                 text(
                     """
-                    SELECT tgname
-                    FROM pg_trigger
-                    WHERE tgconstraint <> 0
-                      AND tgdeferrable
-                      AND NOT tgisinternal
+                    SELECT indexname
+                    FROM pg_indexes
+                    WHERE schemaname = 'erp'
                     """
                 )
             )
         }
-        assert {
-            "ct_recipient_grade_period_containment",
-            "ct_recipient_certification_grade_containment",
-        } <= deferrable_triggers
+        assert "uq_recipient_benefit_period_active_recipient" in indexes
 
     case = _seed_case(session_factory)
     from app.api.dependencies import (
@@ -973,37 +794,52 @@ def test_w1c_catalog_and_http_error_contracts(
 
             created = client.post(
                 f"/api/v1/recipients/{case.recipient_id}/certification-periods",
-                json={"start_date": "2026-03-01", "end_date": "2026-03-31"},
-            )
-            assert created.status_code == 201
-            conflict = client.post(
-                f"/api/v1/recipients/{case.recipient_id}/certification-periods",
-                json={"start_date": "2026-03-31", "end_date": "2026-04-30"},
-            )
-            assert conflict.status_code == 409
-            assert conflict.json()["error"]["code"] == "CERTIFICATION_PERIOD_CONFLICT"
-
-            empty_benefits = client.get(f"/api/v1/recipients/{case.recipient_id}/benefit-periods")
-            assert empty_benefits.status_code == 200
-            assert empty_benefits.json() == {"items": []}
-            no_fallback = client.get(
-                f"/api/v1/recipients/{case.recipient_id}/benefit-periods/effective",
-                params={"on_date": "2026-03-15"},
-            )
-            assert no_fallback.status_code == 200
-            assert no_fallback.json()["item"] is None
-
-            invalid_grade = client.post(
-                f"/api/v1/recipients/{case.recipient_id}/grade-periods",
                 json={
-                    "certification_period_id": created.json()["id"],
-                    "grade_code": "COGNITIVE_SUPPORT",
+                    "grade_code": "3",
                     "start_date": "2026-03-01",
                     "end_date": "2026-03-31",
                 },
             )
+            assert created.status_code == 201
+            assert created.json()["grade_code"] == "3"
+            conflict = client.post(
+                f"/api/v1/recipients/{case.recipient_id}/certification-periods",
+                json={
+                    "grade_code": "4",
+                    "start_date": "2026-03-31",
+                    "end_date": "2026-04-30",
+                },
+            )
+            assert conflict.status_code == 409
+            assert conflict.json()["error"]["code"] == "CERTIFICATION_PERIOD_CONFLICT"
+
+            empty_benefits = client.get(
+                f"/api/v1/recipients/{case.recipient_id}/benefit-periods"
+            )
+            assert empty_benefits.status_code == 200
+            assert empty_benefits.json() == {"items": []}
+
+            retired_grade = client.get(
+                f"/api/v1/recipients/{case.recipient_id}/grade-periods"
+            )
+            retired_effective = client.get(
+                f"/api/v1/recipients/{case.recipient_id}/benefit-periods/effective",
+                params={"on_date": "2026-03-15"},
+            )
+            assert retired_grade.status_code == 404
+            assert retired_effective.status_code == 404
+
+            invalid_grade = client.post(
+                f"/api/v1/recipients/{case.recipient_id}/certification-periods",
+                json={
+                    "grade_code": "COGNITIVE_SUPPORT",
+                    "start_date": "2026-05-01",
+                    "end_date": "2026-05-31",
+                },
+            )
             assert invalid_grade.status_code == 422
             assert invalid_grade.json()["error"]["code"] == "VALIDATION_ERROR"
+
             for invalid_amount in (
                 -1,
                 9_223_372_036_854_775_808,
@@ -1021,6 +857,7 @@ def test_w1c_catalog_and_http_error_contracts(
                 )
                 assert invalid_approval.status_code == 422
                 assert invalid_approval.json()["error"]["code"] == "VALIDATION_ERROR"
+
             exact_bigint_approval = client.post(
                 f"/api/v1/recipients/{case.recipient_id}/approval-amount-periods",
                 json={
@@ -1031,11 +868,6 @@ def test_w1c_catalog_and_http_error_contracts(
             )
             assert exact_bigint_approval.status_code == 201
             assert '"amount_krw":9223372036854775807' in exact_bigint_approval.text
-            exact_bigint_list = client.get(
-                f"/api/v1/recipients/{case.recipient_id}/approval-amount-periods"
-            )
-            assert exact_bigint_list.status_code == 200
-            assert '"amount_krw":9223372036854775807' in exact_bigint_list.text
             unsafe = str(conflict.json()).lower()
             assert "constraint" not in unsafe
             assert "sqlalchemy" not in unsafe

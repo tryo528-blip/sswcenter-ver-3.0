@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
-
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -10,7 +8,6 @@ from app.db.models import (
     RecipientBenefitPeriod,
     RecipientCertificationIdentity,
     RecipientCertificationPeriod,
-    RecipientGradePeriod,
     RecipientLocalApprovalAmountPeriod,
 )
 
@@ -87,36 +84,6 @@ class W1CRepository:
             )
         )
 
-    def get_grade_period(
-        self,
-        recipient_id: int,
-        period_id: int,
-        *,
-        for_update: bool = False,
-        active_only: bool = False,
-    ) -> RecipientGradePeriod | None:
-        statement = select(RecipientGradePeriod).where(
-            RecipientGradePeriod.id == period_id,
-            RecipientGradePeriod.recipient_id == recipient_id,
-        )
-        if active_only:
-            statement = statement.where(RecipientGradePeriod.invalidated_at_utc.is_(None))
-        if for_update:
-            statement = statement.with_for_update()
-        return self.database_session.scalar(statement)
-
-    def list_grade_periods(self, recipient_id: int) -> list[RecipientGradePeriod]:
-        return list(
-            self.database_session.scalars(
-                select(RecipientGradePeriod)
-                .where(RecipientGradePeriod.recipient_id == recipient_id)
-                .order_by(
-                    RecipientGradePeriod.start_date.desc(),
-                    RecipientGradePeriod.id.desc(),
-                )
-            )
-        )
-
     def get_benefit_period(
         self,
         recipient_id: int,
@@ -140,27 +107,7 @@ class W1CRepository:
             self.database_session.scalars(
                 select(RecipientBenefitPeriod)
                 .where(RecipientBenefitPeriod.recipient_id == recipient_id)
-                .order_by(
-                    RecipientBenefitPeriod.start_date.desc(),
-                    RecipientBenefitPeriod.id.desc(),
-                )
-            )
-        )
-
-    def get_effective_benefit(
-        self,
-        recipient_id: int,
-        on_date: date,
-    ) -> RecipientBenefitPeriod | None:
-        return self.database_session.scalar(
-            select(RecipientBenefitPeriod).where(
-                RecipientBenefitPeriod.recipient_id == recipient_id,
-                RecipientBenefitPeriod.invalidated_at_utc.is_(None),
-                RecipientBenefitPeriod.start_date <= on_date,
-                or_(
-                    RecipientBenefitPeriod.end_date.is_(None),
-                    RecipientBenefitPeriod.end_date >= on_date,
-                ),
+                .order_by(RecipientBenefitPeriod.id.desc())
             )
         )
 

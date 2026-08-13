@@ -9,7 +9,6 @@ from app.domains.recipient.schemas import (
     GuardianCreateRequest,
     GuardianResponse,
     GuardianUpdateRequest,
-    PlanNotificationCreateRequest,
     RecipientCreateRequest,
     RecipientResponse,
     RecipientUpdateRequest,
@@ -22,8 +21,6 @@ from app.domains.w1c.schemas import (
     CertificationIdentityCreateRequest,
     CertificationPeriodCreateRequest,
     CertificationPeriodReplacementRequest,
-    GradePeriodCreateRequest,
-    GradePeriodReplacementRequest,
 )
 from app.domains.w1d.schemas import ContractCreateRequest
 
@@ -39,18 +36,6 @@ class CertificationPeriodMutation(StrictModel):
     @model_validator(mode="after")
     def validate_mode(self) -> CertificationPeriodMutation:
         replacing = isinstance(self.payload, CertificationPeriodReplacementRequest)
-        if replacing != (self.period_id is not None):
-            raise ValueError("period_id and expected_row_version must be supplied together")
-        return self
-
-
-class GradePeriodMutation(StrictModel):
-    period_id: int | None = Field(default=None, gt=0)
-    payload: GradePeriodCreateRequest | GradePeriodReplacementRequest
-
-    @model_validator(mode="after")
-    def validate_mode(self) -> GradePeriodMutation:
-        replacing = isinstance(self.payload, GradePeriodReplacementRequest)
         if replacing != (self.period_id is not None):
             raise ValueError("period_id and expected_row_version must be supplied together")
         return self
@@ -83,10 +68,8 @@ class ApprovalAmountPeriodMutation(StrictModel):
 class RecipientDetailBatchRequest(StrictModel):
     certification_identity: CertificationIdentityCreateRequest | None = None
     certification_period: CertificationPeriodMutation | None = None
-    grade_period: GradePeriodMutation | None = None
     benefit_period: BenefitPeriodMutation | None = None
     approval_amount_period: ApprovalAmountPeriodMutation | None = None
-    plan_notification: PlanNotificationCreateRequest | None = None
     contract: ContractCreateRequest | None = None
 
     @model_validator(mode="after")
@@ -118,7 +101,6 @@ class RecipientBasicCreateBatchRequest(StrictModel):
     recipient: RecipientCreateRequest
     guardians: list[BasicGuardianMutation] = Field(default_factory=list, max_length=2)
     payer_guardian_slot: Literal[0, 1] | None = None
-    benefit_periods: list[BenefitPeriodMutation] = Field(default_factory=list, max_length=2)
 
     @model_validator(mode="after")
     def validate_guardians(self) -> RecipientBasicCreateBatchRequest:
@@ -131,19 +113,12 @@ class RecipientBasicCreateBatchRequest(StrictModel):
             raise ValueError("payer guardian slot must be included in guardians")
         return self
 
-    @model_validator(mode="after")
-    def require_benefit_periods(self) -> RecipientBasicCreateBatchRequest:
-        if not self.benefit_periods:
-            raise ValueError("at least one benefit period is required")
-        return self
-
-
 class RecipientBasicUpdateBatchRequest(StrictModel):
     recipient: RecipientUpdateRequest
     guardians: list[BasicGuardianMutation] = Field(default_factory=list, max_length=2)
     payer_guardian_slot: Literal[0, 1] | None = None
     preserve_payer: bool = False
-    benefit_periods: list[BenefitPeriodMutation] = Field(default_factory=list, max_length=2)
+    benefit_period: BenefitPeriodMutation | None = None
 
     @model_validator(mode="after")
     def validate_guardians(self) -> RecipientBasicUpdateBatchRequest:
@@ -195,6 +170,7 @@ class RecipientDetailBatchService:
                     recipient_id,
                     mutation.payload,
                     current_account,
+                    slot_no=mutation.slot + 1,
                 )
             else:
                 guardian = self._recipient_service.update_guardian(
@@ -206,27 +182,28 @@ class RecipientDetailBatchService:
             saved[mutation.slot] = guardian
         return saved
 
-    def _apply_basic_benefits(
+    def _apply_basic_benefit(
         self,
         *,
         recipient_id: int,
-        mutations: list[BenefitPeriodMutation],
+        mutation: BenefitPeriodMutation | None,
         current_account: Any,
     ) -> None:
-        for mutation in mutations:
-            if mutation.period_id is None:
-                self._w1c_service.create_benefit_period(
-                    recipient_id,
-                    mutation.payload,
-                    current_account,
-                )
-            else:
-                self._w1c_service.replace_benefit_period(
-                    recipient_id,
-                    mutation.period_id,
-                    mutation.payload,
-                    current_account,
-                )
+        if mutation is None:
+            return
+        if mutation.period_id is None:
+            self._w1c_service.create_benefit_period(
+                recipient_id,
+                mutation.payload,
+                current_account,
+            )
+        else:
+            self._w1c_service.replace_benefit_period(
+                recipient_id,
+                mutation.period_id,
+                mutation.payload,
+                current_account,
+            )
 
     def create_basic(
         self,
@@ -255,11 +232,6 @@ class RecipientDetailBatchService:
                     ),
                     current_account,
                 )
-            self._apply_basic_benefits(
-                recipient_id=recipient.id,
-                mutations=payload.benefit_periods,
-                current_account=current_account,
-            )
             self._session.commit()
         except IntegrityError as exc:
             self._session.rollback()
@@ -278,8 +250,6 @@ class RecipientDetailBatchService:
             saved_sections.append("guardians")
         if payload.payer_guardian_slot is not None:
             saved_sections.append("payer")
-        if payload.benefit_periods:
-            saved_sections.append("benefit_periods")
         return RecipientBasicBatchResponse(
             recipient=recipient,
             guardians=[guardians[slot] for slot in sorted(guardians)],
@@ -319,9 +289,9 @@ class RecipientDetailBatchService:
                 RecipientUpdateRequest.model_validate(recipient_values),
                 current_account,
             )
-            self._apply_basic_benefits(
+            self._apply_basic_benefit(
                 recipient_id=recipient_id,
-                mutations=payload.benefit_periods,
+                mutation=payload.benefit_period,
                 current_account=current_account,
             )
             self._session.commit()
@@ -342,8 +312,8 @@ class RecipientDetailBatchService:
             saved_sections.append("guardians")
         if not payload.preserve_payer:
             saved_sections.append("payer")
-        if payload.benefit_periods:
-            saved_sections.append("benefit_periods")
+        if payload.benefit_period is not None:
+            saved_sections.append("benefit_period")
         return RecipientBasicBatchResponse(
             recipient=recipient,
             guardians=[guardians[slot] for slot in sorted(guardians)],
@@ -389,23 +359,6 @@ class RecipientDetailBatchService:
                     )
                 saved_sections.append("certification_period")
 
-            if payload.grade_period is not None:
-                grade_mutation = payload.grade_period
-                if grade_mutation.period_id is None:
-                    self._w1c_service.create_grade_period(
-                        recipient_id,
-                        grade_mutation.payload,
-                        current_account,
-                    )
-                else:
-                    self._w1c_service.replace_grade_period(
-                        recipient_id,
-                        grade_mutation.period_id,
-                        grade_mutation.payload,
-                        current_account,
-                    )
-                saved_sections.append("grade_period")
-
             if payload.benefit_period is not None:
                 benefit_mutation = payload.benefit_period
                 if benefit_mutation.period_id is None:
@@ -439,14 +392,6 @@ class RecipientDetailBatchService:
                         current_account,
                     )
                 saved_sections.append("approval_amount_period")
-
-            if payload.plan_notification is not None:
-                self._recipient_service.create_plan_notification(
-                    recipient_id,
-                    payload.plan_notification,
-                    current_account,
-                )
-                saved_sections.append("plan_notification")
 
             if payload.contract is not None:
                 self._w1d_service.create_contract(

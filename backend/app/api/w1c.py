@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, status
@@ -29,12 +28,6 @@ from app.domains.w1c.schemas import (
     CertificationPeriodReplacementRequest,
     CertificationPeriodReplacementResponse,
     CertificationPeriodResponse,
-    EffectiveBenefitResponse,
-    GradePeriodCreateRequest,
-    GradePeriodListResponse,
-    GradePeriodReplacementRequest,
-    GradePeriodReplacementResponse,
-    GradePeriodResponse,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["recipients-w1c"])
@@ -149,66 +142,6 @@ def replace_certification_period(
 
 
 @router.get(
-    "/recipients/{recipient_id}/grade-periods",
-    response_model=GradePeriodListResponse,
-    responses=ERROR_RESPONSES,
-)
-def list_grade_periods(
-    recipient_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: W1CServiceDependency,
-) -> GradePeriodListResponse:
-    del current_account
-    return service.list_grade_periods(recipient_id)
-
-
-@router.post(
-    "/recipients/{recipient_id}/grade-periods",
-    response_model=GradePeriodResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def create_grade_period(
-    recipient_id: int,
-    payload: GradePeriodCreateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: W1CServiceDependency,
-) -> GradePeriodResponse:
-    return service.create_grade_period(recipient_id, payload, current_account)
-
-
-@router.post(
-    "/recipients/{recipient_id}/grade-periods/{period_id}/invalidate",
-    response_model=GradePeriodResponse,
-    responses=ERROR_RESPONSES,
-)
-def invalidate_grade_period(
-    recipient_id: int,
-    period_id: int,
-    payload: HistoryInvalidateRequest,
-    current_account: RecipientManageAccountDependency,
-    service: W1CServiceDependency,
-) -> GradePeriodResponse:
-    return service.invalidate_grade_period(recipient_id, period_id, payload, current_account)
-
-
-@router.post(
-    "/recipients/{recipient_id}/grade-periods/{period_id}/replacements",
-    response_model=GradePeriodReplacementResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses=ERROR_RESPONSES,
-)
-def replace_grade_period(
-    recipient_id: int,
-    period_id: int,
-    payload: GradePeriodReplacementRequest,
-    current_account: RecipientManageAccountDependency,
-    service: W1CServiceDependency,
-) -> GradePeriodReplacementResponse:
-    return service.replace_grade_period(recipient_id, period_id, payload, current_account)
-
-
-@router.get(
     "/recipients/{recipient_id}/benefit-periods",
     response_model=BenefitPeriodListResponse,
     responses=ERROR_RESPONSES,
@@ -235,21 +168,6 @@ def create_benefit_period(
     service: W1CServiceDependency,
 ) -> BenefitPeriodResponse:
     return service.create_benefit_period(recipient_id, payload, current_account)
-
-
-@router.get(
-    "/recipients/{recipient_id}/benefit-periods/effective",
-    response_model=EffectiveBenefitResponse,
-    responses=ERROR_RESPONSES,
-)
-def get_effective_benefit(
-    recipient_id: int,
-    current_account: RecipientViewAccountDependency,
-    service: W1CServiceDependency,
-    on_date: date,
-) -> EffectiveBenefitResponse:
-    del current_account
-    return service.get_effective_benefit(recipient_id, on_date)
 
 
 @router.post(

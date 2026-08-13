@@ -9,12 +9,9 @@ from sqlalchemy.orm import Session
 from app.db.models import (
     Recipient,
     RecipientBenefitPeriod,
+    RecipientCertificationPeriod,
     RecipientContract,
-    RecipientGradePeriod,
     RecipientGuardian,
-    RecipientGuardianPrimaryPeriod,
-    RecipientPayerSnapshot,
-    RecipientPlanNotification,
     ServiceGroup,
     ServiceType,
 )
@@ -99,7 +96,7 @@ class RecipientRepository:
         total = int(self.database_session.scalar(count_statement) or 0)
         items = list(
             self.database_session.scalars(
-                statement.order_by(Recipient.name.asc(), Recipient.id.asc())
+                statement.order_by(Recipient.name.asc().nulls_last(), Recipient.id.asc())
                 .offset(offset)
                 .limit(limit)
             )
@@ -163,21 +160,21 @@ class RecipientRepository:
             return {}
         rows = self.database_session.execute(
             select(
-                RecipientGradePeriod.recipient_id,
-                RecipientGradePeriod.grade_code,
-                RecipientGradePeriod.start_date,
-                RecipientGradePeriod.id,
+                RecipientCertificationPeriod.recipient_id,
+                RecipientCertificationPeriod.grade_code,
+                RecipientCertificationPeriod.start_date,
+                RecipientCertificationPeriod.id,
             )
             .where(
-                RecipientGradePeriod.recipient_id.in_(recipient_ids),
-                RecipientGradePeriod.invalidated_at_utc.is_(None),
-                RecipientGradePeriod.start_date <= as_of,
-                RecipientGradePeriod.end_date >= as_of,
+                RecipientCertificationPeriod.recipient_id.in_(recipient_ids),
+                RecipientCertificationPeriod.invalidated_at_utc.is_(None),
+                RecipientCertificationPeriod.start_date <= as_of,
+                RecipientCertificationPeriod.end_date >= as_of,
             )
             .order_by(
-                RecipientGradePeriod.recipient_id.asc(),
-                RecipientGradePeriod.start_date.desc(),
-                RecipientGradePeriod.id.desc(),
+                RecipientCertificationPeriod.recipient_id.asc(),
+                RecipientCertificationPeriod.start_date.desc(),
+                RecipientCertificationPeriod.id.desc(),
             )
         ).all()
         result: dict[int, str | None] = {recipient_id: None for recipient_id in recipient_ids}
@@ -194,30 +191,26 @@ class RecipientRepository:
     ) -> dict[int, str | None]:
         if not recipient_ids:
             return {}
+        # ``as_of`` is intentionally ignored: benefit.start_text is opaque
+        # display text and must not participate in date parsing/comparison.
+        _ = as_of
         rows = self.database_session.execute(
             select(
                 RecipientBenefitPeriod.recipient_id,
                 RecipientBenefitPeriod.benefit_code,
-                RecipientBenefitPeriod.start_date,
                 RecipientBenefitPeriod.id,
             )
             .where(
                 RecipientBenefitPeriod.recipient_id.in_(recipient_ids),
                 RecipientBenefitPeriod.invalidated_at_utc.is_(None),
-                RecipientBenefitPeriod.start_date <= as_of,
-                or_(
-                    RecipientBenefitPeriod.end_date.is_(None),
-                    RecipientBenefitPeriod.end_date >= as_of,
-                ),
             )
             .order_by(
                 RecipientBenefitPeriod.recipient_id.asc(),
-                RecipientBenefitPeriod.start_date.desc(),
                 RecipientBenefitPeriod.id.desc(),
             )
         ).all()
         result: dict[int, str | None] = {recipient_id: None for recipient_id in recipient_ids}
-        for recipient_id, benefit_code, _start, _id in rows:
+        for recipient_id, benefit_code, _id in rows:
             key = int(recipient_id)
             if result.get(key) is None:
                 result[key] = str(benefit_code)
@@ -243,99 +236,6 @@ class RecipientRepository:
             self.database_session.scalars(
                 select(RecipientGuardian)
                 .where(RecipientGuardian.recipient_id == recipient_id)
-                .order_by(RecipientGuardian.id.asc())
-            )
-        )
-
-    def get_primary_period(
-        self,
-        recipient_id: int,
-        period_id: int,
-        *,
-        for_update: bool = False,
-        active_only: bool = False,
-    ) -> RecipientGuardianPrimaryPeriod | None:
-        statement = select(RecipientGuardianPrimaryPeriod).where(
-            RecipientGuardianPrimaryPeriod.id == period_id,
-            RecipientGuardianPrimaryPeriod.recipient_id == recipient_id,
-        )
-        if active_only:
-            statement = statement.where(RecipientGuardianPrimaryPeriod.invalidated_at_utc.is_(None))
-        if for_update:
-            statement = statement.with_for_update()
-        return self.database_session.scalar(statement)
-
-    def list_primary_periods(self, recipient_id: int) -> list[RecipientGuardianPrimaryPeriod]:
-        return list(
-            self.database_session.scalars(
-                select(RecipientGuardianPrimaryPeriod)
-                .where(RecipientGuardianPrimaryPeriod.recipient_id == recipient_id)
-                .order_by(
-                    RecipientGuardianPrimaryPeriod.start_date.desc(),
-                    RecipientGuardianPrimaryPeriod.id.desc(),
-                )
-            )
-        )
-
-    def get_payer_snapshot(
-        self,
-        recipient_id: int,
-        snapshot_id: int,
-        *,
-        for_update: bool = False,
-        active_only: bool = False,
-    ) -> RecipientPayerSnapshot | None:
-        statement = select(RecipientPayerSnapshot).where(
-            RecipientPayerSnapshot.id == snapshot_id,
-            RecipientPayerSnapshot.recipient_id == recipient_id,
-        )
-        if active_only:
-            statement = statement.where(RecipientPayerSnapshot.invalidated_at_utc.is_(None))
-        if for_update:
-            statement = statement.with_for_update()
-        return self.database_session.scalar(statement)
-
-    def list_payer_snapshots(self, recipient_id: int) -> list[RecipientPayerSnapshot]:
-        return list(
-            self.database_session.scalars(
-                select(RecipientPayerSnapshot)
-                .where(RecipientPayerSnapshot.recipient_id == recipient_id)
-                .order_by(
-                    RecipientPayerSnapshot.start_date.desc(),
-                    RecipientPayerSnapshot.id.desc(),
-                )
-            )
-        )
-
-    def get_plan_notification(
-        self,
-        recipient_id: int,
-        notification_id: int,
-        *,
-        for_update: bool = False,
-        active_only: bool = False,
-    ) -> RecipientPlanNotification | None:
-        statement = select(RecipientPlanNotification).where(
-            RecipientPlanNotification.id == notification_id,
-            RecipientPlanNotification.recipient_id == recipient_id,
-        )
-        if active_only:
-            statement = statement.where(RecipientPlanNotification.invalidated_at_utc.is_(None))
-        if for_update:
-            statement = statement.with_for_update()
-        return self.database_session.scalar(statement)
-
-    def list_plan_notifications(
-        self,
-        recipient_id: int,
-    ) -> list[RecipientPlanNotification]:
-        return list(
-            self.database_session.scalars(
-                select(RecipientPlanNotification)
-                .where(RecipientPlanNotification.recipient_id == recipient_id)
-                .order_by(
-                    RecipientPlanNotification.notified_date.desc(),
-                    RecipientPlanNotification.id.desc(),
-                )
+                .order_by(RecipientGuardian.slot_no.asc())
             )
         )

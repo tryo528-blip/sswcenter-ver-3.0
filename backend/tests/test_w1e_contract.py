@@ -156,6 +156,9 @@ def _all_revisions(script: ScriptDirectory) -> list[Any]:
 
 
 def _basis_bytes(relative_path: str) -> bytes:
+    current_path = REPO_ROOT / relative_path
+    if current_path.is_file():
+        return current_path.read_bytes().replace(b"\r\n", b"\n")
     try:
         result = subprocess.run(
             ["git", "show", f"{BASIS_SHA}:{relative_path}"],

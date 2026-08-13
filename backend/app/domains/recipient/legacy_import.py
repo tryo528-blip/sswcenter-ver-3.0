@@ -1,8 +1,8 @@
 """Private synthetic-safe recipient legacy import operations.
 
-The module is intentionally not mounted in HTTP or OpenAPI.  It accepts only
-in-memory rows and writes recipients plus their internal mapping ledger in one
-transaction.
+The module is intentionally not mounted in HTTP or OpenAPI. It accepts only
+in-memory rows and writes recipients, their default GENERAL benefit, and the
+internal mapping ledger in one transaction.
 """
 
 from __future__ import annotations
@@ -17,7 +17,12 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.settings import Settings
-from app.db.models import AuditEvent, Recipient, RecipientLegacyMapping
+from app.db.models import (
+    AuditEvent,
+    Recipient,
+    RecipientBenefitPeriod,
+    RecipientLegacyMapping,
+)
 from app.domains.recipient.policies import clean_optional_text, clean_required_text
 
 _ROW_FIELDS = frozenset(
@@ -29,7 +34,6 @@ _ROW_FIELDS = frozenset(
         "sex_code",
         "postal_code",
         "address",
-        "home_phone",
         "mobile_phone",
         "source_memo",
     }
@@ -52,13 +56,12 @@ class _RejectedRow(ValueError):
 class _PreparedRow:
     legacy_recipient_key: str | None
     legacy_attachment_key: str | None
-    name: str
-    birth_date: date
-    sex_code: str
+    name: str | None
+    birth_date: date | None
+    sex_code: str | None
     postal_code: str | None
     address: str | None
-    home_phone: str | None
-    mobile_phone: str | None
+    mobile_phone: str
     source_memo: str | None
 
 
@@ -103,33 +106,41 @@ def _active_key_set(values: Iterable[object]) -> set[str]:
 def _prepare_one(row: Mapping[str, object]) -> _PreparedRow:
     if set(row) - _ROW_FIELDS:
         raise _RejectedRow("INVALID_REQUIRED_FIELD")
-    name_value = row.get("name")
-    try:
-        name = clean_required_text(name_value if isinstance(name_value, str) else "")
-    except ValueError:
-        raise _RejectedRow("INVALID_REQUIRED_FIELD") from None
-    birth_date = _date_value(row.get("birth_date"))
-    sex_code = _text(row.get("sex_code"))
-    recipient_key = _text(row.get("legacy_recipient_key"))
-    attachment_key = _text(row.get("legacy_attachment_key"))
-    if (
-        birth_date is None
-        or sex_code not in {"MALE", "FEMALE", "TEST"}
-        or (recipient_key is None and attachment_key is None)
-    ):
-        raise _RejectedRow("INVALID_REQUIRED_FIELD")
-    optional_values: dict[str, str | None] = {}
+
     for field_name in (
+        "name",
+        "sex_code",
         "postal_code",
         "address",
-        "home_phone",
         "mobile_phone",
         "source_memo",
     ):
         raw = row.get(field_name)
         if raw is not None and not isinstance(raw, str):
             raise _RejectedRow("INVALID_REQUIRED_FIELD")
-        optional_values[field_name] = _text(raw)
+
+    name = _text(row.get("name"))
+    raw_birth_date = row.get("birth_date")
+    birth_date = _date_value(raw_birth_date)
+    if raw_birth_date is not None and birth_date is None:
+        raise _RejectedRow("INVALID_REQUIRED_FIELD")
+    sex_code = _text(row.get("sex_code"))
+    if sex_code is not None and sex_code not in {"MALE", "FEMALE", "TEST"}:
+        raise _RejectedRow("INVALID_REQUIRED_FIELD")
+
+    recipient_key = _text(row.get("legacy_recipient_key"))
+    attachment_key = _text(row.get("legacy_attachment_key"))
+    if recipient_key is None and attachment_key is None:
+        raise _RejectedRow("INVALID_REQUIRED_FIELD")
+
+    try:
+        mobile_phone = clean_required_text(_text(row.get("mobile_phone")) or "")
+    except ValueError:
+        raise _RejectedRow("INVALID_REQUIRED_FIELD") from None
+
+    optional_values: dict[str, str | None] = {}
+    for field_name in ("postal_code", "address", "source_memo"):
+        optional_values[field_name] = _text(row.get(field_name))
     return _PreparedRow(
         legacy_recipient_key=recipient_key,
         legacy_attachment_key=attachment_key,
@@ -138,8 +149,7 @@ def _prepare_one(row: Mapping[str, object]) -> _PreparedRow:
         sex_code=sex_code,
         postal_code=optional_values["postal_code"],
         address=optional_values["address"],
-        home_phone=optional_values["home_phone"],
-        mobile_phone=optional_values["mobile_phone"],
+        mobile_phone=mobile_phone,
         source_memo=optional_values["source_memo"],
     )
 
@@ -330,8 +340,8 @@ def _apply_rows(
             memo=_source_memo(source_system_code, row.source_memo),
             postal_code=row.postal_code,
             address=row.address,
-            home_phone=row.home_phone,
             mobile_phone=row.mobile_phone,
+            payer_guardian_id=None,
             created_by_account_id=actor_account_id,
             created_at_utc=now,
             updated_by_account_id=actor_account_id,
@@ -346,6 +356,33 @@ def _apply_rows(
             entity_type="RECIPIENT",
             entity_pk=recipient.id,
             after={"row_version": recipient.row_version},
+            occurred_at_utc=now,
+        )
+        general_benefit = RecipientBenefitPeriod(
+            recipient_id=recipient.id,
+            benefit_code="GENERAL",
+            start_text="",
+            invalidated_at_utc=None,
+            replacement_benefit_period_id=None,
+            created_by_account_id=actor_account_id,
+            created_at_utc=now,
+            updated_by_account_id=actor_account_id,
+            updated_at_utc=now,
+            row_version=1,
+        )
+        database_session.add(general_benefit)
+        database_session.flush()
+        _audit(
+            database_session,
+            actor_account_id=actor_account_id,
+            action_code="RECIPIENT_BENEFIT_CREATE",
+            entity_type="RECIPIENT_BENEFIT_PERIOD",
+            entity_pk=general_benefit.id,
+            after={
+                "benefit_code": "GENERAL",
+                "start_text": "",
+                "row_version": general_benefit.row_version,
+            },
             occurred_at_utc=now,
         )
         mapping = RecipientLegacyMapping(

@@ -47,20 +47,6 @@ def deadline_date(
     return result
 
 
-def d100_date(
-    notification_date: date,
-    *,
-    contract_end_date: date | None = None,
-    certification_end_date: date | None = None,
-) -> date:
-    """Deadline minus 100 days (shares cap logic with deadline_date)."""
-    return deadline_date(
-        notification_date,
-        contract_end_date=contract_end_date,
-        certification_end_date=certification_end_date,
-    ) - timedelta(days=100)
-
-
 def d45_date(
     notification_date: date,
     *,

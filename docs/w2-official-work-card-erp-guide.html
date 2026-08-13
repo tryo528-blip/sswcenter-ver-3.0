@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="SSWCenter 3.0 Wave 2 ERP 단독 공식 업무카드·개인 할 일 설계를 쉽게 설명한 휴대폰용 안내">
+  <title>W2 공식 업무카드 · ERP 단독 안내</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #162033;
+      --muted: #5f6b7a;
+      --soft: #f4f7fb;
+      --line: #dbe3ee;
+      --navy: #0f172a;
+      --blue: #2563eb;
+      --blue-soft: #eaf1ff;
+      --green: #087443;
+      --green-soft: #eaf8f0;
+      --amber: #9a5b00;
+      --amber-soft: #fff6df;
+      --red: #b42318;
+      --red-soft: #fff0ee;
+      --violet: #5b21b6;
+      --violet-soft: #f3e8ff;
+      --shadow: 0 12px 30px rgba(15, 23, 42, .08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      line-height: 1.7;
+      font-size: 18px;
+      -webkit-text-size-adjust: 100%;
+    }
+    a { color: var(--blue); }
+    .wrap { width: min(100% - 28px, 760px); margin: 0 auto; }
+    .hero {
+      color: #fff;
+      background: linear-gradient(145deg, #0f172a 0%, #172554 65%, #1d4ed8 100%);
+      padding: 42px 0 30px;
+      padding-top: calc(42px + env(safe-area-inset-top));
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #bfdbfe;
+      font-size: .9rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    h1, h2, h3 { line-height: 1.25; }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.1rem, 9vw, 3.4rem);
+      letter-spacing: -.04em;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.45rem, 5vw, 1.8rem);
+      letter-spacing: -.03em;
+    }
+    h3 { margin: 0 0 8px; font-size: 1.15rem; }
+    p { margin: 0 0 14px; }
+    .lead {
+      margin-top: 16px;
+      color: #e0e7ff;
+      font-size: 1.15rem;
+    }
+    .meta {
+      margin-top: 18px;
+      color: #cbd5e1;
+      font-size: .95rem;
+    }
+    .top-note {
+      margin: 18px 0 0;
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 12px;
+      background: rgba(255,255,255,.09);
+      color: #f8fafc;
+      font-size: 1rem;
+    }
+    .gate-banner {
+      margin: 18px 0 0;
+      padding: 18px 16px;
+      border: 2px solid #fecaca;
+      border-radius: 14px;
+      background: rgba(127, 29, 29, .35);
+      color: #fff;
+      font-size: 1.05rem;
+    }
+    .gate-banner strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.2rem;
+      color: #fecaca;
+    }
+    .toc {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(10px);
+    }
+    .toc-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .toc-row::-webkit-scrollbar { display: none; }
+    .toc a {
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: #fff;
+      font-size: .95rem;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    main { padding: 28px 0 56px; }
+    section {
+      scroll-margin-top: 72px;
+      margin-bottom: 38px;
+    }
+    .section-kicker {
+      display: inline-block;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font-size: .85rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--soft);
+      box-shadow: var(--shadow);
+    }
+    .card + .card { margin-top: 12px; }
+    .grid-2 {
+      display: grid;
+      gap: 12px;
+    }
+    @media (min-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+    .badge.blue { background: var(--blue-soft); color: var(--blue); }
+    .badge.green { background: var(--green-soft); color: var(--green); }
+    .badge.amber { background: var(--amber-soft); color: var(--amber); }
+    .badge.red { background: var(--red-soft); color: var(--red); }
+    .badge.violet { background: var(--violet-soft); color: var(--violet); }
+    .flow {
+      display: grid;
+      gap: 10px;
+    }
+    .flow-item {
+      padding: 16px;
+      border-left: 4px solid var(--blue);
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      border-left-color: var(--blue);
+    }
+    .flow-item p { margin: 6px 0 0; color: var(--muted); }
+    .callout {
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: var(--amber-soft);
+      border: 1px solid #f0d59a;
+      color: #5c3b00;
+      font-size: 1.02rem;
+    }
+    .callout.ok {
+      background: var(--green-soft);
+      border-color: #b7e4c7;
+      color: #0f5132;
+    }
+    .callout.bad {
+      background: var(--red-soft);
+      border-color: #f0c2bc;
+      color: #7f1d1d;
+    }
+    ul.clean {
+      margin: 0;
+      padding-left: 1.2em;
+    }
+    ul.clean li { margin: 8px 0; }
+    .dash-box {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px dashed #93c5fd;
+      background: #f8fbff;
+    }
+    .dash-row {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-size: 1.02rem;
+    }
+    .dash-row strong { display: block; margin-bottom: 4px; }
+    .dash-row span { color: var(--muted); font-size: .98rem; }
+    footer {
+      padding: 24px 0 40px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    code, .code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .92em;
+      background: #eef2ff;
+      padding: 0.1em 0.35em;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">SSWCENTER 3.0 · WAVE 2</p>
+      <h1>공식 업무카드,<br>ERP 안에서<br>쉽게 이해하기</h1>
+      <p class="lead">해야 할 일의 진짜 주인은 ERP입니다. 공식 업무와 개인 메모를 나눠 저장하고, 서로 다른 화면에서 봅니다.</p>
+      <p class="meta">설명 대상: ERP 단독 공식 업무카드 · 개인 할 일 설계<br>문서 상태: 설계 반영 · 아직 구현 전 · 휴대폰 읽기용</p>
+      <div class="gate-banner">
+        <strong>🚨 형님 승인 절대 게이트</strong>
+        형님 승인 없이 어떠한 계약도 추가하거나 삭제하지 않는다.<br>
+        업무·UI·API·DB·기술·보안·로드맵 계약은 형님 사전 승인을 받은 정본 개정으로만 추가·삭제·변경한다.<br>
+        승인 전에는 구현을 시작하지 않는다.
+      </div>
+      <p class="top-note">핵심 한 줄: <strong>공식 업무카드와 개인 할 일 모두 ERP가 소유</strong>합니다. 공식 카드는 Dashboard, 개인 할 일은 사회복지사 달력형 일정표에서만 봅니다.</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="목차">
+    <div class="wrap">
+      <div class="toc-row">
+        <a href="#why">왜 필요한가</a>
+        <a href="#owner">소유권</a>
+        <a href="#official">공식 업무목록</a>
+        <a href="#cardinfo">카드 정보</a>
+        <a href="#personal">개인 할 일</a>
+        <a href="#screens">화면 분리</a>
+        <a href="#security">보안</a>
+        <a href="#next">다음 단계</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section id="why">
+      <p class="section-kicker">01 · 배경</p>
+      <h2>왜 업무카드가 필요한가?</h2>
+      <div class="card">
+        <p>ERP 규칙으로 “지금 해야 하는 일”이 생깁니다. 예를 들면 계획서 작성 마감이 다가오거나, 직원이 바뀌어 상담이 필요할 때입니다.</p>
+        <p>이런 일을 <strong>공식 업무카드</strong>로 남기면, 누가 무엇을 언제까지 해야 하는지 한곳에서 볼 수 있습니다.</p>
+        <p style="margin-bottom:0">이와 별개로, 직원이 스스로 적는 <strong>개인 할 일</strong>도 있습니다. 메모장이 아니라 ERP 안의 내 목록입니다.</p>
+      </div>
+    </section>
+
+    <section id="owner">
+      <p class="section-kicker">02 · 소유권</p>
+      <h2>누가 주인인가?</h2>
+      <div class="grid-2">
+        <div class="card">
+          <span class="badge blue">공식 업무카드</span>
+          <h3 style="margin-top:12px">ERP 소유</h3>
+          <p style="margin-bottom:0">공식 업무카드 저장과 조회를 ERP 서버가 맡습니다. 화면은 서버 결과를 보여 줄 뿐입니다. 표시 위치는 Dashboard입니다.</p>
+        </div>
+        <div class="card">
+          <span class="badge violet">개인 할 일</span>
+          <h3 style="margin-top:12px">ERP 소유</h3>
+          <p style="margin-bottom:0">내가 만든 할 일도 ERP 서버에 저장합니다. 사회복지사 달력형 일정표에서 생성자 본인만 봅니다.</p>
+        </div>
+      </div>
+      <div class="callout ok" style="margin-top:14px">
+        <strong>데이터도 나누고, 화면도 나눕니다.</strong><br>
+        저장 창고(원장)는 공식/개인으로 분리합니다. 공식 카드는 Dashboard, 개인 할 일은 사회복지사 달력형 일정표에만 표시합니다.
+      </div>
+      <div class="callout bad" style="margin-top:12px">
+        <strong>하지 않는 것</strong><br>
+        외부 앱에 복사본을 두고 맞추기, 브라우저 저장소만 믿기, 공식과 개인을 한 화면·한 API로 합치기, 공식 완료와 개인 완료를 서로 자동으로 섞기.
+      </div>
+    </section>
+
+    <section id="official">
+      <p class="section-kicker">03 · 공식 업무목록</p>
+      <h2>공식 업무카드 업무목록</h2>
+      <div class="card">
+        <p>공식 업무카드에 들어갈 수 있는 업무는 다음 다섯 가지뿐입니다.</p>
+        <ul class="clean">
+          <li>인정만료</li>
+          <li>계약만료</li>
+          <li>계획서통보</li>
+          <li>직원교체상담</li>
+          <li>신규직원업무</li>
+        </ul>
+        <p style="margin-bottom:0"><strong>목록 밖 업무 또는 정보 추가·삭제는 형님 사전 승인 필요</strong></p>
+      </div>
+    </section>
+
+    <section id="cardinfo">
+      <p class="section-kicker">04 · 카드 정보</p>
+      <h2>업무카드에 들어가는 정보</h2>
+      <div class="card">
+        <p>업무카드에 들어가는 정보는 다음 다섯 가지뿐입니다.</p>
+        <ul class="clean">
+          <li>업무제목</li>
+          <li>대상자이름</li>
+          <li>상세업무</li>
+          <li>마감일</li>
+          <li>D-day</li>
+        </ul>
+        <p style="margin-bottom:0"><strong>목록 밖 업무 또는 정보 추가·삭제는 형님 사전 승인 필요</strong></p>
+      </div>
+    </section>
+
+    <section id="personal">
+      <p class="section-kicker">05 · 개인 할 일</p>
+      <h2>개인 할 일은 따로 둡니다</h2>
+      <div class="card">
+        <p>개인 할 일은 내가 적는 짧은 할 일 목록입니다. 표시 위치는 <strong>사회복지사 메뉴의 달력형 일정표</strong> 하나뿐입니다.</p>
+        <ul class="clean">
+          <li>생성자 본인만 조회·생성·수정·완료 토글·완전 삭제</li>
+          <li>로그인한 다른 사람과 관리자에게 보이지 않음</li>
+          <li>관리자 대행 없음</li>
+          <li>완료는 별도 상태명/enum 없이 토글 · 완료 줄은 회색의 연한 글씨</li>
+          <li>삭제는 완전 삭제 · 순서는 드래그로 변경</li>
+        </ul>
+        <p style="margin-bottom:0"><strong>공식 카드와 섞지 않습니다.</strong> 개인 할 일을 끝냈다고 공식 업무가 자동 완료되지 않습니다. Dashboard에는 개인 할 일이 보이지 않습니다.</p>
+      </div>
+      <div class="callout bad" style="margin-top:12px">
+        지금 Dashboard에 있는 브라우저 저장(<span class="code">localStorage</span>) 방식은 없앨 대상입니다.<br>
+        앞으로는 <strong>서버 API가 성공한 뒤에만</strong> 화면 목록을 확정합니다.
+      </div>
+    </section>
+
+    <section id="screens">
+      <p class="section-kicker">06 · 화면</p>
+      <h2>어디에 보이나?</h2>
+      <div class="dash-box">
+        <div class="dash-row">
+          <strong>Dashboard</strong>
+          <span>공식 업무카드만 · 업무제목·대상자이름·상세업무·마감일·D-day · 개인 할 일 없음</span>
+        </div>
+        <div class="dash-row">
+          <strong>사회복지사 · 달력형 일정표</strong>
+          <span>개인 할 일 · 생성자 본인만 · 토글 완료 · 드래그 순서 · 완전 삭제</span>
+        </div>
+      </div>
+      <div class="callout ok" style="margin-top:14px">
+        두 목록을 한 화면에 합치지 않습니다.<br>
+        합침 API·이중 조회 union도 만들지 않습니다. 나중에 합침을 원하면 형님 사전 승인을 받습니다.
+      </div>
+    </section>
+
+    <section id="security">
+      <p class="section-kicker">07 · 보안</p>
+      <h2>보안 경계는 단순하게</h2>
+      <div class="grid-2">
+        <div class="card">
+          <span class="badge green">허용</span>
+          <ul class="clean" style="margin-top:12px">
+            <li>ERP 로그인 세션</li>
+            <li>변경 시 CSRF 검사</li>
+            <li>개인 할 일 생성자 본인만</li>
+            <li>내부망 ERP 그대로</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="badge red">금지</span>
+          <ul class="clean" style="margin-top:12px">
+            <li>외부 연동용 별도 비밀번호·토큰 설계</li>
+            <li>외부로 카드 복사·동기화 피드</li>
+            <li>브라우저 저장소를 진짜 원장으로 사용</li>
+            <li>관리자 대행으로 개인 할 일 열람·수정</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="next">
+      <p class="section-kicker">08 · 다음</p>
+      <h2>형님 승인 후 실행 절차</h2>
+      <div class="flow">
+        <div class="flow-item">
+          <strong>형님 승인</strong>
+          <p>정본 계약과 이 설계 방향을 승인합니다. 승인 전에는 구현을 시작하지 않습니다.</p>
+        </div>
+        <div class="flow-item">
+          <strong>DDL·API·RED Task Packet</strong>
+          <p>승인된 계약만 좁은 범위로 적어 RED Task Packet을 만듭니다.</p>
+        </div>
+        <div class="flow-item">
+          <strong>RED</strong>
+          <p>구현 전에 실패 테스트를 확인합니다.</p>
+        </div>
+        <div class="flow-item">
+          <strong>구현 → GREEN·검수</strong>
+          <p>구현 후 GREEN과 독립검수를 통과합니다.</p>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:14px">
+        자세한 설계 문서는
+        <span class="code">review/plans/W2_OFFICIAL_WORK_CARD_ERP_PLAN.md</span>
+        에 있습니다. 이 페이지는 쉬운 말 안내이며 정본이 아닙니다.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p style="margin:0 0 8px"><strong>SSWCenter 3.0</strong> · Wave 2 ERP 단독 공식 업무카드 안내</p>
+      <p style="margin:0">설계 상태: DRAFT_PROPOSED_REPLACEMENT · 구현 전 · 휴대폰 반응형 단일 HTML</p>
+    </div>
+  </footer>
+</body>
+</html>

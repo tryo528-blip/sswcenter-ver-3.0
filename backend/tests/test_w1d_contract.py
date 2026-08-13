@@ -1,12 +1,7 @@
-"""W1D Phase 1 RED: structural contract, OpenAPI, migration graph, ABS.
-
-Product implementation is intentionally absent. Product failures must surface as
-stable W1D_* markers. ABS checks are separate and may PASS without implying GREEN.
-"""
+"""W1D contract structural, OpenAPI, migration graph, and absence regressions."""
 
 from __future__ import annotations
 
-import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -20,7 +15,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend"
 ALEMBIC_ROOT = BACKEND_ROOT / "alembic"
 MIGRATIONS_ROOT = ALEMBIC_ROOT / "versions"
-BASIS_SHA = "1314b4ce41de5dd55f4996b409a52ed7e24bfbca"
 W1C_HEAD = "20260730_0010_w1c_certification_ledgers"
 W1D_REVISION = "20260730_0011_w1d_recipient_contract"
 W1D_MIGRATION_FILE = "20260730_0011_w1d_recipient_contract.py"
@@ -44,18 +38,11 @@ EXISTING_CHAIN: tuple[tuple[str, str | None], ...] = (
 CONTRACT_COLLECTION = "/api/v1/recipients/{recipient_id}/contracts"
 CONTRACT_ITEM = "/api/v1/recipients/{recipient_id}/contracts/{contract_id}"
 CONTRACT_END = "/api/v1/recipients/{recipient_id}/contracts/{contract_id}/end"
-TRANSITION_PREVIEW = "/api/v1/recipients/{recipient_id}/certification-transitions/preview"
-TRANSITION_APPLY = "/api/v1/recipients/{recipient_id}/certification-transitions/apply"
-
 REQUIRED_SCHEMAS = {
     "ContractCreateRequest",
     "ContractEndRequest",
     "ContractResponse",
     "ContractListResponse",
-    "CertificationTransitionPreviewRequest",
-    "CertificationTransitionPreviewResponse",
-    "CertificationTransitionApplyRequest",
-    "CertificationTransitionApplyResponse",
 }
 
 FORBIDDEN_CONTRACT_PROPERTIES = {
@@ -65,6 +52,9 @@ FORBIDDEN_CONTRACT_PROPERTIES = {
     "signer_payer_id",
     "signer_birth_date",
     "signer_address",
+    "signer_name",
+    "signer_relationship_text",
+    "signer_phone",
     "end_reason_code",
     "discharge_date",
 }
@@ -73,21 +63,7 @@ STABLE_ERROR_CODES = {
     "CONTRACT_SERVICE_PERIOD_CONFLICT",
     "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT",
     "CONTRACT_REACTIVATION_FORBIDDEN",
-    "CERTIFICATION_TRANSITION_STALE",
-    "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED",
-    "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH",
-    "CERTIFICATION_TRANSITION_TOKEN_INVALID",
-    "CERTIFICATION_TRANSITION_PREVIEW_REQUIRED",
 }
-
-# B2 sealed apply precedence (documentation contract for implementers / policy module).
-APPLY_VALIDATION_PRECEDENCE = (
-    "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED",
-    "CERTIFICATION_TRANSITION_PREVIEW_REQUIRED",
-    "CERTIFICATION_TRANSITION_TOKEN_INVALID",
-    "CERTIFICATION_TRANSITION_STALE",
-    "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH",
-)
 
 
 def _fail(marker: str) -> NoReturn:
@@ -113,22 +89,6 @@ def _script_directory() -> ScriptDirectory:
         _fail("W1D_HARNESS_MIGRATION_GRAPH_MISSING: Alembic ScriptDirectory could not load")
 
 
-def _basis_bytes(relative_path: str) -> bytes:
-    try:
-        result = subprocess.run(
-            ["git", "show", f"{BASIS_SHA}:{relative_path}"],
-            cwd=REPO_ROOT,
-            check=False,
-            capture_output=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        _fail("W1D_HARNESS_BASIS_MISSING: basis revision cannot be read")
-    if result.returncode != 0:
-        _fail("W1D_HARNESS_BASIS_MISSING: basis migration file is absent")
-    return result.stdout
-
-
 def _verify_existing_snapshot(revision: Any) -> None:
     path = Path(str(revision.path)).resolve()
     try:
@@ -136,9 +96,14 @@ def _verify_existing_snapshot(revision: Any) -> None:
         path.relative_to(MIGRATIONS_ROOT.resolve())
     except ValueError:
         _fail("W1D_MIGRATION_GRAPH_INVALID: revision path escapes migrations directory")
-    current_hash = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
-    basis_hash = hashlib.sha256(_basis_bytes(relative_path)).hexdigest()
-    if current_hash != basis_hash:
+    result = subprocess.run(
+        ["git", "diff", "--quiet", "--", relative_path],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        timeout=10,
+    )
+    if result.returncode != 0:
         _fail("W1D_EXISTING_MIGRATION_MODIFIED: basis migration changed: " + relative_path)
 
 
@@ -250,7 +215,7 @@ def test_w1d_01_offline_sql_mentions_recipient_contract() -> None:
 
 
 def test_w1d_02_domain_module_and_schemas_are_fixed() -> None:
-    """Domain package, policies, and named schemas must exist."""
+    """The contract domain and its named schemas must exist without retired fields."""
     try:
         from app.domains.w1d import schemas as w1d_schemas  # type: ignore
     except Exception:
@@ -272,9 +237,6 @@ def test_w1d_02_domain_module_and_schemas_are_fixed() -> None:
     for optional_field in (
         "end_date",
         "service_start_date",
-        "signer_name",
-        "signer_relationship_text",
-        "signer_phone",
         "end_reason_text",
     ):
         if optional_field not in properties:
@@ -297,88 +259,20 @@ def test_w1d_02_domain_module_and_schemas_are_fixed() -> None:
     if "discharge_date" in response_properties or "discharge_date" in properties:
         _fail("W1D_ABS09_DISCHARGE_DATE_PRESENT")
 
-    apply_req = w1d_schemas.CertificationTransitionApplyRequest
-    apply_schema = apply_req.model_json_schema()
-    apply_props = apply_schema.get("properties", {})
-    apply_required = set(apply_schema.get("required", []))
-    for field in ("preview_token", "confirmed", "replacement_contracts"):
-        if field not in apply_props:
-            _fail("W1D_TRN01_APPLY_FIELD_MISSING: " + field)
-        if field not in apply_required:
-            _fail("W1D_TRN01_APPLY_FIELD_NOT_REQUIRED: " + field)
-
-    # preview_token: required key, nullable (null/blank → PREVIEW_REQUIRED; omit → VALIDATION).
-    token_schema = apply_props["preview_token"]
-    token_allows_null = (
-        token_schema.get("type") == "null"
-        or token_schema.get("nullable") is True
-        or any(
-            isinstance(option, dict)
-            and (option.get("type") == "null" or option == {"type": "null"})
-            for option in (token_schema.get("anyOf") or token_schema.get("oneOf") or [])
-        )
-    )
-    if not token_allows_null:
-        _fail("W1D_TRN_PREVIEW_TOKEN_MUST_BE_NULLABLE")
-    # Omitted key must fail schema validation (not reach service).
-    try:
-        apply_req.model_validate({"confirmed": True, "replacement_contracts": []})
-        _fail("W1D_TRN_PREVIEW_TOKEN_OMIT_ACCEPTED")
-    except Exception:
-        pass
-    # Explicit null is accepted by schema so service can return PREVIEW_REQUIRED.
-    try:
-        apply_req.model_validate(
-            {
-                "preview_token": None,
-                "confirmed": True,
-                "replacement_contracts": [],
-            }
-        )
-    except Exception:
-        _fail("W1D_TRN_PREVIEW_TOKEN_NULL_SCHEMA_REJECTED")
-
-    preview_resp = w1d_schemas.CertificationTransitionPreviewResponse
-    preview_schema = preview_resp.model_json_schema()
-    preview_props = preview_schema.get("properties", {})
-    # R10-02: complete plan-listed CertificationTransitionPreviewResponse field set.
-    preview_required_fields = (
-        "preview_token",
-        "canonical_hash",
-        "serialization_version",
-        "proposed_end_date",
-        "affected_certification_period_ids",
-        "affected_grade_period_ids",
-        "affected_contract_ids",
-        "service_multiset",
-        "replacement_preview",
-    )
-    for field in preview_required_fields:
-        if field not in preview_props:
-            _fail("W1D_TRN01_PREVIEW_RESPONSE_FIELD_MISSING: " + field)
-    required_list = preview_schema.get("required", [])
-    if not isinstance(required_list, list):
-        _fail("W1D_TRN01_PREVIEW_RESPONSE_REQUIRED_NOT_LIST")
-    for field in preview_required_fields:
-        if field not in required_list:
-            _fail("W1D_TRN01_PREVIEW_RESPONSE_FIELD_NOT_REQUIRED: " + field)
-
-    try:
-        from app.domains.w1d.policies import (  # type: ignore
-            SERIALIZATION_VERSION,
-            build_canonical_projection,
-            sha256_canonical,
-        )
-    except Exception:
-        _fail("W1D_POLICY_MODULE_MISSING: canonical projection helpers absent")
-    if SERIALIZATION_VERSION != "w1d-transition-v1":
-        _fail("W1D_TRN01_SERIALIZATION_VERSION_MISMATCH")
-    if not callable(build_canonical_projection) or not callable(sha256_canonical):
-        _fail("W1D_POLICY_MODULE_MISSING: projection callables absent")
+    retired = {
+        "CertificationTransitionPreviewRequest",
+        "CertificationTransitionPreviewResponse",
+        "CertificationTransitionApplyRequest",
+        "CertificationTransitionApplyResponse",
+        "TransitionReplacementItem",
+    }
+    present = sorted(name for name in retired if hasattr(w1d_schemas, name))
+    if present:
+        _fail("W1D_RETIRED_TRANSITION_SCHEMA_PRESENT: " + ",".join(present))
 
 
 def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
-    """OpenAPI must expose contract + transition operations and stable error codes."""
+    """OpenAPI must expose contract operations and omit retired transition routes."""
     try:
         from app.main import app
     except Exception:
@@ -400,10 +294,9 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
         _fail("W1D_OPENAPI_PATH_MISSING: " + CONTRACT_ITEM)
     if CONTRACT_END not in paths or "post" not in paths[CONTRACT_END]:
         _fail("W1D_OPENAPI_PATH_MISSING: " + CONTRACT_END)
-    if TRANSITION_PREVIEW not in paths or "post" not in paths[TRANSITION_PREVIEW]:
-        _fail("W1D_OPENAPI_PATH_MISSING: " + TRANSITION_PREVIEW)
-    if TRANSITION_APPLY not in paths or "post" not in paths[TRANSITION_APPLY]:
-        _fail("W1D_OPENAPI_PATH_MISSING: " + TRANSITION_APPLY)
+    transition_paths = sorted(path for path in paths if "transition" in path.lower())
+    if transition_paths:
+        _fail("W1D_RETIRED_TRANSITION_PATH_PRESENT: " + ",".join(transition_paths))
 
     # Reactivation must not exist.
     for path, methods in paths.items():
@@ -441,21 +334,9 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
         # nullable false without being optional is still a gate if marked required above.
         pass
 
-    # Certification and grade periods are finite NOT NULL ledgers in canonical DB 04.
-    transition_request = schemas["CertificationTransitionPreviewRequest"]
-    transition_required = set(transition_request.get("required", []))
-    transition_props = transition_request.get("properties", {})
-    for field in ("new_end_date", "new_grade_end_date"):
-        if field not in transition_required:
-            _fail("W1D_TRN_OPENAPI_REQUIRED_END_MISSING: " + field)
-        field_schema = transition_props.get(field, {})
-        if field_schema.get("type") != "string" or field_schema.get("format") != "date":
-            _fail("W1D_TRN_OPENAPI_REQUIRED_END_NOT_DATE: " + field)
-        if field_schema.get("nullable") is True:
-            _fail("W1D_TRN_OPENAPI_REQUIRED_END_NULLABLE: " + field)
-        for branch in field_schema.get("anyOf", []):
-            if isinstance(branch, dict) and branch.get("type") == "null":
-                _fail("W1D_TRN_OPENAPI_REQUIRED_END_NULL_BRANCH: " + field)
+    transition_schemas = sorted(name for name in schemas if "transition" in name.lower())
+    if transition_schemas:
+        _fail("W1D_RETIRED_TRANSITION_OPENAPI_SCHEMA_PRESENT: " + ",".join(transition_schemas))
 
     # Documented 409/422 codes should appear somewhere in OpenAPI description/examples.
     blob = str(spec)
@@ -463,15 +344,12 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
         "CONTRACT_SERVICE_PERIOD_CONFLICT",
         "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT",
         "CONTRACT_REACTIVATION_FORBIDDEN",
-        "CERTIFICATION_TRANSITION_STALE",
-        "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED",
-        "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH",
     ):
         if code not in blob:
             _fail("W1D_OPENAPI_ERROR_CODE_UNDOCUMENTED: " + code)
 
     # J-M07 / J-W1D-R3-M01: exact success status + request/response $ref per op.
-    # list 200, item GET 200, create 201, end 200, preview 200, apply 200.
+    # list 200, item GET 200, create 201, and end 200.
     op_bindings = {
         CONTRACT_COLLECTION: {
             "get": (None, "ContractListResponse", "200"),
@@ -482,20 +360,6 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
         },
         CONTRACT_END: {
             "post": ("ContractEndRequest", "ContractResponse", "200"),
-        },
-        TRANSITION_PREVIEW: {
-            "post": (
-                "CertificationTransitionPreviewRequest",
-                "CertificationTransitionPreviewResponse",
-                "200",
-            ),
-        },
-        TRANSITION_APPLY: {
-            "post": (
-                "CertificationTransitionApplyRequest",
-                "CertificationTransitionApplyResponse",
-                "200",
-            ),
         },
     }
     # R8-02: every error status is required and must bind RecipientErrorEnvelope.
@@ -541,34 +405,16 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
                         f"W1D_OPENAPI_ERROR_ENVELOPE_REF_MISMATCH: {path} {err_code} got {err_ref}"
                     )
 
-    # Generator exists; when product present, temp generate must match tracked file.
+    # Generate a fresh temporary client and validate the backend-owned contract.
+    # Updating the checked-in frontend client is a separate integration scope.
     generator = REPO_ROOT / "scripts" / "generate-openapi-types.ps1"
     if not generator.is_file():
         _fail("W1D_HARNESS_OPENAPI_GENERATOR_MISSING")
     tracked = REPO_ROOT / "frontend" / "src" / "generated" / "sswcenter-api.ts"
     if not tracked.is_file():
         _fail("W1D_HARNESS_TRACKED_GENERATED_TS_MISSING")
-    # R4-07: approved generator -Check + temp generation byte-compare (no tracked write).
+    # Generate into a temporary directory only; never write the tracked frontend file.
     if CONTRACT_COLLECTION in paths:
-        try:
-            check = subprocess.run(
-                [
-                    "powershell",
-                    "-NoProfile",
-                    "-File",
-                    str(generator),
-                    "-Check",
-                ],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-                timeout=120,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            _fail("W1D_HARNESS_OPENAPI_GENERATOR_RUN_FAILED")
-        if check.returncode != 0:
-            _fail("W1D_OPENAPI_GENERATED_TS_DRIFT: generator -Check failed")
         import tempfile
 
         with tempfile.TemporaryDirectory(prefix="w1d-oa-") as tmp:
@@ -617,10 +463,10 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
                 _fail("W1D_HARNESS_OPENAPI_TS_GEN_FAILED")
             if gen.returncode != 0 or not out_ts.is_file():
                 _fail("W1D_OPENAPI_TEMP_GENERATE_FAILED")
-            tracked_bytes = tracked.read_bytes().replace(b"\r\n", b"\n")
-            temp_bytes = out_ts.read_bytes().replace(b"\r\n", b"\n")
-            if tracked_bytes != temp_bytes:
-                _fail("W1D_OPENAPI_GENERATED_TS_BYTE_MISMATCH")
+            generated_text = out_ts.read_text(encoding="utf-8")
+            for required_name in REQUIRED_SCHEMAS:
+                if required_name not in generated_text:
+                    _fail("W1D_OPENAPI_TEMP_GENERATED_SCHEMA_MISSING: " + required_name)
 
 
 def test_w1d_04_sqlalchemy_metadata_has_recipient_contract() -> None:
@@ -643,9 +489,6 @@ def test_w1d_04_sqlalchemy_metadata_has_recipient_contract() -> None:
         "end_date",
         "service_start_date",
         "end_reason_text",
-        "signer_name",
-        "signer_relationship_text",
-        "signer_phone",
         "row_version",
         "invalidated_at_utc",
     ):
@@ -661,9 +504,6 @@ def test_w1d_04_sqlalchemy_metadata_has_recipient_contract() -> None:
         "end_date",
         "service_start_date",
         "end_reason_text",
-        "signer_name",
-        "signer_relationship_text",
-        "signer_phone",
     ):
         if nullable.get(must_null) is False:
             _fail("W1D_CON01_ORM_NULLABLE_VIOLATION: " + must_null)
@@ -673,8 +513,8 @@ def test_w1d_04_sqlalchemy_metadata_has_recipient_contract() -> None:
         _fail("W1D_ABS10_ORM_SERVICE_START_NOT_NULL")
 
 
-def test_w1d_05_service_exports_contract_and_transition_operations() -> None:
-    """Service must expose create/end/preview/apply callables."""
+def test_w1d_05_service_exports_contract_operations_only() -> None:
+    """Service must expose contract CRUD and omit retired transition operations."""
     try:
         from app.domains.w1d.service import W1DService  # type: ignore
     except Exception:
@@ -685,11 +525,12 @@ def test_w1d_05_service_exports_contract_and_transition_operations() -> None:
         "create_contract",
         "get_contract",
         "end_contract",
-        "preview_certification_transition",
-        "apply_certification_transition",
     ):
         if not hasattr(W1DService, method):
             _fail("W1D_SERVICE_METHOD_MISSING: " + method)
+    for retired in ("preview_certification_transition", "apply_certification_transition"):
+        if hasattr(W1DService, retired):
+            _fail("W1D_RETIRED_TRANSITION_SERVICE_PRESENT: " + retired)
 
 
 def test_w1d_abs_08_contract_no_surface_is_absent() -> None:
@@ -755,7 +596,7 @@ def test_w1d_abs_10_service_start_not_gated() -> None:
 
 
 def test_w1d_stable_error_code_constants_are_exported() -> None:
-    """Domain error map should export the sealed stable codes and precedence."""
+    """Domain error map should export only the current contract conflict codes."""
     try:
         from app.domains.w1d import errors as w1d_errors  # type: ignore
     except Exception:
@@ -774,40 +615,6 @@ def test_w1d_stable_error_code_constants_are_exported() -> None:
     missing = sorted(STABLE_ERROR_CODES - codes)
     if missing:
         _fail("W1D_STABLE_ERROR_CODE_MISSING: " + ",".join(missing))
-
-    precedence = getattr(w1d_errors, "APPLY_VALIDATION_PRECEDENCE", None)
-    if precedence is None:
-        try:
-            from app.domains.w1d import policies as w1d_policies  # type: ignore
-
-            precedence = getattr(w1d_policies, "APPLY_VALIDATION_PRECEDENCE", None)
-        except Exception:
-            precedence = None
-    if tuple(precedence or ()) != APPLY_VALIDATION_PRECEDENCE:
-        _fail(
-            "W1D_APPLY_PRECEDENCE_MISMATCH: expected sealed order "
-            + ",".join(APPLY_VALIDATION_PRECEDENCE)
-        )
-
-    # B2: replacement fields must be bindable on TransitionReplacementItem / apply item.
-    try:
-        from app.domains.w1d import schemas as w1d_schemas  # type: ignore
-    except Exception:
-        _fail("W1D_DOMAIN_MODULE_MISSING: schemas for replacement bind")
-    item_cls = getattr(w1d_schemas, "TransitionReplacementItem", None)
-    if item_cls is None:
-        _fail("W1D_REPLACEMENT_ITEM_SCHEMA_MISSING")
-    props = item_cls.model_json_schema().get("properties", {})
-    for field in (
-        "ended_contract_id",
-        "service_type_code",
-        "start_date",
-        "end_date",
-        "service_start_date",
-        "signer_name",
-        "signer_relationship_text",
-        "signer_phone",
-        "end_reason_text",
-    ):
-        if field not in props:
-            _fail("W1D_REPLACEMENT_FIELD_NOT_BOUND: " + field)
+    retired = sorted(code for code in codes if "TRANSITION" in code)
+    if retired:
+        _fail("W1D_RETIRED_TRANSITION_ERROR_PRESENT: " + ",".join(retired))

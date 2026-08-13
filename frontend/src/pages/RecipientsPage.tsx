@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, UIEvent } from 'react';
 import RecipientW1cPanel from '../components/recipients/RecipientW1cPanel';
 import RecipientContractPanel from '../components/recipients/RecipientContractPanel';
+import RecipientServicePlanNoticePanel from '../components/recipients/RecipientServicePlanNoticePanel';
 import {
   createRecipientBasicBatch,
   saveRecipientDetailBatch,
   updateRecipientBasicBatch,
-  type BasicBenefitPeriodMutation,
   type BasicGuardianMutation,
   type RecipientDetailBatchRequest,
 } from '../services/recipientDetailBatchApi';
@@ -14,20 +14,15 @@ import { listBenefitPeriods } from '../services/w1cApi';
 import '../styles/recipients.css';
 import { ApiError } from '../services/api';
 import {
-  createPlanNotification,
   getRecipient,
-  invalidatePlanNotification,
   isRecipientStatus,
   listGuardians,
-  listPlanNotifications,
   listRecipients,
   updateRecipient,
 } from '../services/recipientApi';
 import type {
   Guardian,
   GuardianCreateRequest,
-  PlanNotification,
-  PlanNotificationCreateRequest,
   Recipient,
   RecipientCreateRequest,
   RecipientListItem,
@@ -42,12 +37,10 @@ import type {
 type RecipientFormState = {
   name: string;
   birth_date: string;
-  sex_code: RecipientSexCode;
+  sex_code: RecipientSexCode | '';
   recipient_status: RecipientStatus;
   postal_code: string;
   address: string;
-  address_detail: string;
-  home_phone: string;
   mobile_phone: string;
   memo: string;
 };
@@ -57,19 +50,14 @@ type CopayBenefitCode = 'GENERAL' | 'BASIC_LIVELIHOOD' | 'REDUCTION_6' | 'REDUCT
 type CopayPeriodSnapshot = {
   id: number;
   benefit_code: string;
-  start_date: string;
-  end_date: string | null;
+  start_text: string;
   invalidated_at_utc: string | null;
   row_version: number;
 };
 
 type PendingCopaySave = {
   code: CopayBenefitCode;
-  startDate: string;
-};
-
-type PendingCreateCopaySave = PendingCopaySave & {
-  previousActiveId: string | null;
+  startText: string;
 };
 
 function normalizeCopayBenefitCode(value: string | null | undefined): CopayBenefitCode {
@@ -79,76 +67,31 @@ function normalizeCopayBenefitCode(value: string | null | undefined): CopayBenef
   return 'GENERAL';
 }
 
-function currentDateText(): string {
-  const seoul = seoulCalendarParts(new Date());
-  if (!seoul) return '';
-  return `${seoul.year}-${String(seoul.month).padStart(2, '0')}-${String(seoul.day).padStart(2, '0')}`;
-}
-
 function effectiveCopayPeriod(
   items: CopayPeriodSnapshot[],
-  onDate: string,
 ): CopayPeriodSnapshot | null {
-  return (
-    items
-      .filter(
-        (item) =>
-          !item.invalidated_at_utc &&
-          item.start_date <= onDate &&
-          (item.end_date == null || item.end_date >= onDate),
-      )
-      .sort((left, right) =>
-        right.start_date.localeCompare(left.start_date) || right.id - left.id,
-      )[0] ?? null
-  );
-}
-
-function dayBeforeDateText(value: string): string {
-  const date = new Date(`${value}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
+  return items.find((item) => !item.invalidated_at_utc) ?? null;
 }
 
 function buildCopayBenefitMutations(
   existing: CopayPeriodSnapshot | null,
   draft: PendingCopaySave,
-): BasicBenefitPeriodMutation[] {
+): RecipientDetailBatchRequest['benefit_period'] | undefined {
   if (!existing) {
-    return [{ payload: { benefit_code: draft.code, start_date: draft.startDate, end_date: null } }];
+    return { payload: { benefit_code: draft.code, start_text: draft.startText } };
   }
   const existingCode = normalizeCopayBenefitCode(existing.benefit_code);
-  if (
-    existingCode === draft.code &&
-    existing.start_date === draft.startDate &&
-    existing.end_date == null
-  ) {
-    return [];
+  if (existingCode === draft.code && existing.start_text === draft.startText) {
+    return undefined;
   }
-  if (draft.startDate > existing.start_date) {
-    return [
-      {
-        period_id: existing.id,
-        payload: {
-          expected_row_version: existing.row_version,
-          benefit_code: existing.benefit_code,
-          start_date: existing.start_date,
-          end_date: dayBeforeDateText(draft.startDate),
-        },
-      },
-      { payload: { benefit_code: draft.code, start_date: draft.startDate, end_date: null } },
-    ];
-  }
-  return [
-    {
-      period_id: existing.id,
-      payload: {
-        expected_row_version: existing.row_version,
-        benefit_code: existingCode === draft.code ? existing.benefit_code : draft.code,
-        start_date: draft.startDate,
-        end_date: existing.end_date,
-      },
+  return {
+    period_id: existing.id,
+    payload: {
+      expected_row_version: existing.row_version,
+      benefit_code: draft.code,
+      start_text: draft.startText,
     },
-  ];
+  };
 }
 
 type RecipientEditableField =
@@ -158,7 +101,6 @@ type RecipientEditableField =
   | 'recipient_status'
   | 'postal_code'
   | 'address'
-  | 'home_phone'
   | 'mobile_phone'
   | 'memo';
 
@@ -182,9 +124,7 @@ type GuardianFormState = {
   name: string;
   phone: string;
   email: string;
-  postal_code: string;
   address: string;
-  address_detail: string;
   relationship_text: string;
 };
 
@@ -238,7 +178,6 @@ function recipientIdentityFromListItem(item: RecipientListItem): Recipient {
     recipient_no: item.recipient_no,
     postal_code: item.postal_code,
     address: item.address,
-    home_phone: item.home_phone,
     mobile_phone: item.mobile_phone,
     memo: item.memo,
     // List projection has no payer field; never invent from names/snapshots.
@@ -261,7 +200,6 @@ function mergeRecipientIntoListItem(
     recipient_no: recipient.recipient_no,
     postal_code: recipient.postal_code,
     address: recipient.address,
-    home_phone: recipient.home_phone,
     mobile_phone: recipient.mobile_phone,
     memo: recipient.memo,
     row_version: recipient.row_version,
@@ -301,12 +239,10 @@ function formatListServices(services: RecipientListServiceGroupItem[] | null | u
 const emptyRecipientForm = (): RecipientFormState => ({
   name: '',
   birth_date: '',
-  sex_code: 'MALE',
+  sex_code: '',
   recipient_status: 'ACTIVE',
   postal_code: '',
   address: '',
-  address_detail: '',
-  home_phone: '',
   mobile_phone: '',
   memo: '',
 });
@@ -315,16 +251,28 @@ const emptyGuardianForm = (): GuardianFormState => ({
   name: '',
   phone: '',
   email: '',
-  postal_code: '',
   address: '',
-  address_detail: '',
   relationship_text: '',
 });
 
-const guardianFormsFromGuardians = (guardians: Guardian[]): GuardianFormSlots => [
-  guardians[0] ? guardianFormFromGuardian(guardians[0]) : emptyGuardianForm(),
-  guardians[1] ? guardianFormFromGuardian(guardians[1]) : emptyGuardianForm(),
-];
+const guardianSlotsFromGuardians = (
+  guardians: Guardian[],
+): [Guardian | undefined, Guardian | undefined] => {
+  const slots: [Guardian | undefined, Guardian | undefined] = [undefined, undefined];
+  for (const guardian of guardians) {
+    const slotIndex = guardian.slot_no === 1 ? 0 : guardian.slot_no === 2 ? 1 : slots[0] ? 1 : 0;
+    if (!slots[slotIndex]) slots[slotIndex] = guardian;
+  }
+  return slots;
+};
+
+const guardianFormsFromGuardians = (guardians: Guardian[]): GuardianFormSlots => {
+  const slots = guardianSlotsFromGuardians(guardians);
+  return [
+    slots[0] ? guardianFormFromGuardian(slots[0]) : emptyGuardianForm(),
+    slots[1] ? guardianFormFromGuardian(slots[1]) : emptyGuardianForm(),
+  ];
+};
 
 function payerSlotFromRecipient(
   recipient: Recipient | null | undefined,
@@ -352,19 +300,14 @@ function formatMobilePhoneInput(value: string): string {
   return `010-${localDigits.slice(0, 4)}-${localDigits.slice(4)}`;
 }
 
-function combinedRecipientAddress(form: RecipientFormState): string | null {
-  return optionalText([form.address, form.address_detail].filter((value) => value.trim()).join(' '));
-}
-
 function recipientCreatePayload(form: RecipientFormState): RecipientCreateRequest {
   return {
-    name: form.name.trim(),
-    birth_date: form.birth_date,
-    sex_code: form.sex_code,
+    name: optionalText(form.name),
+    birth_date: form.birth_date || null,
+    sex_code: form.sex_code || null,
     postal_code: optionalText(form.postal_code),
-    address: combinedRecipientAddress(form),
-    home_phone: optionalText(form.home_phone),
-    mobile_phone: optionalText(form.mobile_phone),
+    address: optionalText(form.address),
+    mobile_phone: form.mobile_phone.trim(),
     memo: optionalText(form.memo),
   };
 }
@@ -376,7 +319,6 @@ const RECIPIENT_FIELD_LABELS: Record<RecipientEditableField, string> = {
   recipient_status: '상태',
   postal_code: '우편번호',
   address: '주소',
-  home_phone: '자택 전화',
   mobile_phone: '휴대전화',
   memo: '출처 메모',
 };
@@ -392,28 +334,26 @@ function formatFieldDisplay(value: string | null | undefined): string {
  */
 function recipientComparableValues(recipient: Recipient): Record<RecipientEditableField, string | null> {
   return {
-    name: recipient.name.trim(),
+    name: optionalText(recipient.name ?? ''),
     birth_date: recipient.birth_date,
     sex_code: recipient.sex_code,
     recipient_status: recipient.recipient_status,
     postal_code: optionalText(recipient.postal_code ?? ''),
     address: optionalText(recipient.address ?? ''),
-    home_phone: optionalText(recipient.home_phone ?? ''),
-    mobile_phone: optionalText(recipient.mobile_phone ?? ''),
+    mobile_phone: recipient.mobile_phone.trim(),
     memo: optionalText(recipient.memo ?? ''),
   };
 }
 
 function formComparableValues(form: RecipientFormState): Record<RecipientEditableField, string | null> {
   return {
-    name: form.name.trim(),
-    birth_date: form.birth_date,
-    sex_code: form.sex_code,
+    name: optionalText(form.name),
+    birth_date: form.birth_date || null,
+    sex_code: form.sex_code || null,
     recipient_status: form.recipient_status,
     postal_code: optionalText(form.postal_code),
-    address: combinedRecipientAddress(form),
-    home_phone: optionalText(form.home_phone),
-    mobile_phone: optionalText(form.mobile_phone),
+    address: optionalText(form.address),
+    mobile_phone: form.mobile_phone.trim(),
     memo: optionalText(form.memo),
   };
 }
@@ -443,15 +383,14 @@ function recipientChangedFieldsPayload(
   const changed = changedRecipientFields(baseline, draft);
   const next = formComparableValues(draft);
   for (const field of changed) {
-    if (field === 'name') payload.name = next.name ?? undefined;
+    if (field === 'name') payload.name = next.name;
     else if (field === 'birth_date') payload.birth_date = next.birth_date;
-    else if (field === 'sex_code') payload.sex_code = next.sex_code as RecipientSexCode;
+    else if (field === 'sex_code') payload.sex_code = next.sex_code as RecipientSexCode | null;
     else if (field === 'recipient_status') {
       payload.recipient_status = next.recipient_status as RecipientStatus;
     } else if (field === 'postal_code') payload.postal_code = next.postal_code;
     else if (field === 'address') payload.address = next.address;
-    else if (field === 'home_phone') payload.home_phone = next.home_phone;
-    else if (field === 'mobile_phone') payload.mobile_phone = next.mobile_phone;
+    else if (field === 'mobile_phone') payload.mobile_phone = next.mobile_phone ?? undefined;
     else if (field === 'memo') payload.memo = next.memo;
   }
   return payload;
@@ -463,7 +402,7 @@ function recipientHasDraftChanges(baseline: Recipient, draft: RecipientFormState
 
 /**
  * Runtime-validate detail GET before opening the editor.
- * Rejects wrong id, missing/null/invalid recipient_status, or incomplete identity.
+ * Rejects wrong id, missing/null/invalid recipient_status, or missing required mobile phone.
  */
 function validateDetailRecipient(raw: unknown, expectedId: string): Recipient | null {
   if (raw === null || typeof raw !== 'object') return null;
@@ -471,9 +410,14 @@ function validateDetailRecipient(raw: unknown, expectedId: string): Recipient | 
   if (normalizeId(candidate.id) !== expectedId) return null;
   if (!isRecipientStatus(candidate.recipient_status)) return null;
   if (typeof candidate.row_version !== 'number' || !(candidate.row_version > 0)) return null;
-  if (typeof candidate.name !== 'string' || !candidate.name.trim()) return null;
-  if (typeof candidate.birth_date !== 'string' || !candidate.birth_date) return null;
-  if (candidate.sex_code !== 'MALE' && candidate.sex_code !== 'FEMALE') return null;
+  if (candidate.name !== null && typeof candidate.name !== 'string') return null;
+  if (candidate.birth_date !== null && typeof candidate.birth_date !== 'string') return null;
+  if (
+    candidate.sex_code !== null &&
+    candidate.sex_code !== 'MALE' &&
+    candidate.sex_code !== 'FEMALE'
+  ) return null;
+  if (typeof candidate.mobile_phone !== 'string' || !candidate.mobile_phone.trim()) return null;
   // payer_guardian_id: null = self; positive number = guardian; missing treated as null for older mocks.
   if (
     candidate.payer_guardian_id !== undefined &&
@@ -491,15 +435,13 @@ function validateDetailRecipient(raw: unknown, expectedId: string): Recipient | 
 
 function recipientFormFromRecipient(recipient: Recipient): RecipientFormState {
   return {
-    name: recipient.name,
-    birth_date: recipient.birth_date,
-    sex_code: recipient.sex_code,
+    name: recipient.name ?? '',
+    birth_date: recipient.birth_date ?? '',
+    sex_code: recipient.sex_code ?? '',
     recipient_status: recipient.recipient_status,
     postal_code: recipient.postal_code ?? '',
     address: recipient.address ?? '',
-    address_detail: '',
-    home_phone: recipient.home_phone ?? '',
-    mobile_phone: recipient.mobile_phone ?? '',
+    mobile_phone: recipient.mobile_phone,
     memo: recipient.memo ?? '',
   };
 }
@@ -522,14 +464,11 @@ function mergeUserChangesOntoLatest(
     if (excludeFields?.has(field)) continue;
     if (field === 'name') merged.name = draftValues.name ?? '';
     else if (field === 'birth_date') merged.birth_date = draftValues.birth_date ?? '';
-    else if (field === 'sex_code') merged.sex_code = (draftValues.sex_code as RecipientSexCode) ?? 'MALE';
+    else if (field === 'sex_code') merged.sex_code = (draftValues.sex_code as RecipientSexCode | null) ?? '';
     else if (field === 'recipient_status') {
       merged.recipient_status = (draftValues.recipient_status as RecipientStatus) ?? 'ACTIVE';
     } else if (field === 'postal_code') merged.postal_code = draftValues.postal_code ?? '';
-    else if (field === 'address') {
-      merged.address = draftValues.address ?? '';
-      merged.address_detail = '';
-    } else if (field === 'home_phone') merged.home_phone = draftValues.home_phone ?? '';
+    else if (field === 'address') merged.address = draftValues.address ?? '';
     else if (field === 'mobile_phone') merged.mobile_phone = draftValues.mobile_phone ?? '';
     else if (field === 'memo') merged.memo = draftValues.memo ?? '';
   }
@@ -538,26 +477,20 @@ function mergeUserChangesOntoLatest(
 
 function guardianFormFromGuardian(guardian: Guardian): GuardianFormState {
   return {
-    name: guardian.name,
+    name: guardian.name ?? '',
     phone: guardian.phone ?? '',
     email: guardian.email ?? '',
-    postal_code: '',
     address: guardian.address ?? '',
-    address_detail: '',
     relationship_text: guardian.relationship_text ?? '',
   };
 }
 
-function combinedGuardianAddress(form: GuardianFormState): string | null {
-  return optionalText([form.address, form.address_detail].filter((value) => value.trim()).join(' '));
-}
-
 function guardianPayload(form: GuardianFormState): GuardianCreateRequest {
   return {
-    name: form.name.trim(),
+    name: optionalText(form.name),
     phone: optionalText(form.phone),
     email: optionalText(form.email),
-    address: combinedGuardianAddress(form),
+    address: optionalText(form.address),
     relationship_text: optionalText(form.relationship_text),
   };
 }
@@ -568,9 +501,7 @@ function guardianSlotHasContent(form: GuardianFormState): boolean {
       form.phone.trim() ||
       form.email.trim() ||
       form.address.trim() ||
-      form.address_detail.trim() ||
-      form.relationship_text.trim() ||
-      form.postal_code.trim(),
+      form.relationship_text.trim(),
   );
 }
 
@@ -579,9 +510,7 @@ function guardianFormsEqual(a: GuardianFormState, b: GuardianFormState): boolean
     a.name.trim() === b.name.trim() &&
     a.phone.trim() === b.phone.trim() &&
     a.email.trim() === b.email.trim() &&
-    a.postal_code.trim() === b.postal_code.trim() &&
     a.address.trim() === b.address.trim() &&
-    a.address_detail.trim() === b.address_detail.trim() &&
     a.relationship_text.trim() === b.relationship_text.trim()
   );
 }
@@ -650,12 +579,6 @@ function safeErrorMessage(error: unknown, fallback: string): string {
     if (code === 'ROW_VERSION_CONFLICT') {
       return '다른 사용자가 먼저 변경했습니다. 현재 입력은 유지되니 최신 정보를 확인한 뒤 다시 저장해주세요.';
     }
-    if (code === 'PRIMARY_GUARDIAN_PERIOD_CONFLICT') {
-      return '선택한 기간에 이미 유효한 대표 보호자 기간이 있습니다. 기간을 조정하거나 기존 기간을 교체해주세요.';
-    }
-    if (code === 'CURRENT_PAYER_CONFLICT') {
-      return '현재 유효한 납부자가 있습니다. 기존 snapshot을 교체하거나 무효화한 뒤 다시 지정해주세요.';
-    }
     if (error instanceof Error && error.message) return error.message;
   }
   return fallback;
@@ -671,6 +594,10 @@ function formatRecipientNo(value: string | null | undefined): string {
 
 function formatNullable(value: string | null | undefined): string {
   return value?.trim() ? value : '없음';
+}
+
+function formatRecipientName(value: string | null | undefined): string {
+  return value?.trim() ? value : '미입력';
 }
 
 /** Calendar Y/M/D in Asia/Seoul (not the host local timezone). */
@@ -814,18 +741,8 @@ export const RecipientsPage = () => {
   const [basicSaving, setBasicSaving] = useState(false);
   const [activeCopayPeriod, setActiveCopayPeriod] = useState<CopayPeriodSnapshot | null>(null);
   const [copayDraftCode, setCopayDraftCode] = useState<CopayBenefitCode>('GENERAL');
-  const [copayDraftStartDate, setCopayDraftStartDate] = useState(currentDateText);
+  const [copayDraftStartText, setCopayDraftStartText] = useState('');
   const [copaySaving, setCopaySaving] = useState(false);
-  const [pendingBasicCopaySave, setPendingBasicCopaySave] =
-    useState<PendingCopaySave | null>(null);
-  const [pendingCreateCopaySave, setPendingCreateCopaySave] =
-    useState<PendingCreateCopaySave | null>(null);
-  const [planNotifications, setPlanNotifications] = useState<PlanNotification[]>([]);
-  const [planNotificationDate, setPlanNotificationDate] = useState(() => currentDateText());
-  const [planNotificationDirty, setPlanNotificationDirty] = useState(false);
-  const [planNotificationSaving, setPlanNotificationSaving] = useState(false);
-  const [planNotificationMessage, setPlanNotificationMessage] = useState<string | null>(null);
-  const [planNotificationError, setPlanNotificationError] = useState<string | null>(null);
 
   // Derive URL query state before any effect/callback that reads activeId so the
   // binding is not referenced in the temporal dead zone (tsc block-scoped error).
@@ -839,57 +756,6 @@ export const RecipientsPage = () => {
   activeIdRef.current = activeId;
   createOpenRef.current = createOpen;
 
-  const persistCopayBenefit = useCallback(
-    async (recipientId: string, draft: PendingCopaySave) => {
-      const numericRecipientId = Number(recipientId);
-      if (!Number.isSafeInteger(numericRecipientId) || numericRecipientId <= 0) {
-        throw new Error('수급자 번호를 다시 확인해주세요.');
-      }
-      if (!draft.startDate) {
-        throw new Error('본인부담금 적용 시작일을 입력해주세요.');
-      }
-
-      setCopaySaving(true);
-      try {
-        // listBenefitPeriods already unwraps the list response to BenefitPeriod[].
-        const items = await listBenefitPeriods(recipientId);
-        const existing = effectiveCopayPeriod(items, draft.startDate);
-        if (!existing && draft.code === 'GENERAL') return;
-        if (
-          existing &&
-          normalizeCopayBenefitCode(existing.benefit_code) === draft.code &&
-          existing.start_date === draft.startDate &&
-          existing.end_date == null
-        ) {
-          return;
-        }
-
-        await saveRecipientDetailBatch(numericRecipientId, {
-          benefit_period: existing
-            ? {
-                period_id: existing.id,
-                payload: {
-                  benefit_code: draft.code,
-                  start_date: draft.startDate,
-                  end_date: null,
-                  expected_row_version: existing.row_version,
-                },
-              }
-            : {
-                payload: {
-                  benefit_code: draft.code,
-                  start_date: draft.startDate,
-                  end_date: null,
-                },
-              },
-        });
-      } finally {
-        setCopaySaving(false);
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!activeId) {
       setActiveCopayPeriod(null);
@@ -899,7 +765,7 @@ export const RecipientsPage = () => {
     void listBenefitPeriods(activeId)
       .then((items) => {
         if (cancelled) return;
-        setActiveCopayPeriod(effectiveCopayPeriod(items, currentDateText()));
+        setActiveCopayPeriod(effectiveCopayPeriod(items));
       })
       .catch(() => {
         if (!cancelled) setActiveCopayPeriod(null);
@@ -912,66 +778,8 @@ export const RecipientsPage = () => {
   useEffect(() => {
     if (!createOpen) return;
     setCopayDraftCode('GENERAL');
-    setCopayDraftStartDate(currentDateText());
+    setCopayDraftStartText('');
   }, [createOpen]);
-
-  useEffect(() => {
-    if (!createOpen) return undefined;
-    const handleCreateSubmitCapture = (event: SubmitEvent) => {
-      if (!(event.target instanceof HTMLFormElement) || event.target.id !== 'recipient-create-form') {
-        return;
-      }
-      setPendingCreateCopaySave({
-        previousActiveId: activeId,
-        code: copayDraftCode,
-        startDate: copayDraftStartDate,
-      });
-    };
-    const handleCreateCancelCapture = (event: MouseEvent) => {
-      const button = event.target instanceof Element ? event.target.closest('button') : null;
-      if (
-        button?.textContent?.trim() === '취소' &&
-        button.closest('.recipient-detail-heading')
-      ) {
-        setPendingCreateCopaySave(null);
-      }
-    };
-    document.addEventListener('submit', handleCreateSubmitCapture, true);
-    document.addEventListener('click', handleCreateCancelCapture, true);
-    return () => {
-      document.removeEventListener('submit', handleCreateSubmitCapture, true);
-      document.removeEventListener('click', handleCreateCancelCapture, true);
-    };
-  }, [activeId, copayDraftCode, copayDraftStartDate, createOpen]);
-
-  useEffect(() => {
-    if (basicEditOpen || !pendingBasicCopaySave || !activeId) return;
-    const draft = pendingBasicCopaySave;
-    setPendingBasicCopaySave(null);
-    void persistCopayBenefit(activeId, draft)
-      .then(() => {
-        setListReload((current) => current + 1);
-        setWorkspaceReload((current) => current + 1);
-      })
-      .catch((error: unknown) => {
-        window.alert(safeErrorMessage(error, '본인부담금을 저장하지 못했습니다.'));
-      });
-  }, [activeId, basicEditOpen, pendingBasicCopaySave, persistCopayBenefit]);
-
-  useEffect(() => {
-    if (createOpen || !pendingCreateCopaySave || !activeId) return;
-    if (activeId === pendingCreateCopaySave.previousActiveId) return;
-    const draft = pendingCreateCopaySave;
-    setPendingCreateCopaySave(null);
-    void persistCopayBenefit(activeId, draft)
-      .then(() => {
-        setListReload((current) => current + 1);
-        setWorkspaceReload((current) => current + 1);
-      })
-      .catch((error: unknown) => {
-        window.alert(safeErrorMessage(error, '등록한 수급자의 본인부담금을 저장하지 못했습니다.'));
-      });
-  }, [activeId, createOpen, pendingCreateCopaySave, persistCopayBenefit]);
 
   useEffect(() => {
     document.body.classList.toggle('recipient-detail-batch-managed', detailExtrasOpen);
@@ -1343,7 +1151,7 @@ export const RecipientsPage = () => {
     setDetailMessage(null);
     // Editable detail form requires a successful detail GET. Do not seed form/PATCH
     // state from list rows (list has no recipient_status; synthetic ACTIVE is unsafe).
-    // Basic load does not request payer-snapshots or primary-guardian-periods.
+    // Basic load uses only the recipient and its two guardian slots.
     setDetailRecipient(null);
     setDetailForm(emptyRecipientForm());
     setGuardians([]);
@@ -1365,6 +1173,7 @@ export const RecipientsPage = () => {
       const embeddedGuardians = embedded?.guardians ?? [];
       const guardianResponse = valueFromResult(guardianResult);
       const resolvedGuardians = guardianResponse?.items ?? embeddedGuardians;
+      const resolvedGuardianSlots = guardianSlotsFromGuardians(resolvedGuardians);
 
       const validated =
         rawRecipient && activeId
@@ -1390,8 +1199,8 @@ export const RecipientsPage = () => {
       }
 
       const nextGuardianIds: [string | null, string | null] = [
-        resolvedGuardians[0] ? normalizeId(resolvedGuardians[0].id) : null,
-        resolvedGuardians[1] ? normalizeId(resolvedGuardians[1].id) : null,
+        resolvedGuardianSlots[0] ? normalizeId(resolvedGuardianSlots[0].id) : null,
+        resolvedGuardianSlots[1] ? normalizeId(resolvedGuardianSlots[1].id) : null,
       ];
       const nextPayerSlot = payerSlotFromRecipient(validated, nextGuardianIds);
       setGuardians(resolvedGuardians);
@@ -1418,89 +1227,6 @@ export const RecipientsPage = () => {
     // Detail reloads only on activeId change, explicit workspaceReload, or
     // stale-conflict lifecycle (detailStaleConflict).
   }, [activeId, detailStaleConflict, workspaceReload]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let cancelled = false;
-    if (!activeId) {
-      setPlanNotifications([]);
-      return () => {
-        cancelled = true;
-        controller.abort();
-      };
-    }
-
-    setPlanNotificationDate(currentDateText());
-    setPlanNotificationMessage(null);
-    setPlanNotificationError(null);
-
-    listPlanNotifications(activeId, controller.signal)
-      .then((response) => {
-        if (cancelled) return;
-        setPlanNotifications(response.items ?? []);
-      })
-      .catch((error: unknown) => {
-        if (cancelled || isAbortError(error) || controller.signal.aborted) return;
-        setPlanNotificationError(
-          safeErrorMessage(error, '계획서 통보일 이력을 불러오지 못했습니다.'),
-        );
-      });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [activeId, workspaceReload]);
-
-  const handlePlanNotificationSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!activeId || !planNotificationDate) {
-      setPlanNotificationError('계획서 통보일을 입력해주세요.');
-      return;
-    }
-
-    setPlanNotificationSaving(true);
-    setPlanNotificationMessage(null);
-    setPlanNotificationError(null);
-    try {
-      const payload: PlanNotificationCreateRequest = {
-        notified_date: planNotificationDate,
-      };
-      await createPlanNotification(activeId, payload);
-      const response = await listPlanNotifications(activeId);
-      setPlanNotifications(response.items ?? []);
-      setPlanNotificationDate(currentDateText());
-      setPlanNotificationMessage('계획서 통보일을 저장했습니다.');
-    } catch (error: unknown) {
-      if (!isAbortError(error)) {
-        setPlanNotificationError(safeErrorMessage(error, '계획서 통보일을 저장하지 못했습니다.'));
-      }
-    } finally {
-      setPlanNotificationSaving(false);
-    }
-  };
-
-  const handlePlanNotificationInvalidate = async (row: PlanNotification) => {
-    if (!activeId) return;
-
-    setPlanNotificationSaving(true);
-    setPlanNotificationMessage(null);
-    setPlanNotificationError(null);
-    try {
-      await invalidatePlanNotification(activeId, row.id, {
-        expected_row_version: row.row_version,
-      });
-      const response = await listPlanNotifications(activeId);
-      setPlanNotifications(response.items ?? []);
-      setPlanNotificationMessage('계획서 통보일을 무효화했습니다.');
-    } catch (error: unknown) {
-      if (!isAbortError(error)) {
-        setPlanNotificationError(safeErrorMessage(error, '계획서 통보일을 무효화하지 못했습니다.'));
-      }
-    } finally {
-      setPlanNotificationSaving(false);
-    }
-  };
 
   const captureRecipientStaleConflict = async (
     original: Recipient,
@@ -1578,8 +1304,8 @@ export const RecipientsPage = () => {
     // Always diff the live form against the latest active baseline — never a stale pre-edit snapshot.
     const baseline = detailRecipient ?? detailStaleConflict.latest;
     const draft = detailForm;
-    if (!draft.name.trim() || !draft.birth_date || !draft.sex_code) {
-      setDetailError('이름, 생년월일, 성별을 입력해주세요.');
+    if (!draft.mobile_phone.trim()) {
+      setDetailError('휴대전화를 입력해주세요.');
       return;
     }
     if (!recipientHasDraftChanges(baseline, draft)) {
@@ -1687,39 +1413,21 @@ export const RecipientsPage = () => {
 
       const certificationStart = input('w1c-certification-start-date');
       const certificationEnd = input('w1c-certification-end-date');
-      if (certificationStart?.value && certificationEnd?.value) {
+      const certificationGrade = select('w1c-certification-grade-select');
+      if (certificationGrade?.value && certificationStart?.value && certificationEnd?.value) {
         payload.certification_period = mutation(certificationStart, {
+          grade_code: certificationGrade.value,
           start_date: certificationStart.value,
           end_date: certificationEnd.value,
         });
       }
 
-      const gradeCertification = select('w1c-grade-certification-select');
-      const gradeCode = select('w1c-grade-select');
-      const gradeStart = input('w1c-grade-start-date');
-      const gradeEnd = input('w1c-grade-end-date');
-      if (
-        gradeCertification?.value &&
-        gradeCode?.value &&
-        gradeStart?.value &&
-        gradeEnd?.value
-      ) {
-        payload.grade_period = mutation(gradeStart, {
-          certification_period_id: Number(gradeCertification.value),
-          grade_code: gradeCode.value,
-          start_date: gradeStart.value,
-          end_date: gradeEnd.value,
-        });
-      }
-
       const benefitCode = select('w1c-benefit-select');
-      const benefitStart = input('w1c-benefit-start-date');
-      const benefitEnd = input('w1c-benefit-end-date');
-      if (benefitCode?.value && benefitStart?.value) {
-        payload.benefit_period = mutation(benefitStart, {
+      const benefitStartText = input('w1c-benefit-start-text');
+      if (benefitCode?.value && benefitStartText) {
+        payload.benefit_period = mutation(benefitStartText, {
           benefit_code: benefitCode.value,
-          start_date: benefitStart.value,
-          end_date: nullable(benefitEnd?.value),
+          start_text: benefitStartText.value,
         });
       }
 
@@ -1738,10 +1446,6 @@ export const RecipientsPage = () => {
         });
       }
 
-      if (planNotificationDirty && planNotificationDate) {
-        payload.plan_notification = { notified_date: planNotificationDate };
-      }
-
       const contractStart = input('contract-start-date-input');
       const contractServiceType = select('contract-service-type-select');
       if (contractStart?.value && contractServiceType?.value) {
@@ -1750,11 +1454,6 @@ export const RecipientsPage = () => {
           start_date: contractStart.value,
           end_date: nullable(input('contract-end-date-input')?.value),
           service_start_date: nullable(input('contract-service-start-date-input')?.value),
-          signer_name: nullable(input('contract-signer-name-input')?.value),
-          signer_relationship_text: nullable(
-            input('contract-signer-relationship-input')?.value,
-          ),
-          signer_phone: nullable(input('contract-signer-phone-input')?.value),
           end_reason_text: nullable(input('contract-end-reason-input')?.value),
         };
       }
@@ -1768,8 +1467,6 @@ export const RecipientsPage = () => {
       await saveRecipientDetailBatch(Number(activeId), payload);
       setDetailBatchEditing(false);
       setDetailBatchRevision((current) => current + 1);
-      setPlanNotificationDirty(false);
-      setPlanNotificationDate(currentDateText());
       setListReload((current) => current + 1);
       setWorkspaceReload((current) => current + 1);
     } catch (error: unknown) {
@@ -1783,33 +1480,21 @@ export const RecipientsPage = () => {
     if (detailBatchSaving) return;
     setDetailBatchEditing(false);
     setDetailBatchRevision((current) => current + 1);
-    setPlanNotificationDirty(false);
-    setPlanNotificationDate(currentDateText());
   };
 
   const handleAtomicCreateSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!createOpen || createSaving) return;
-    setPendingCreateCopaySave(null);
     setCreateMessage(null);
     setCreateError(null);
     if (!recipientForm.mobile_phone.trim()) {
       window.alert('휴대전화를 입력해주세요.');
       return;
     }
-    if (!copayDraftStartDate) {
-      window.alert('본인부담금 적용 시작일을 입력해주세요.');
-      return;
-    }
-
     const guardianMutations: BasicGuardianMutation[] = [];
     for (const slot of [0, 1] as GuardianSlot[]) {
       const form = guardianForms[slot];
-      if (!guardianSlotHasContent(form)) continue;
-      if (!form.name.trim()) {
-        window.alert(`보호자${slot + 1} 이름을 입력해주세요.`);
-        return;
-      }
+      if (!guardianSlotHasContent(form) && payerGuardianSlot !== slot) continue;
       guardianMutations.push({ slot, payload: guardianPayload(form) });
     }
     if (payerGuardianSlot === 'unlisted') {
@@ -1820,7 +1505,7 @@ export const RecipientsPage = () => {
       payerGuardianSlot !== null &&
       !guardianMutations.some((mutation) => mutation.slot === payerGuardianSlot)
     ) {
-      window.alert('납부자로 선택한 보호자 이름을 입력해주세요.');
+      window.alert('납부자로 선택한 보호자 정보를 다시 확인해주세요.');
       return;
     }
 
@@ -1831,12 +1516,8 @@ export const RecipientsPage = () => {
         recipient: recipientCreatePayload(recipientForm),
         guardians: guardianMutations,
         payer_guardian_slot: payerGuardianSlot,
-        benefit_periods: buildCopayBenefitMutations(null, {
-          code: copayDraftCode,
-          startDate: copayDraftStartDate,
-        }),
       });
-      setCreateMessage('수급자·보호자·본인부담금을 저장했습니다.');
+      setCreateMessage('수급자·보호자 정보를 저장했습니다. 일반 혜택은 자동 생성되었습니다.');
       setCreateOpen(false);
       setRecipientForm(emptyRecipientForm());
       setGuardianForms([emptyGuardianForm(), emptyGuardianForm()]);
@@ -1858,25 +1539,15 @@ export const RecipientsPage = () => {
   const handleAtomicBasicSave = async () => {
     if (!detailRecipient || !activeId || detailLoading || basicSaving || !basicEditOpen) return;
     const saveTargetId = activeId;
-    setPendingBasicCopaySave(null);
     if (!detailForm.mobile_phone.trim()) {
       window.alert('휴대전화를 입력해주세요.');
       return;
     }
-    if (!copayDraftStartDate) {
-      window.alert('본인부담금 적용 시작일을 입력해주세요.');
-      return;
-    }
-
     const guardianMutations: BasicGuardianMutation[] = [];
     for (const slot of [0, 1] as GuardianSlot[]) {
       const form = guardianForms[slot];
       const existingId = editingGuardianIds[slot];
-      if (!existingId && !guardianSlotHasContent(form)) continue;
-      if (!form.name.trim()) {
-        window.alert(`보호자${slot + 1} 이름을 입력해주세요.`);
-        return;
-      }
+      if (!existingId && !guardianSlotHasContent(form) && payerGuardianSlot !== slot) continue;
       if (existingId) {
         const existing = guardians.find((guardian) => normalizeId(guardian.id) === existingId);
         if (!existing) {
@@ -1900,7 +1571,7 @@ export const RecipientsPage = () => {
       payerGuardianSlot !== 'unlisted' &&
       !guardianMutations.some((mutation) => mutation.slot === payerGuardianSlot)
     ) {
-      window.alert('납부자로 선택한 보호자 이름을 입력해주세요.');
+      window.alert('납부자로 선택한 보호자 정보를 다시 확인해주세요.');
       return;
     }
 
@@ -1922,18 +1593,12 @@ export const RecipientsPage = () => {
         guardians: guardianMutations,
         payer_guardian_slot: payerGuardianSlot === 'unlisted' ? null : payerGuardianSlot,
         preserve_payer: payerGuardianSlot === 'unlisted',
-        // Inline dirty check (same logic as copayDraftDirty below) so this handler
-        // does not depend on a shared const that must sit after detailListProjection.
-        benefit_periods: (copayDraftCode !==
-          normalizeCopayBenefitCode(
-            activeCopayPeriod?.benefit_code ?? detailListProjection?.benefit_code,
-          ) ||
-          Boolean(activeCopayPeriod && copayDraftStartDate !== activeCopayPeriod.start_date))
+        benefit_period: copayDraftDirty
           ? buildCopayBenefitMutations(activeCopayPeriod, {
               code: copayDraftCode,
-              startDate: copayDraftStartDate,
+              startText: copayDraftStartText,
             })
-          : [],
+          : undefined,
       });
       if (activeIdRef.current !== saveTargetId || createOpenRef.current) return;
       const updated = validateDetailRecipient(result.recipient, activeId);
@@ -1942,9 +1607,10 @@ export const RecipientsPage = () => {
         setDetailForm(recipientFormFromRecipient(updated));
       }
       const nextGuardians = result.guardians ?? [];
+      const nextGuardianSlots = guardianSlotsFromGuardians(nextGuardians);
       const nextGuardianIds: [string | null, string | null] = [
-        nextGuardians[0] ? normalizeId(nextGuardians[0].id) : null,
-        nextGuardians[1] ? normalizeId(nextGuardians[1].id) : null,
+        nextGuardianSlots[0] ? normalizeId(nextGuardianSlots[0].id) : null,
+        nextGuardianSlots[1] ? normalizeId(nextGuardianSlots[1].id) : null,
       ];
       setGuardians(nextGuardians);
       setGuardianForms(guardianFormsFromGuardians(nextGuardians));
@@ -1957,7 +1623,7 @@ export const RecipientsPage = () => {
       setGuardianError(null);
       setGuardianMessage(null);
       setBasicEditOpen(false);
-      setDetailMessage('수급자·보호자·본인부담금을 저장했습니다.');
+      setDetailMessage('수급자·보호자·혜택 정보를 저장했습니다.');
       setListReload((current) => current + 1);
       // Do not bump workspaceReload here: the batch response already has the latest
       // recipient/guardians/payer. A full workspace reload would clear detailMessage and
@@ -1969,7 +1635,7 @@ export const RecipientsPage = () => {
       void listBenefitPeriods(benefitRefreshId)
         .then((items) => {
           if (activeIdRef.current !== benefitRefreshId) return;
-          setActiveCopayPeriod(effectiveCopayPeriod(items, currentDateText()));
+          setActiveCopayPeriod(effectiveCopayPeriod(items));
         })
         .catch(() => {
           // Keep previous copay baseline; list projection still refreshes via listReload.
@@ -1994,9 +1660,10 @@ export const RecipientsPage = () => {
             const response = await listGuardians(activeId);
             if (activeIdRef.current !== saveTargetId || createOpenRef.current) return;
             const items = response.items ?? [];
+            const itemSlots = guardianSlotsFromGuardians(items);
             const nextGuardianIds: [string | null, string | null] = [
-              items[0] ? normalizeId(items[0].id) : null,
-              items[1] ? normalizeId(items[1].id) : null,
+              itemSlots[0] ? normalizeId(itemSlots[0].id) : null,
+              itemSlots[1] ? normalizeId(itemSlots[1].id) : null,
             ];
             setGuardians(items);
             setGuardianForms(guardianFormsFromGuardians(items));
@@ -2018,10 +1685,10 @@ export const RecipientsPage = () => {
           try {
             const items = await listBenefitPeriods(conflictId);
             if (activeIdRef.current !== conflictId) return;
-            const latest = effectiveCopayPeriod(items, currentDateText());
+            const latest = effectiveCopayPeriod(items);
             setActiveCopayPeriod(latest);
             setCopayDraftCode(normalizeCopayBenefitCode(latest?.benefit_code));
-            setCopayDraftStartDate(latest?.start_date ?? currentDateText());
+            setCopayDraftStartText(latest?.start_text ?? '');
             setDetailError(
               '본인부담금 정보가 다른 곳에서 변경되어 최신 정보를 불러왔습니다.',
             );
@@ -2076,7 +1743,7 @@ export const RecipientsPage = () => {
     setCopayDraftCode(
       normalizeCopayBenefitCode(activeCopayPeriod?.benefit_code ?? detailListProjection?.benefit_code),
     );
-    setCopayDraftStartDate(activeCopayPeriod?.start_date ?? currentDateText());
+    setCopayDraftStartText(activeCopayPeriod?.start_text ?? '');
     setDetailExtrasOpen(false);
     setBasicEditOpen(true);
   };
@@ -2146,11 +1813,11 @@ export const RecipientsPage = () => {
     !guardianFormsEqual(guardianForms[0], guardianEditSnapshots[0]) ||
     !guardianFormsEqual(guardianForms[1], guardianEditSnapshots[1]);
   const payerDraftDirty = payerGuardianSlot !== payerGuardianSlotSnapshot;
-  // Same dirty condition as handleAtomicBasicSave benefit_periods — name-only saves must not invent a copay CREATE.
+  // Same dirty condition as handleAtomicBasicSave benefit_period — name-only saves must not invent a change.
   const copayDraftDirty =
     copayDraftCode !==
       normalizeCopayBenefitCode(activeCopayPeriod?.benefit_code ?? detailListProjection?.benefit_code) ||
-    Boolean(activeCopayPeriod && copayDraftStartDate !== activeCopayPeriod.start_date);
+    copayDraftStartText !== (activeCopayPeriod?.start_text ?? '');
   const basicSaveEnabled =
     detailFormReady &&
     basicEditOpen &&
@@ -2232,7 +1899,11 @@ export const RecipientsPage = () => {
           </div>
 
           <span className="visually-hidden" data-testid="recipient-selected-name">
-            {selectedRecipient?.name ?? (selectedId ? '현재 페이지에 없음' : '없음')}
+            {selectedRecipient
+              ? formatRecipientName(selectedRecipient.name)
+              : selectedId
+                ? '현재 페이지에 없음'
+                : '없음'}
           </span>
 
           <div
@@ -2276,16 +1947,15 @@ export const RecipientsPage = () => {
                     {gradeLabel}
                   </span>
                   <span className="recipient-list-row-main">
-                    <strong>{recipient.name}</strong>
+                    <strong>{formatRecipientName(recipient.name)}</strong>
                     <span className="visually-hidden">
                       {recipient.birth_date} · {recipient.sex_code}
                     </span>
                     <span className="visually-hidden">주소: <span data-testid="recipient-list-address">{formatNullable(recipient.address)}</span></span>
-                    <span className="visually-hidden">자택: <span data-testid="recipient-list-home-phone">{formatNullable(recipient.home_phone)}</span></span>
                     <span className="visually-hidden">휴대전화: <span data-testid="recipient-list-mobile-phone">{formatNullable(recipient.mobile_phone)}</span></span>
                   </span>
                   <span className="recipient-list-cell recipient-list-age" data-testid="recipient-list-age">
-                    {formatCountingAge(recipient.birth_date)}
+                    {formatCountingAge(recipient.birth_date ?? '')}
                   </span>
                   <span
                     className="recipient-list-cell recipient-list-copay"
@@ -2328,7 +1998,9 @@ export const RecipientsPage = () => {
         >
           <div className="recipient-detail-heading">
             <div className="recipient-detail-title">
-              <h2>{detailViewRecipient?.name ?? '수급자 정보'}</h2>
+              <h2>
+                {detailViewRecipient ? formatRecipientName(detailViewRecipient.name) : '수급자 정보'}
+              </h2>
               <span className="recipient-detail-recipient-no">
                 <span>수급자번호</span>
                 <strong data-testid="recipient-detail-recipient-no">
@@ -2369,7 +2041,6 @@ export const RecipientsPage = () => {
                     data-testid="recipient-basic-cancel"
                     type="button"
                     onClick={() => {
-                      setPendingBasicCopaySave(null);
                       cancelBasicEdit();
                     }}
                     disabled={inputsLocked}
@@ -2471,6 +2142,9 @@ export const RecipientsPage = () => {
                     className="recipient-summary-control"
                     data-testid={createOpen ? 'recipient-name-input' : 'recipient-detail-name-input'}
                     value={createOpen ? recipientForm.name : detailForm.name}
+                    placeholder={
+                      !createOpen && !detailForm.name.trim() ? '미입력' : undefined
+                    }
                     onFocus={basicEditOpen ? (event) => event.currentTarget.select() : undefined}
                     onChange={(event) => {
                       if (createOpen) {
@@ -2480,10 +2154,9 @@ export const RecipientsPage = () => {
                       setDetailForm((current) => ({ ...current, name: event.target.value }));
                     }}
                     disabled={basicEditOpen && inputsLocked}
-                    required
                   />
                 ) : (
-                  <strong>{detailViewRecipient?.name ?? '없음'}</strong>
+                  <strong>{formatRecipientName(detailViewRecipient?.name)}</strong>
                 )}
               </div>
 
@@ -2504,7 +2177,6 @@ export const RecipientsPage = () => {
                       setDetailForm((current) => ({ ...current, birth_date: event.target.value }));
                     }}
                     disabled={basicEditOpen && inputsLocked}
-                    required
                   />
                 ) : (
                   <strong>{detailViewRecipient?.birth_date ?? '없음'}</strong>
@@ -2532,7 +2204,7 @@ export const RecipientsPage = () => {
                     data-testid={createOpen ? 'recipient-sex-code-select' : 'recipient-detail-sex-code-select'}
                     value={createOpen ? recipientForm.sex_code : detailForm.sex_code}
                     onChange={(event) => {
-                      const sexCode = event.target.value as RecipientSexCode;
+                      const sexCode = event.target.value as RecipientSexCode | '';
                       if (createOpen) {
                         setRecipientForm((current) => ({ ...current, sex_code: sexCode }));
                         return;
@@ -2540,8 +2212,8 @@ export const RecipientsPage = () => {
                       setDetailForm((current) => ({ ...current, sex_code: sexCode }));
                     }}
                     disabled={basicEditOpen && inputsLocked}
-                    required
                   >
+                    <option value="">미입력</option>
                     <option value="MALE">남성</option>
                     <option value="FEMALE">여성</option>
                   </select>
@@ -2623,7 +2295,7 @@ export const RecipientsPage = () => {
                     onChange={(event) =>
                       setCopayDraftCode(event.target.value as CopayBenefitCode)
                     }
-                    disabled={copaySaving || (basicEditOpen && inputsLocked)}
+                    disabled={createOpen || copaySaving || (basicEditOpen && inputsLocked)}
                   >
                     <option value="GENERAL">일반</option>
                     <option value="BASIC_LIVELIHOOD">기초</option>
@@ -2632,16 +2304,15 @@ export const RecipientsPage = () => {
                   </select>
                   <input
                     className="recipient-summary-control"
-                    type="date"
-                    aria-label="본인부담금 적용 시작일"
+                    type="text"
+                    aria-label="혜택 적용 시작 문구"
                     value={
-                      createOpen || basicEditOpen
-                        ? copayDraftStartDate
-                        : activeCopayPeriod?.start_date ?? ''
+                      basicEditOpen
+                        ? copayDraftStartText
+                        : activeCopayPeriod?.start_text ?? ''
                     }
-                    onChange={(event) => setCopayDraftStartDate(event.target.value)}
-                    disabled={copaySaving || (basicEditOpen && inputsLocked)}
-                    required={createOpen || basicEditOpen}
+                    onChange={(event) => setCopayDraftStartText(event.target.value)}
+                    disabled={createOpen || copaySaving || (basicEditOpen && inputsLocked)}
                   />
                 </div>
               </div>
@@ -2683,24 +2354,6 @@ export const RecipientsPage = () => {
                       }}
                       disabled={basicEditOpen && inputsLocked}
                     />
-                    <input
-                      className="recipient-summary-control"
-                      data-testid={
-                        createOpen ? 'recipient-address-detail-input' : 'recipient-detail-address-detail-input'
-                      }
-                      aria-label="상세주소"
-                      placeholder="상세주소"
-                      value={createOpen ? recipientForm.address_detail : detailForm.address_detail}
-                      onFocus={basicEditOpen ? (event) => event.currentTarget.select() : undefined}
-                      onChange={(event) => {
-                        if (createOpen) {
-                          setRecipientForm((current) => ({ ...current, address_detail: event.target.value }));
-                          return;
-                        }
-                        setDetailForm((current) => ({ ...current, address_detail: event.target.value }));
-                      }}
-                      disabled={basicEditOpen && inputsLocked}
-                    />
                   </div>
                 ) : (
                   <div className="recipient-address-inline" data-testid="recipient-detail-address">
@@ -2710,8 +2363,28 @@ export const RecipientsPage = () => {
                     <span data-testid="recipient-detail-address-main">
                       {formatNullable(detailViewRecipient?.address)}
                     </span>
-                    <span data-testid="recipient-detail-address-detail">없음</span>
                   </div>
+                )}
+              </div>
+
+              <div className="recipient-summary-item recipient-summary-item-address">
+                <span>메모</span>
+                {activeId || createOpen || basicEditOpen ? (
+                  <input
+                    className="recipient-summary-control"
+                    data-testid={createOpen ? 'recipient-memo-input' : 'recipient-detail-memo-input'}
+                    value={createOpen ? recipientForm.memo : detailForm.memo}
+                    onChange={(event) => {
+                      if (createOpen) {
+                        setRecipientForm((current) => ({ ...current, memo: event.target.value }));
+                        return;
+                      }
+                      setDetailForm((current) => ({ ...current, memo: event.target.value }));
+                    }}
+                    disabled={basicEditOpen && inputsLocked}
+                  />
+                ) : (
+                  <strong>{formatNullable(detailViewRecipient?.memo)}</strong>
                 )}
               </div>
             </form>
@@ -2725,10 +2398,6 @@ export const RecipientsPage = () => {
               <div className="recipient-inline-note">{detailMessage}</div>
             ) : null}
           </section>
-          <span className="visually-hidden" data-testid="recipient-detail-home-phone">
-            {formatNullable(detailViewRecipient?.home_phone)}
-          </span>
-
           {detailStaleConflict ? (
             <div className="recipient-stale-panel">
               {detailError ? (
@@ -2888,59 +2557,23 @@ export const RecipientsPage = () => {
                           disabled={!(createOpen || basicEditOpen) || inputsLocked}
                         />
                       </label>
-                      <label className="recipient-field recipient-field-wide recipient-address-summary-field">
+                      <label className="recipient-field recipient-field-wide">
                         주소
-                        <div className="recipient-address-input-row">
-                          <input
-                            data-testid={`guardian-${guardianIndex + 1}-postal-code-input`}
-                            aria-label="우편번호"
-                            inputMode="numeric"
-                            value={form.postal_code}
-                            onChange={(event) =>
-                              setGuardianForms((current) => {
-                                const next: GuardianFormSlots = [current[0], current[1]];
-                                next[guardianIndex] = {
-                                  ...next[guardianIndex],
-                                  postal_code: event.target.value,
-                                };
-                                return next;
-                              })
-                            }
-                            disabled={!(createOpen || basicEditOpen) || inputsLocked}
-                          />
-                          <input
-                            data-testid={`guardian-${guardianIndex + 1}-address-input`}
-                            aria-label="앞주소"
-                            value={form.address}
-                            onChange={(event) =>
-                              setGuardianForms((current) => {
-                                const next: GuardianFormSlots = [current[0], current[1]];
-                                next[guardianIndex] = {
-                                  ...next[guardianIndex],
-                                  address: event.target.value,
-                                };
-                                return next;
-                              })
-                            }
-                            disabled={!(createOpen || basicEditOpen) || inputsLocked}
-                          />
-                          <input
-                            data-testid={`guardian-${guardianIndex + 1}-address-detail-input`}
-                            aria-label="뒷주소"
-                            value={form.address_detail}
-                            onChange={(event) =>
-                              setGuardianForms((current) => {
-                                const next: GuardianFormSlots = [current[0], current[1]];
-                                next[guardianIndex] = {
-                                  ...next[guardianIndex],
-                                  address_detail: event.target.value,
-                                };
-                                return next;
-                              })
-                            }
-                            disabled={!(createOpen || basicEditOpen) || inputsLocked}
-                          />
-                        </div>
+                        <input
+                          data-testid={`guardian-${guardianIndex + 1}-address-input`}
+                          value={form.address}
+                          onChange={(event) =>
+                            setGuardianForms((current) => {
+                              const next: GuardianFormSlots = [current[0], current[1]];
+                              next[guardianIndex] = {
+                                ...next[guardianIndex],
+                                address: event.target.value,
+                              };
+                              return next;
+                            })
+                          }
+                          disabled={!(createOpen || basicEditOpen) || inputsLocked}
+                        />
                       </label>
                       {guardianError ? <div className="recipient-inline-error">{guardianError}</div> : null}
                       {guardianMessage ? <div className="recipient-inline-note">{guardianMessage}</div> : null}
@@ -2985,71 +2618,12 @@ export const RecipientsPage = () => {
                   recipientId={activeId}
                 />
               ) : null}
-              <section
-                className="recipient-subsection"
-                data-testid="recipient-plan-notification-section"
-              >
-            <div className="recipient-subsection-heading">
-              <h3>계획서 통보일 이력</h3>
-            </div>
-            <div className="recipient-history-list">
-              {planNotifications.length ? (
-                planNotifications.map((row) => (
-                  <div className="recipient-history-card" key={row.id}>
-                    <strong>{row.notified_date}</strong>
-                    <span>{row.invalidated_at_utc ? '무효화됨' : '유효'}</span>
-                    {!row.invalidated_at_utc ? (
-                      <div className="recipient-history-card-actions">
-                        <button
-                          type="button"
-                          data-testid={`recipient-plan-notification-${row.id}-invalidate`}
-                          onClick={() => void handlePlanNotificationInvalidate(row)}
-                          disabled={planNotificationSaving}
-                        >
-                          통보일 무효화
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <div className="recipient-muted">등록된 계획서 통보일이 없습니다.</div>
-              )}
-            </div>
-            <form
-              className="recipient-subform"
-              data-testid="recipient-plan-notification-form"
-              onSubmit={handlePlanNotificationSubmit}
-            >
-              <div className="recipient-form-grid">
-                <label className="recipient-field">
-                  계획서 통보일
-                  <input
-                    data-testid="recipient-plan-notification-date-input"
-                    data-detail-batch-field="true"
-                    type="date"
-                    value={planNotificationDate}
-                    onChange={(event) => {
-                      setPlanNotificationDate(event.target.value);
-                      setPlanNotificationDirty(true);
-                    }}
-                    required
-                    disabled={planNotificationSaving}
-                  />
-                </label>
-              </div>
-              {planNotificationError ? <div className="recipient-inline-error">{planNotificationError}</div> : null}
-              {planNotificationMessage ? <div className="recipient-inline-note">{planNotificationMessage}</div> : null}
-              <button
-                className="recipient-primary-button"
-                type="submit"
-                data-testid="recipient-plan-notification-submit"
-                disabled={planNotificationSaving || !activeId}
-              >
-                {planNotificationSaving ? '저장 중…' : '통보일 저장'}
-              </button>
-            </form>
-              </section>
+              {activeId ? (
+                <RecipientServicePlanNoticePanel
+                  key={`service-plan-${activeId}-${detailBatchRevision}`}
+                  recipientId={activeId}
+                />
+              ) : null}
               {activeId ? (
                 <RecipientContractPanel
                   key={`contract-${activeId}-${detailBatchRevision}`}

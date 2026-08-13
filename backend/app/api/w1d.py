@@ -11,10 +11,6 @@ from app.api.dependencies import (
 )
 from app.domains.recipient.schemas import RecipientErrorEnvelope
 from app.domains.w1d.schemas import (
-    CertificationTransitionApplyRequest,
-    CertificationTransitionApplyResponse,
-    CertificationTransitionPreviewRequest,
-    CertificationTransitionPreviewResponse,
     ContractCreateRequest,
     ContractEndRequest,
     ContractListResponse,
@@ -27,7 +23,14 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"model": RecipientErrorEnvelope},
     403: {"model": RecipientErrorEnvelope},
     404: {"model": RecipientErrorEnvelope},
-    409: {"model": RecipientErrorEnvelope},
+    409: {
+        "model": RecipientErrorEnvelope,
+        "description": (
+            "CONTRACT_SERVICE_PERIOD_CONFLICT, "
+            "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, "
+            "CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT"
+        ),
+    },
     422: {"model": RecipientErrorEnvelope},
     500: {"model": RecipientErrorEnvelope},
 }
@@ -54,10 +57,6 @@ def list_recipient_contracts(
     status_code=status.HTTP_201_CREATED,
     operation_id="createRecipientContract",
     responses=ERROR_RESPONSES,
-    description=(
-        "Create a service contract. Errors: CONTRACT_SERVICE_PERIOD_CONFLICT, "
-        "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN."
-    ),
 )
 def create_recipient_contract(
     recipient_id: int,
@@ -98,41 +97,3 @@ def end_recipient_contract(
     service: W1DServiceDependency,
 ) -> ContractResponse:
     return service.end_contract(recipient_id, contract_id, payload, current_account)
-
-
-@router.post(
-    "/recipients/{recipient_id}/certification-transitions/preview",
-    response_model=CertificationTransitionPreviewResponse,
-    operation_id="previewCertificationTransition",
-    responses=ERROR_RESPONSES,
-)
-def preview_certification_transition(
-    recipient_id: int,
-    payload: CertificationTransitionPreviewRequest,
-    current_account: RecipientManageAccountDependency,
-    service: W1DServiceDependency,
-) -> CertificationTransitionPreviewResponse:
-    return service.preview_certification_transition(recipient_id, payload, current_account)
-
-
-@router.post(
-    "/recipients/{recipient_id}/certification-transitions/apply",
-    response_model=CertificationTransitionApplyResponse,
-    operation_id="applyCertificationTransition",
-    responses=ERROR_RESPONSES,
-    description=(
-        "Apply a certification transition. Errors: "
-        "CERTIFICATION_TRANSITION_STALE, "
-        "CERTIFICATION_TRANSITION_CONFIRMATION_REQUIRED, "
-        "CERTIFICATION_TRANSITION_REPLACEMENT_MISMATCH, "
-        "CERTIFICATION_TRANSITION_TOKEN_INVALID, "
-        "CERTIFICATION_TRANSITION_PREVIEW_REQUIRED."
-    ),
-)
-def apply_certification_transition(
-    recipient_id: int,
-    payload: CertificationTransitionApplyRequest,
-    current_account: RecipientManageAccountDependency,
-    service: W1DServiceDependency,
-) -> CertificationTransitionApplyResponse:
-    return service.apply_certification_transition(recipient_id, payload, current_account)

@@ -6,15 +6,25 @@ export const SCHEDULE_TYPES = [
 
 export type ScheduleKind = (typeof SCHEDULE_TYPES)[number]['kind'];
 
-export function schedulePopupTarget(kind: ScheduleKind): string {
+export function schedulePopupTarget(kind: ScheduleKind, accountId?: number | string | null): string {
+  if (kind === 'social-worker') {
+    const accountKey = accountId === undefined || accountId === null
+      ? 'current'
+      : String(accountId);
+    return `sswcenter-schedule-social-worker-${accountKey}`;
+  }
   return `sswcenter-schedule-${kind}`;
 }
 
-export function openSchedulePopup(kind: ScheduleKind, month: string): Window | null {
+export function openSchedulePopup(
+  kind: ScheduleKind,
+  month: string,
+  accountId?: number | string | null,
+): Window | null {
   const params = new URLSearchParams({ month });
   const popup = window.open(
     `/schedules/${kind}?${params.toString()}`,
-    schedulePopupTarget(kind),
+    schedulePopupTarget(kind, accountId),
     'popup=yes,width=1280,height=900,resizable=yes,scrollbars=yes',
   );
   popup?.focus();

@@ -3,16 +3,77 @@ import { apiRequest } from './api';
 
 type Schemas = components['schemas'];
 
-export type Recipient = Schemas['RecipientResponse'];
-export type RecipientCreateRequest = Schemas['RecipientCreateRequest'];
-export type RecipientUpdateRequest = Schemas['RecipientUpdateRequest'];
-export type RecipientListItem = Schemas['RecipientListItem'];
-export type RecipientListResponse = Schemas['RecipientListResponse'];
 export type RecipientStatus = Schemas['RecipientStatus'];
 export type RecipientListStatusFilter = Schemas['RecipientListStatusFilter'];
 export type RecipientListServiceGroupItem = Schemas['RecipientListServiceGroupItem'];
 export type RecipientListServiceTypeItem = Schemas['RecipientListServiceTypeItem'];
 export type RecipientSexCode = Schemas['RecipientSexCode'];
+
+// These recipient contracts intentionally mirror the current backend schema.
+// The checked-in generated file is regenerated globally by the coordinator and
+// can temporarily describe the superseded W1 contract while this slice lands.
+export interface RecipientCreateRequest {
+  name?: string | null;
+  birth_date?: string | null;
+  sex_code?: RecipientSexCode | null;
+  postal_code?: string | null;
+  address?: string | null;
+  mobile_phone: string;
+  memo?: string | null;
+}
+
+export interface RecipientUpdateRequest {
+  expected_row_version: number;
+  name?: string | null;
+  birth_date?: string | null;
+  sex_code?: RecipientSexCode | null;
+  recipient_status?: RecipientStatus;
+  postal_code?: string | null;
+  address?: string | null;
+  mobile_phone?: string;
+  memo?: string | null;
+  /** Omit = preserve, null = recipient self, positive id = guardian payer. */
+  payer_guardian_id?: number | null;
+}
+
+export interface Recipient {
+  id: number;
+  name: string | null;
+  birth_date: string | null;
+  sex_code: RecipientSexCode | null;
+  recipient_status: RecipientStatus;
+  recipient_no: string | null;
+  postal_code: string | null;
+  address: string | null;
+  mobile_phone: string;
+  memo: string | null;
+  payer_guardian_id: number | null;
+  row_version: number;
+}
+
+export interface RecipientListItem {
+  id: number;
+  name: string | null;
+  birth_date: string | null;
+  sex_code: RecipientSexCode | null;
+  recipient_no: string | null;
+  postal_code: string | null;
+  address: string | null;
+  mobile_phone: string;
+  memo: string | null;
+  row_version: number;
+  grade_code: string | null;
+  benefit_code: string | null;
+  copayment_rate: number | null;
+  services: RecipientListServiceGroupItem[];
+}
+
+export interface RecipientListResponse {
+  items: RecipientListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
 
 /** Sealed manual-tag values for detail validation (ACTIVE|ENDED|WAITING). */
 export const RECIPIENT_STATUS_VALUES = ['ACTIVE', 'ENDED', 'WAITING'] as const;
@@ -24,33 +85,38 @@ export function isRecipientStatus(value: unknown): value is RecipientStatus {
     value === 'WAITING'
   );
 }
-export type Guardian = Schemas['GuardianResponse'];
-export type GuardianCreateRequest = Schemas['GuardianCreateRequest'];
-export type GuardianUpdateRequest = Schemas['GuardianUpdateRequest'];
-export type GuardianListResponse = Schemas['GuardianListResponse'];
-export type PrimaryGuardianPeriod = Schemas['PrimaryGuardianPeriodResponse'];
-export type PrimaryGuardianPeriodListResponse = Schemas['PrimaryGuardianPeriodListResponse'];
-export type PrimaryGuardianPeriodCreateRequest =
-  Schemas['PrimaryGuardianPeriodCreateRequest'];
-export type PrimaryGuardianPeriodReplacementRequest =
-  Schemas['PrimaryGuardianPeriodReplacementRequest'];
-export type PrimaryGuardianPeriodReplacementResponse =
-  Schemas['PrimaryGuardianPeriodReplacementResponse'];
-export type PayerSnapshot = Schemas['PayerSnapshotResponse'];
-export type PayerSnapshotListResponse = Schemas['PayerSnapshotListResponse'];
-export type PayerSnapshotCreateRequest = Schemas['PayerSnapshotCreateRequest'];
-export type PayerSnapshotReplacementRequest = Schemas['PayerSnapshotReplacementRequest'];
-export type PayerSnapshotReplacementResponse = Schemas['PayerSnapshotReplacementResponse'];
-export type HistoryInvalidateRequest = Schemas['HistoryInvalidateRequest'];
-export type PlanNotification = Schemas['PlanNotificationResponse'];
-export type PlanNotificationCreateRequest = Schemas['PlanNotificationCreateRequest'];
-export type PlanNotificationListResponse = Schemas['PlanNotificationListResponse'];
+export interface GuardianCreateRequest {
+  name?: string | null;
+  relationship_text?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  email?: string | null;
+}
 
+export interface GuardianUpdateRequest extends GuardianCreateRequest {
+  expected_row_version: number;
+}
+
+export interface Guardian {
+  id: number;
+  recipient_id: number;
+  slot_no?: 1 | 2;
+  name: string | null;
+  relationship_text: string | null;
+  phone: string | null;
+  address: string | null;
+  email: string | null;
+  row_version: number;
+}
+
+export interface GuardianListResponse {
+  items: Guardian[];
+}
 export type RecipientDeadlineKind = 'CERTIFICATION_EXPIRY' | 'CONTRACT_EXPIRY' | 'PLAN_RENEWAL';
 
 export interface RecipientDeadlineItem {
   recipient_id: number;
-  recipient_name: string;
+  recipient_name: string | null;
   kind: RecipientDeadlineKind;
   source_id: number | null;
   source_date: string;
@@ -66,8 +132,6 @@ export interface RecipientDeadlineListResponse {
 export type RecipientCreate = RecipientCreateRequest;
 export type RecipientUpdate = RecipientUpdateRequest;
 export type GuardianCreate = GuardianCreateRequest;
-export type PrimaryGuardianPeriodCreate = PrimaryGuardianPeriodCreateRequest;
-export type PayerSnapshotCreate = PayerSnapshotCreateRequest;
 
 export type RecipientId = number | string;
 
@@ -85,18 +149,6 @@ function recipientPath(recipientId: RecipientId): string {
 
 function guardianPath(recipientId: RecipientId, guardianId: RecipientId): string {
   return `${recipientPath(recipientId)}/guardians/${encodeURIComponent(String(guardianId))}`;
-}
-
-function primaryPeriodPath(recipientId: RecipientId, periodId: RecipientId): string {
-  return `${recipientPath(recipientId)}/primary-guardian-periods/${encodeURIComponent(String(periodId))}`;
-}
-
-function payerSnapshotPath(recipientId: RecipientId, snapshotId: RecipientId): string {
-  return `${recipientPath(recipientId)}/payer-snapshots/${encodeURIComponent(String(snapshotId))}`;
-}
-
-function planNotificationPath(recipientId: RecipientId, notificationId: RecipientId): string {
-  return `${recipientPath(recipientId)}/plan-notifications/${encodeURIComponent(String(notificationId))}`;
 }
 
 export async function listRecipients(
@@ -150,8 +202,8 @@ export function updateRecipient(
 export function listGuardians(
   recipientId: RecipientId,
   signal?: AbortSignal,
-): Promise<Schemas['GuardianListResponse']> {
-  return apiRequest<Schemas['GuardianListResponse']>(
+): Promise<GuardianListResponse> {
+  return apiRequest<GuardianListResponse>(
     `${recipientPath(recipientId)}/guardians`,
     { method: 'GET', signal },
   );
@@ -188,151 +240,6 @@ export function updateGuardian(
     body: JSON.stringify(payload),
     signal,
   });
-}
-
-export function listPrimaryGuardianPeriods(
-  recipientId: RecipientId,
-  signal?: AbortSignal,
-): Promise<Schemas['PrimaryGuardianPeriodListResponse']> {
-  return apiRequest<Schemas['PrimaryGuardianPeriodListResponse']>(
-    `${recipientPath(recipientId)}/primary-guardian-periods`,
-    { method: 'GET', signal },
-  );
-}
-
-export function getPrimaryGuardianPeriod(
-  recipientId: RecipientId,
-  periodId: RecipientId,
-  signal?: AbortSignal,
-): Promise<PrimaryGuardianPeriod> {
-  return apiRequest<PrimaryGuardianPeriod>(primaryPeriodPath(recipientId, periodId), {
-    method: 'GET',
-    signal,
-  });
-}
-
-export function createPrimaryGuardianPeriod(
-  recipientId: RecipientId,
-  payload: PrimaryGuardianPeriodCreateRequest,
-  signal?: AbortSignal,
-): Promise<PrimaryGuardianPeriod> {
-  return apiRequest<PrimaryGuardianPeriod>(
-    `${recipientPath(recipientId)}/primary-guardian-periods`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function invalidatePrimaryGuardianPeriod(
-  recipientId: RecipientId,
-  periodId: RecipientId,
-  payload: HistoryInvalidateRequest,
-  signal?: AbortSignal,
-): Promise<PrimaryGuardianPeriod> {
-  return apiRequest<PrimaryGuardianPeriod>(
-    `${primaryPeriodPath(recipientId, periodId)}/invalidate`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function replacePrimaryGuardianPeriod(
-  recipientId: RecipientId,
-  periodId: RecipientId,
-  payload: PrimaryGuardianPeriodReplacementRequest,
-  signal?: AbortSignal,
-): Promise<PrimaryGuardianPeriodReplacementResponse> {
-  return apiRequest<PrimaryGuardianPeriodReplacementResponse>(
-    `${primaryPeriodPath(recipientId, periodId)}/replacements`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function listPayerSnapshots(
-  recipientId: RecipientId,
-  signal?: AbortSignal,
-): Promise<PayerSnapshotListResponse> {
-  return apiRequest<PayerSnapshotListResponse>(
-    `${recipientPath(recipientId)}/payer-snapshots`,
-    { method: 'GET', signal },
-  );
-}
-
-export function getPayerSnapshot(
-  recipientId: RecipientId,
-  snapshotId: RecipientId,
-  signal?: AbortSignal,
-): Promise<PayerSnapshot> {
-  return apiRequest<PayerSnapshot>(payerSnapshotPath(recipientId, snapshotId), {
-    method: 'GET',
-    signal,
-  });
-}
-
-export function createPayerSnapshot(
-  recipientId: RecipientId,
-  payload: PayerSnapshotCreateRequest,
-  signal?: AbortSignal,
-): Promise<PayerSnapshot> {
-  return apiRequest<PayerSnapshot>(
-    `${recipientPath(recipientId)}/payer-snapshots`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function invalidatePayerSnapshot(
-  recipientId: RecipientId,
-  snapshotId: RecipientId,
-  payload: HistoryInvalidateRequest,
-  signal?: AbortSignal,
-): Promise<PayerSnapshot> {
-  return apiRequest<PayerSnapshot>(
-    `${payerSnapshotPath(recipientId, snapshotId)}/invalidate`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function replacePayerSnapshot(
-  recipientId: RecipientId,
-  snapshotId: RecipientId,
-  payload: PayerSnapshotReplacementRequest,
-  signal?: AbortSignal,
-): Promise<PayerSnapshotReplacementResponse> {
-  return apiRequest<PayerSnapshotReplacementResponse>(
-    `${payerSnapshotPath(recipientId, snapshotId)}/replacements`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function listPlanNotifications(
-  recipientId: RecipientId,
-  signal?: AbortSignal,
-): Promise<PlanNotificationListResponse> {
-  return apiRequest<PlanNotificationListResponse>(
-    `${recipientPath(recipientId)}/plan-notifications`,
-    { method: 'GET', signal },
-  );
-}
-
-export function createPlanNotification(
-  recipientId: RecipientId,
-  payload: PlanNotificationCreateRequest,
-  signal?: AbortSignal,
-): Promise<PlanNotification> {
-  return apiRequest<PlanNotification>(
-    `${recipientPath(recipientId)}/plan-notifications`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
-}
-
-export function invalidatePlanNotification(
-  recipientId: RecipientId,
-  notificationId: RecipientId,
-  payload: HistoryInvalidateRequest,
-  signal?: AbortSignal,
-): Promise<PlanNotification> {
-  return apiRequest<PlanNotification>(
-    `${planNotificationPath(recipientId, notificationId)}/invalidate`,
-    { method: 'POST', body: JSON.stringify(payload), signal },
-  );
 }
 
 export function listRecipientDeadlines(

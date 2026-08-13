@@ -20,6 +20,7 @@ describe('W1C recipient certification ledgers', () => {
   let benefitRows: Array<Record<string, unknown>>;
   let approvalListJson: string;
   let postedIdentity: Record<string, unknown> | null;
+  let postedCertification: Record<string, unknown> | null;
   let postedBenefit: Record<string, unknown> | null;
   let postedApprovalBody: string | null;
 
@@ -28,6 +29,7 @@ describe('W1C recipient certification ledgers', () => {
     benefitRows = [];
     approvalListJson = '{"items":[]}';
     postedIdentity = null;
+    postedCertification = null;
     postedBenefit = null;
     postedApprovalBody = null;
 
@@ -62,14 +64,9 @@ describe('W1C recipient certification ledgers', () => {
         return jsonResponse(identity, 201);
       }
       if (url.pathname === `${base}/certification-periods`) {
-        return method === 'GET'
-          ? jsonResponse({ items: [] })
-          : jsonResponse({}, 201);
-      }
-      if (url.pathname === `${base}/grade-periods`) {
-        return method === 'GET'
-          ? jsonResponse({ items: [] })
-          : jsonResponse({}, 201);
+        if (method === 'GET') return jsonResponse({ items: [] });
+        postedCertification = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return jsonResponse({}, 201);
       }
       if (url.pathname === `${base}/benefit-periods` && method === 'GET') {
         return jsonResponse({ items: benefitRows });
@@ -142,7 +139,7 @@ describe('W1C recipient certification ledgers', () => {
     });
   });
 
-  test('exposes only exact grade and benefit choices without an implicit GENERAL value', async () => {
+  test('keeps grade inside the certification period and exposes exact benefit choices', async () => {
     render(<RecipientW1cPanel recipientId={42} />);
 
     await waitFor(() => {
@@ -150,7 +147,7 @@ describe('W1C recipient certification ledgers', () => {
     });
 
     const gradeValues = Array.from(
-      screen.getByTestId('w1c-grade-select').querySelectorAll('option'),
+      screen.getByTestId('w1c-certification-grade-select').querySelectorAll('option'),
     ).map((option) => option.value);
     expect(gradeValues).toEqual(['1', '2', '3', '4', '5']);
 
@@ -176,7 +173,44 @@ describe('W1C recipient certification ledgers', () => {
     expect(screen.queryByRole('button', { name: /GENERAL|일반.*자동/ })).toBeNull();
   });
 
-  test('creates a selected benefit period without a rate or automatic fallback field', async () => {
+  test('submits grade on the certification period payload with no separate request', async () => {
+    identity = {
+      recipient_id: 42,
+      certification_number: 'L1234567890',
+      row_version: 1,
+    };
+    const fetchSpy = vi.mocked(globalThis.fetch);
+    render(<RecipientW1cPanel recipientId={42} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('w1c-certification-grade-select')).toBeEnabled();
+    });
+    fireEvent.change(screen.getByTestId('w1c-certification-grade-select'), {
+      target: { value: '4' },
+    });
+    fireEvent.change(screen.getByTestId('w1c-certification-start-date'), {
+      target: { value: '2026-08-01' },
+    });
+    fireEvent.change(screen.getByTestId('w1c-certification-end-date'), {
+      target: { value: '2027-07-31' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '인정기간 등록' }));
+
+    await waitFor(() => {
+      expect(postedCertification).toEqual({
+        grade_code: '4',
+        start_date: '2026-08-01',
+        end_date: '2027-07-31',
+      });
+    });
+    const paths = fetchSpy.mock.calls.map(([input]) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      return new URL(rawUrl, 'http://localhost').pathname;
+    });
+    expect(paths.every((path) => !path.includes('grade-periods'))).toBe(true);
+  });
+
+  test('sends opaque benefit start_text without date parsing or period dates', async () => {
     render(<RecipientW1cPanel recipientId={42} />);
 
     await waitFor(() => {
@@ -185,18 +219,21 @@ describe('W1C recipient certification ledgers', () => {
     fireEvent.change(screen.getByTestId('w1c-benefit-select'), {
       target: { value: 'MEDICAL_9' },
     });
-    fireEvent.change(screen.getByTestId('w1c-benefit-start-date'), {
-      target: { value: '2026-07-15' },
+    const startText = screen.getByTestId('w1c-benefit-start-text');
+    expect(startText).toHaveAttribute('type', 'text');
+    fireEvent.change(startText, {
+      target: { value: '  미정 / 기관 확인 후  ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '혜택기간 등록' }));
+    fireEvent.click(screen.getByRole('button', { name: '혜택 등록' }));
 
     await waitFor(() => {
       expect(postedBenefit).toEqual({
         benefit_code: 'MEDICAL_9',
-        start_date: '2026-07-15',
-        end_date: null,
+        start_text: '  미정 / 기관 확인 후  ',
       });
     });
+    expect(postedBenefit).not.toHaveProperty('start_date');
+    expect(postedBenefit).not.toHaveProperty('end_date');
     expect(postedBenefit).not.toHaveProperty('rate');
     expect(postedBenefit).not.toHaveProperty('benefit_rate');
   });

@@ -19,7 +19,6 @@ import {
   fetchSessionCapabilities,
   fetchServiceCatalog,
   fetchStaffDetail,
-  fetchStaffHealthCheckRequirements,
   fetchStaffHealthChecks,
   fetchStaffLicenses,
   fetchStaffList,
@@ -32,15 +31,12 @@ import {
   HealthApiError,
   invalidateStaffLicense,
   invalidateStaffHealthCheck,
-  invalidateStaffHealthCheckRequirement,
   invalidateStaffPeriodicTraining,
   invalidateStaffServiceQualification,
-  invalidateStaffQuarterlyConsultation,
   revealSensitiveIdentity,
   replaceStaffLicense,
   replaceStaffServiceQualification,
   updateStaffHealthCheck,
-  updateStaffHealthCheckRequirement,
   updateStaffOnboardingTraining,
   updateStaffPeriodicTraining,
   updateStaffQuarterlyConsultation,
@@ -51,14 +47,9 @@ import {
   type StaffLicenseReplacementRequest,
   type StaffLicenseResponse,
   type StaffHealthCheckCreateRequest,
-  type StaffHealthCheckRequirementResponse,
-  type StaffHealthCheckRequirementUpdateRequest,
   type StaffHealthCheckResponse,
   type StaffHealthCheckUpdateRequest,
-  type HealthCheckRequirementStatus,
-  type QuarterlyConsultationStatus,
   type StaffQuarterlyConsultationCreateRequest,
-  type StaffQuarterlyConsultationReplaceRequest,
   type StaffQuarterlyConsultationResponse,
   type StaffQuarterlyConsultationUpdateRequest,
   type StaffOnboardingTrainingUpdateRequest,
@@ -155,22 +146,16 @@ function finishAbortableRequest(ref: AbortControllerRef, controller: AbortContro
 }
 
 const STAFF_MUTATION_ROOTS = new Set(['staff-create', 'staff-close-employment', 'staff-rehire']);
-const VS4_HEALTH_QUERY_ROOTS = new Set([
-  'staff-health-checks',
-  'staff-health-check-requirements',
-]);
+const VS4_HEALTH_QUERY_ROOTS = new Set(['staff-health-checks']);
 const VS4_HEALTH_MUTATION_ROOTS = new Set([
   'staff-health-fact-create',
   'staff-health-fact-update',
   'staff-health-fact-invalidate',
-  'staff-health-requirement-update',
-  'staff-health-requirement-invalidate',
 ]);
 const VS5_CONSULTATION_QUERY_ROOTS = new Set(['staff-quarterly-consultations']);
 const VS5_CONSULTATION_MUTATION_ROOTS = new Set([
   'staff-quarterly-consultation-create',
   'staff-quarterly-consultation-update',
-  'staff-quarterly-consultation-invalidate',
 ]);
 
 type StaffDetailTab =
@@ -195,15 +180,6 @@ type HealthFactFormState = {
   open: boolean;
   editing: StaffHealthCheckResponse | null;
   checkDate: string;
-  employmentId: string;
-  checkTypeCode: string;
-  resultNote: string;
-};
-
-type HealthRequirementDraft = {
-  status: HealthCheckRequirementStatus;
-  healthCheckId: string;
-  exemptReasonText: string;
 };
 
 type HealthMutationContext = {
@@ -213,15 +189,10 @@ type HealthMutationContext = {
 };
 
 type QuarterlyConsultationFormState = {
-  mode: 'create' | 'edit' | 'replace' | null;
-  editing: StaffQuarterlyConsultationResponse | null;
+  open: boolean;
   calendarYear: string;
   quarterNo: string;
-  status: QuarterlyConsultationStatus;
-  counselingDate: string;
-  content: string;
-  incompleteReasonText: string;
-  exemptReasonText: string;
+  completed: boolean;
 };
 
 type ConsultationMutationContext = {
@@ -235,23 +206,15 @@ function emptyHealthFactForm(): HealthFactFormState {
     open: false,
     editing: null,
     checkDate: '',
-    employmentId: '',
-    checkTypeCode: '',
-    resultNote: '',
   };
 }
 
 function emptyQuarterlyConsultationForm(): QuarterlyConsultationFormState {
   return {
-    mode: null,
-    editing: null,
+    open: false,
     calendarYear: String(new Date().getFullYear()),
     quarterNo: '1',
-    status: 'COMPLETE',
-    counselingDate: '',
-    content: '',
-    incompleteReasonText: '',
-    exemptReasonText: '',
+    completed: false,
   };
 }
 
@@ -408,18 +371,11 @@ export const StaffPage: React.FC = () => {
   const [healthFactForm, setHealthFactForm] = useState<HealthFactFormState>(
     emptyHealthFactForm,
   );
-  const [healthRequirementDrafts, setHealthRequirementDrafts] = useState<
-    Record<number, HealthRequirementDraft>
-  >({});
   const [healthFactInvalidateTarget, setHealthFactInvalidateTarget] =
     useState<StaffHealthCheckResponse | null>(null);
-  const [healthRequirementInvalidateTarget, setHealthRequirementInvalidateTarget] =
-    useState<StaffHealthCheckRequirementResponse | null>(null);
   const [healthFieldErrors, setHealthFieldErrors] = useState<Record<string, string>>({});
   const [quarterlyConsultationForm, setQuarterlyConsultationForm] =
     useState<QuarterlyConsultationFormState>(emptyQuarterlyConsultationForm);
-  const [quarterlyConsultationInvalidateTarget, setQuarterlyConsultationInvalidateTarget] =
-    useState<StaffQuarterlyConsultationResponse | null>(null);
   const [consultationFieldErrors, setConsultationFieldErrors] = useState<
     Record<string, string>
   >({});
@@ -445,7 +401,6 @@ export const StaffPage: React.FC = () => {
   const qualificationMutationAbortRef = useRef<AbortController | null>(null);
   const trainingMutationAbortRef = useRef<AbortController | null>(null);
   const healthFactMutationAbortRef = useRef<AbortController | null>(null);
-  const healthRequirementMutationAbortRef = useRef<AbortController | null>(null);
   const consultationMutationAbortRef = useRef<AbortController | null>(null);
   const createPayloadRef = useRef<StaffCreateRequest | null>(null);
   const listScrollRef = useRef<HTMLDivElement | null>(null);
@@ -461,8 +416,6 @@ export const StaffPage: React.FC = () => {
       trainingMutationAbortRef.current = null;
       healthFactMutationAbortRef.current?.abort();
       healthFactMutationAbortRef.current = null;
-      healthRequirementMutationAbortRef.current?.abort();
-      healthRequirementMutationAbortRef.current = null;
       consultationMutationAbortRef.current?.abort();
       consultationMutationAbortRef.current = null;
       void queryClient.cancelQueries({ queryKey: ['staff-onboarding-trainings'] });
@@ -470,12 +423,9 @@ export const StaffPage: React.FC = () => {
       clearHealthCache(queryClient, previousStaffId ?? undefined);
       clearConsultationCache(queryClient, previousStaffId ?? undefined);
       setHealthFactForm(emptyHealthFactForm());
-      setHealthRequirementDrafts({});
       setHealthFactInvalidateTarget(null);
-      setHealthRequirementInvalidateTarget(null);
       setHealthFieldErrors({});
       setQuarterlyConsultationForm(emptyQuarterlyConsultationForm());
-      setQuarterlyConsultationInvalidateTarget(null);
       setConsultationFieldErrors({});
       setActionError(null);
     }
@@ -514,12 +464,6 @@ export const StaffPage: React.FC = () => {
   const healthFactsQuery = useQuery({
     queryKey: ['staff-health-checks', selectedStaffId],
     queryFn: ({ signal }) => fetchStaffHealthChecks(selectedStaffId as number, signal),
-    enabled: sessionReady && selectedStaffId !== null && selectedTab === 'health',
-  });
-  const healthRequirementsQuery = useQuery({
-    queryKey: ['staff-health-check-requirements', selectedStaffId],
-    queryFn: ({ signal }) =>
-      fetchStaffHealthCheckRequirements(selectedStaffId as number, signal),
     enabled: sessionReady && selectedStaffId !== null && selectedTab === 'health',
   });
   const quarterlyConsultationsQuery = useQuery({
@@ -586,24 +530,6 @@ export const StaffPage: React.FC = () => {
   }, [selectedStaffId]);
 
   useEffect(() => {
-    const items = healthRequirementsQuery.data?.items ?? [];
-    setHealthRequirementDrafts(
-      Object.fromEntries(
-        items
-          .filter((item) => item.invalidated_at_utc == null)
-          .map((item) => [
-            item.id,
-            {
-              status: item.status,
-              healthCheckId: item.health_check_id === null ? '' : String(item.health_check_id),
-              exemptReasonText: item.exempt_reason_text ?? '',
-            } satisfies HealthRequirementDraft,
-          ]),
-      ),
-    );
-  }, [healthRequirementsQuery.data?.items]);
-
-  useEffect(() => {
     const restoreStaffFromHistory = () => {
       const staffId = staffIdFromLocation();
       if (staffId !== null) {
@@ -628,9 +554,6 @@ export const StaffPage: React.FC = () => {
       invalidations.push(
         queryClient.invalidateQueries({ queryKey: ['staff-detail', staffId] }),
         queryClient.invalidateQueries({ queryKey: ['staff-health-checks', staffId] }),
-        queryClient.invalidateQueries({
-          queryKey: ['staff-health-check-requirements', staffId],
-        }),
         queryClient.invalidateQueries({
           queryKey: ['staff-quarterly-consultations', staffId],
         }),
@@ -1132,81 +1055,6 @@ export const StaffPage: React.FC = () => {
     onSettled: () => clearHealthMutationCache(queryClient),
   });
 
-  const healthRequirementUpdateMutation = useMutation({
-    mutationKey: ['staff-health-requirement-update'],
-    mutationFn: async ({
-      staffId,
-      requirementId,
-      payload,
-      sessionEpoch,
-      staffSelectionEpoch,
-    }: HealthMutationContext & {
-      requirementId: number;
-      payload: StaffHealthCheckRequirementUpdateRequest;
-    }) => {
-      const controller = beginAbortableRequest(healthRequirementMutationAbortRef);
-      try {
-        const data = await updateStaffHealthCheckRequirement(
-          staffId,
-          requirementId,
-          payload,
-          controller.signal,
-        );
-        return { data, staffId, sessionEpoch, staffSelectionEpoch };
-      } finally {
-        finishAbortableRequest(healthRequirementMutationAbortRef, controller);
-      }
-    },
-    onSuccess: async (result, variables) => {
-      if (!isCurrentHealthContext(result)) return;
-      setHealthFieldErrors({});
-      setActionError(null);
-      await invalidateStaff(variables.staffId);
-    },
-    onError: (error, variables) => {
-      if (variables && isCurrentHealthContext(variables)) handleHealthMutationError(error);
-    },
-    onSettled: () => clearHealthMutationCache(queryClient),
-  });
-
-  const healthRequirementInvalidateMutation = useMutation({
-    mutationKey: ['staff-health-requirement-invalidate'],
-    mutationFn: async ({
-      staffId,
-      requirementId,
-      payload,
-      sessionEpoch,
-      staffSelectionEpoch,
-    }: HealthMutationContext & {
-      requirementId: number;
-      payload: Pick<StaffHealthCheckRequirementUpdateRequest, 'expected_row_version'>;
-    }) => {
-      const controller = beginAbortableRequest(healthRequirementMutationAbortRef);
-      try {
-        const data = await invalidateStaffHealthCheckRequirement(
-          staffId,
-          requirementId,
-          payload,
-          controller.signal,
-        );
-        return { data, staffId, sessionEpoch, staffSelectionEpoch };
-      } finally {
-        finishAbortableRequest(healthRequirementMutationAbortRef, controller);
-      }
-    },
-    onSuccess: async (result, variables) => {
-      if (!isCurrentHealthContext(result)) return;
-      setHealthRequirementInvalidateTarget(null);
-      setHealthFieldErrors({});
-      setActionError(null);
-      await invalidateStaff(variables.staffId);
-    },
-    onError: (error, variables) => {
-      if (variables && isCurrentHealthContext(variables)) handleHealthMutationError(error);
-    },
-    onSettled: () => clearHealthMutationCache(queryClient),
-  });
-
   const isCurrentConsultationContext = (context: ConsultationMutationContext): boolean =>
     context.sessionEpoch === sessionEpochRef.current &&
     context.staffSelectionEpoch === consultationSelectionEpochRef.current &&
@@ -1276,47 +1124,6 @@ export const StaffPage: React.FC = () => {
     },
     onSuccess: async (result, variables) => {
       if (!isCurrentConsultationContext(result)) return;
-      setQuarterlyConsultationForm(emptyQuarterlyConsultationForm());
-      setConsultationFieldErrors({});
-      setActionError(null);
-      await invalidateStaff(variables.staffId);
-    },
-    onError: (error, variables) => {
-      if (variables && isCurrentConsultationContext(variables)) {
-        handleConsultationMutationError(error);
-      }
-    },
-    onSettled: () => clearConsultationMutationCache(queryClient),
-  });
-
-  const consultationInvalidateMutation = useMutation({
-    mutationKey: ['staff-quarterly-consultation-invalidate'],
-    mutationFn: async ({
-      staffId,
-      consultationId,
-      payload,
-      sessionEpoch,
-      staffSelectionEpoch,
-    }: ConsultationMutationContext & {
-      consultationId: number;
-      payload: StaffQuarterlyConsultationReplaceRequest;
-    }) => {
-      const controller = beginAbortableRequest(consultationMutationAbortRef);
-      try {
-        const data = await invalidateStaffQuarterlyConsultation(
-          staffId,
-          consultationId,
-          payload,
-          controller.signal,
-        );
-        return { data, staffId, sessionEpoch, staffSelectionEpoch };
-      } finally {
-        finishAbortableRequest(consultationMutationAbortRef, controller);
-      }
-    },
-    onSuccess: async (result, variables) => {
-      if (!isCurrentConsultationContext(result)) return;
-      setQuarterlyConsultationInvalidateTarget(null);
       setQuarterlyConsultationForm(emptyQuarterlyConsultationForm());
       setConsultationFieldErrors({});
       setActionError(null);
@@ -1478,13 +1285,9 @@ export const StaffPage: React.FC = () => {
   const healthMutationPending =
     healthFactCreateMutation.isPending ||
     healthFactUpdateMutation.isPending ||
-    healthFactInvalidateMutation.isPending ||
-    healthRequirementUpdateMutation.isPending ||
-    healthRequirementInvalidateMutation.isPending;
+    healthFactInvalidateMutation.isPending;
   const consultationMutationPending =
-    consultationCreateMutation.isPending ||
-    consultationUpdateMutation.isPending ||
-    consultationInvalidateMutation.isPending;
+    consultationCreateMutation.isPending || consultationUpdateMutation.isPending;
 
   const purgeStaffSessionData = useCallback(() => {
     sessionEpochRef.current += 1;
@@ -1505,8 +1308,6 @@ export const StaffPage: React.FC = () => {
     trainingMutationAbortRef.current = null;
     healthFactMutationAbortRef.current?.abort();
     healthFactMutationAbortRef.current = null;
-    healthRequirementMutationAbortRef.current?.abort();
-    healthRequirementMutationAbortRef.current = null;
     consultationMutationAbortRef.current?.abort();
     consultationMutationAbortRef.current = null;
     trainingSelectionEpochRef.current += 1;
@@ -1576,12 +1377,9 @@ export const StaffPage: React.FC = () => {
     setQualificationForm({ open: false, replacement: null });
     setQualificationCloseTarget(null);
     setHealthFactForm(emptyHealthFactForm());
-    setHealthRequirementDrafts({});
     setHealthFactInvalidateTarget(null);
-    setHealthRequirementInvalidateTarget(null);
     setHealthFieldErrors({});
     setQuarterlyConsultationForm(emptyQuarterlyConsultationForm());
-    setQuarterlyConsultationInvalidateTarget(null);
     setConsultationFieldErrors({});
     setSelectedStaffId(null);
     setSelectedTab('overview');
@@ -1634,12 +1432,7 @@ export const StaffPage: React.FC = () => {
   const healthFacts = (healthFactsQuery.data?.items ?? []).filter(
     (fact) => fact.invalidated_at_utc == null,
   );
-  const healthRequirements = (healthRequirementsQuery.data?.items ?? []).filter(
-    (requirement) => requirement.invalidated_at_utc == null,
-  );
-  const quarterlyConsultations = (
-    quarterlyConsultationsQuery.data?.items ?? []
-  ).filter((consultation) => consultation.invalidated_at_utc == null);
+  const quarterlyConsultations = quarterlyConsultationsQuery.data?.items ?? [];
   const activeLicenses = licenses.filter(
     (license) => license.invalidated_at_utc === null || license.invalidated_at_utc === undefined,
   );
@@ -1711,9 +1504,6 @@ export const StaffPage: React.FC = () => {
       open: true,
       editing: fact,
       checkDate: fact.check_date,
-      employmentId: fact.employment_id === null ? '' : String(fact.employment_id),
-      checkTypeCode: fact.check_type_code ?? '',
-      resultNote: fact.result_note ?? '',
     });
     setHealthFieldErrors({});
     setActionError(null);
@@ -1736,15 +1526,7 @@ export const StaffPage: React.FC = () => {
       setActionError('입력값을 확인해주세요.');
       return;
     }
-    const employmentId = healthFactForm.employmentId
-      ? Number(healthFactForm.employmentId)
-      : null;
-    const payloadBase = {
-      check_date: checkDate,
-      check_type_code: healthFactForm.checkTypeCode.trim() || null,
-      employment_id: employmentId,
-      result_note: healthFactForm.resultNote.trim() || null,
-    };
+    const payloadBase: StaffHealthCheckCreateRequest = { check_date: checkDate };
     const context = {
       staffId: detail.id,
       sessionEpoch: sessionEpochRef.current,
@@ -1778,114 +1560,9 @@ export const StaffPage: React.FC = () => {
     });
   };
 
-  const updateHealthRequirementDraft = (
-    requirement: StaffHealthCheckRequirementResponse,
-    update: Partial<HealthRequirementDraft>,
-  ) => {
-    setHealthRequirementDrafts((current) => {
-      const existing =
-        current[requirement.id] ?? {
-          status: requirement.status,
-          healthCheckId: requirement.health_check_id === null ? '' : String(requirement.health_check_id),
-          exemptReasonText: requirement.exempt_reason_text ?? '',
-        };
-      const next = { ...existing, ...update };
-      if (next.status !== 'COMPLETE') next.healthCheckId = '';
-      if (next.status !== 'EXEMPT') next.exemptReasonText = '';
-      return { ...current, [requirement.id]: next };
-    });
-    setHealthFieldErrors({});
-    setActionError(null);
-  };
-
-  const submitHealthRequirement = (requirement: StaffHealthCheckRequirementResponse) => {
-    if (!detail || !canManage) return;
-    const draft = healthRequirementDrafts[requirement.id] ?? {
-      status: requirement.status,
-      healthCheckId: requirement.health_check_id === null ? '' : String(requirement.health_check_id),
-      exemptReasonText: requirement.exempt_reason_text ?? '',
-    };
-    const healthCheckId = draft.healthCheckId ? Number(draft.healthCheckId) : null;
-    const exemptReasonText = draft.exemptReasonText.trim();
-    if (draft.status === 'COMPLETE' && healthCheckId === null) {
-      setHealthFieldErrors({ health_check_id: '완료 상태에는 검진사실을 선택해주세요.' });
-      setActionError('입력값을 확인해주세요.');
-      return;
-    }
-    if (draft.status === 'EXEMPT' && !exemptReasonText) {
-      setHealthFieldErrors({ exempt_reason_text: '면제사유를 입력해주세요.' });
-      setActionError('입력값을 확인해주세요.');
-      return;
-    }
-    setHealthFieldErrors({});
-    setActionError(null);
-    healthRequirementUpdateMutation.mutate({
-      staffId: detail.id,
-      requirementId: requirement.id,
-      payload: {
-        status: draft.status,
-        health_check_id: draft.status === 'COMPLETE' ? healthCheckId : null,
-        exempt_reason_text: draft.status === 'EXEMPT' ? exemptReasonText : null,
-        expected_row_version: requirement.row_version,
-      },
-      sessionEpoch: sessionEpochRef.current,
-      staffSelectionEpoch: healthSelectionEpochRef.current,
-    });
-  };
-
-  const confirmHealthRequirementInvalidate = () => {
-    if (!detail || !healthRequirementInvalidateTarget) return;
-    healthRequirementInvalidateMutation.mutate({
-      staffId: detail.id,
-      requirementId: healthRequirementInvalidateTarget.id,
-      payload: { expected_row_version: healthRequirementInvalidateTarget.row_version },
-      sessionEpoch: sessionEpochRef.current,
-      staffSelectionEpoch: healthSelectionEpochRef.current,
-    });
-  };
-
   const openQuarterlyConsultationCreate = () => {
     setQuarterlyConsultationForm(emptyQuarterlyConsultationForm());
-    setQuarterlyConsultationForm((current) => ({ ...current, mode: 'create' }));
-    setQuarterlyConsultationInvalidateTarget(null);
-    setConsultationFieldErrors({});
-    setActionError(null);
-  };
-
-  const openQuarterlyConsultationEdit = (
-    consultation: StaffQuarterlyConsultationResponse,
-  ) => {
-    setQuarterlyConsultationForm({
-      mode: 'edit',
-      editing: consultation,
-      calendarYear: String(consultation.calendar_year),
-      quarterNo: String(consultation.quarter_no),
-      status: consultation.status,
-      counselingDate: consultation.counseling_date ?? '',
-      content: consultation.content ?? '',
-      incompleteReasonText: consultation.incomplete_reason_text ?? '',
-      exemptReasonText: consultation.exempt_reason_text ?? '',
-    });
-    setQuarterlyConsultationInvalidateTarget(null);
-    setConsultationFieldErrors({});
-    setActionError(null);
-  };
-
-  const openQuarterlyConsultationReplace = (
-    consultation: StaffQuarterlyConsultationResponse,
-  ) => {
-    setQuarterlyConsultationForm({
-      mode: 'replace',
-      editing: consultation,
-      calendarYear: String(consultation.calendar_year),
-      quarterNo: String(consultation.quarter_no),
-      status: consultation.status,
-      counselingDate: consultation.counseling_date ?? '',
-      content: consultation.content ?? '',
-      incompleteReasonText: consultation.incomplete_reason_text ?? '',
-      exemptReasonText: consultation.exempt_reason_text ?? '',
-    });
-    setQuarterlyConsultationInvalidateTarget(consultation);
+    setQuarterlyConsultationForm((current) => ({ ...current, open: true }));
     setConsultationFieldErrors({});
     setActionError(null);
   };
@@ -1893,25 +1570,13 @@ export const StaffPage: React.FC = () => {
   const closeQuarterlyConsultationForm = () => {
     if (consultationMutationPending) return;
     setQuarterlyConsultationForm(emptyQuarterlyConsultationForm());
-    setQuarterlyConsultationInvalidateTarget(null);
     setConsultationFieldErrors({});
   };
 
   const updateQuarterlyConsultationForm = (
     update: Partial<QuarterlyConsultationFormState>,
   ) => {
-    setQuarterlyConsultationForm((current) => {
-      const next = { ...current, ...update };
-      if (update.status !== undefined) {
-        if (next.status !== 'COMPLETE') {
-          next.counselingDate = '';
-          next.content = '';
-        }
-        if (next.status !== 'INCOMPLETE') next.incompleteReasonText = '';
-        if (next.status !== 'EXEMPT') next.exemptReasonText = '';
-      }
-      return next;
-    });
+    setQuarterlyConsultationForm((current) => ({ ...current, ...update }));
     setConsultationFieldErrors({});
     setActionError(null);
   };
@@ -1920,7 +1585,7 @@ export const StaffPage: React.FC = () => {
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
-    if (!detail || !canManage || !quarterlyConsultationForm.mode) return;
+    if (!detail || !canManage || !quarterlyConsultationForm.open) return;
 
     setConsultationFieldErrors({});
     setActionError(null);
@@ -1935,77 +1600,43 @@ export const StaffPage: React.FC = () => {
       fieldErrors.quarter_no = '분기는 1부터 4까지 입력해주세요.';
     }
 
-    const status = quarterlyConsultationForm.status;
-    const counselingDate = quarterlyConsultationForm.counselingDate.trim();
-    const content = quarterlyConsultationForm.content.trim();
-    const incompleteReasonText = quarterlyConsultationForm.incompleteReasonText.trim();
-    const exemptReasonText = quarterlyConsultationForm.exemptReasonText.trim();
-
-    if (status === 'COMPLETE') {
-      if (!counselingDate) fieldErrors.counseling_date = '상담일을 입력해주세요.';
-      if (!content) fieldErrors.content = '처리내용을 입력해주세요.';
-    }
-    if (status === 'INCOMPLETE' && !incompleteReasonText) {
-      fieldErrors.incomplete_reason_text = '미완료 사유를 입력해주세요.';
-    }
-    if (status === 'EXEMPT' && !exemptReasonText) {
-      fieldErrors.exempt_reason_text = '면제 사유를 입력해주세요.';
-    }
-
     if (Object.keys(fieldErrors).length > 0) {
       setConsultationFieldErrors(fieldErrors);
       setActionError('입력값을 확인해주세요.');
       return;
     }
 
-    const conditionalFields = {
-      counseling_date: status === 'COMPLETE' ? counselingDate : null,
-      content: status === 'COMPLETE' ? content : null,
-      incomplete_reason_text: status === 'INCOMPLETE' ? incompleteReasonText : null,
-      exempt_reason_text: status === 'EXEMPT' ? exemptReasonText : null,
-    };
     const context = {
       staffId: detail.id,
       sessionEpoch: sessionEpochRef.current,
       staffSelectionEpoch: consultationSelectionEpochRef.current,
     };
 
-    if (quarterlyConsultationForm.mode === 'create') {
-      consultationCreateMutation.mutate({
-        ...context,
-        payload: {
-          calendar_year: calendarYear,
-          quarter_no: quarterNo,
-          status,
-          ...conditionalFields,
-        },
-      });
-      return;
-    }
-
-    const editing = quarterlyConsultationForm.editing;
-    if (!editing) return;
-    if (quarterlyConsultationForm.mode === 'edit') {
-      consultationUpdateMutation.mutate({
-        ...context,
-        consultationId: editing.id,
-        payload: {
-          status,
-          ...conditionalFields,
-          expected_row_version: editing.row_version,
-        },
-      });
-      return;
-    }
-
-    consultationInvalidateMutation.mutate({
+    consultationCreateMutation.mutate({
       ...context,
-      consultationId: editing.id,
       payload: {
-        status,
-        ...conditionalFields,
-        expected_row_version: editing.row_version,
+        calendar_year: calendarYear,
+        quarter_no: quarterNo,
+        completed: quarterlyConsultationForm.completed,
       },
+    });
+  };
+
+  const toggleQuarterlyConsultation = (
+    consultation: StaffQuarterlyConsultationResponse,
+    completed: boolean,
+  ) => {
+    if (!detail || !canManage) return;
+    setActionError(null);
+    consultationUpdateMutation.mutate({
+      staffId: detail.id,
+      consultationId: consultation.id,
+      payload: {
+        completed,
+        expected_row_version: consultation.row_version,
+      },
+      sessionEpoch: sessionEpochRef.current,
+      staffSelectionEpoch: consultationSelectionEpochRef.current,
     });
   };
 
@@ -2302,141 +1933,54 @@ export const StaffPage: React.FC = () => {
     );
   };
 
-  const renderQuarterlyConsultationFields = (includeKeyFields: boolean) => (
+  const renderQuarterlyConsultationFields = () => (
     <>
-      {includeKeyFields ? (
-        <>
-          <label>
-            연도
-            <input
-              type="number"
-              value={quarterlyConsultationForm.calendarYear}
-              onChange={(event) =>
-                updateQuarterlyConsultationForm({ calendarYear: event.target.value })
-              }
-            />
-            {consultationFieldErrors.calendar_year && (
-              <span className="staff-field-error">
-                {consultationFieldErrors.calendar_year}
-              </span>
-            )}
-          </label>
-          <label>
-            분기
-            <select
-              value={quarterlyConsultationForm.quarterNo}
-              onChange={(event) =>
-                updateQuarterlyConsultationForm({ quarterNo: event.target.value })
-              }
-            >
-              <option value="1">1분기</option>
-              <option value="2">2분기</option>
-              <option value="3">3분기</option>
-              <option value="4">4분기</option>
-            </select>
-            {consultationFieldErrors.quarter_no && (
-              <span className="staff-field-error">
-                {consultationFieldErrors.quarter_no}
-              </span>
-            )}
-          </label>
-        </>
-      ) : (
-        <div className="staff-quarterly-consultation-key">
-          <span>연도</span>
-          <strong>{quarterlyConsultationForm.calendarYear}</strong>
-          <span>분기</span>
-          <strong>{quarterlyConsultationForm.quarterNo}분기</strong>
-        </div>
-      )}
       <label>
-        상태
-        <select
-          value={quarterlyConsultationForm.status}
+        연도
+        <input
+          type="number"
+          value={quarterlyConsultationForm.calendarYear}
           onChange={(event) =>
-            updateQuarterlyConsultationForm({
-              status: event.target.value as QuarterlyConsultationStatus,
-            })
+            updateQuarterlyConsultationForm({ calendarYear: event.target.value })
           }
-          disabled={consultationMutationPending}
-        >
-          <option value="COMPLETE">COMPLETE</option>
-          <option value="INCOMPLETE">INCOMPLETE</option>
-          <option value="EXEMPT">EXEMPT</option>
-        </select>
+        />
+        {consultationFieldErrors.calendar_year && (
+          <span className="staff-field-error">
+            {consultationFieldErrors.calendar_year}
+          </span>
+        )}
       </label>
-      {quarterlyConsultationForm.status === 'COMPLETE' && (
-        <>
-          <label>
-            상담일
-            <input
-              type="date"
-              value={quarterlyConsultationForm.counselingDate}
-              onChange={(event) =>
-                updateQuarterlyConsultationForm({ counselingDate: event.target.value })
-              }
-              disabled={consultationMutationPending}
-            />
-            {consultationFieldErrors.counseling_date && (
-              <span className="staff-field-error">
-                {consultationFieldErrors.counseling_date}
-              </span>
-            )}
-          </label>
-          <label className="staff-form-wide">
-            처리내용
-            <textarea
-              rows={3}
-              value={quarterlyConsultationForm.content}
-              onChange={(event) =>
-                updateQuarterlyConsultationForm({ content: event.target.value })
-              }
-              disabled={consultationMutationPending}
-            />
-            {consultationFieldErrors.content && (
-              <span className="staff-field-error">{consultationFieldErrors.content}</span>
-            )}
-          </label>
-        </>
-      )}
-      {quarterlyConsultationForm.status === 'INCOMPLETE' && (
-        <label className="staff-form-wide">
-          미완료 사유
-          <textarea
-            rows={3}
-            value={quarterlyConsultationForm.incompleteReasonText}
-            onChange={(event) =>
-              updateQuarterlyConsultationForm({
-                incompleteReasonText: event.target.value,
-              })
-            }
-            disabled={consultationMutationPending}
-          />
-          {consultationFieldErrors.incomplete_reason_text && (
-            <span className="staff-field-error">
-              {consultationFieldErrors.incomplete_reason_text}
-            </span>
-          )}
-        </label>
-      )}
-      {quarterlyConsultationForm.status === 'EXEMPT' && (
-        <label className="staff-form-wide">
-          면제 사유
-          <textarea
-            rows={3}
-            value={quarterlyConsultationForm.exemptReasonText}
-            onChange={(event) =>
-              updateQuarterlyConsultationForm({ exemptReasonText: event.target.value })
-            }
-            disabled={consultationMutationPending}
-          />
-          {consultationFieldErrors.exempt_reason_text && (
-            <span className="staff-field-error">
-              {consultationFieldErrors.exempt_reason_text}
-            </span>
-          )}
-        </label>
-      )}
+      <label>
+        분기
+        <select
+          value={quarterlyConsultationForm.quarterNo}
+          onChange={(event) =>
+            updateQuarterlyConsultationForm({ quarterNo: event.target.value })
+          }
+        >
+          <option value="1">1분기</option>
+          <option value="2">2분기</option>
+          <option value="3">3분기</option>
+          <option value="4">4분기</option>
+        </select>
+        {consultationFieldErrors.quarter_no && (
+          <span className="staff-field-error">
+            {consultationFieldErrors.quarter_no}
+          </span>
+        )}
+      </label>
+      <label className="staff-training-check-row staff-form-wide">
+        <input
+          type="checkbox"
+          aria-label="완료"
+          checked={quarterlyConsultationForm.completed}
+          disabled={consultationMutationPending}
+          onChange={(event) =>
+            updateQuarterlyConsultationForm({ completed: event.target.checked })
+          }
+        />
+        <span>완료</span>
+      </label>
     </>
   );
 
@@ -3420,7 +2964,7 @@ export const StaffPage: React.FC = () => {
                   <div className="staff-section-heading">
                     <div>
                       <h3>검진</h3>
-                      <p>직원의 검진사실과 이미 부여된 대상별 상태를 관리합니다.</p>
+                      <p>직원의 검진일을 등록하고 확인합니다.</p>
                     </div>
                   </div>
 
@@ -3432,7 +2976,7 @@ export const StaffPage: React.FC = () => {
                     <div className="staff-health-ledger-heading">
                       <div>
                         <h4>검진사실</h4>
-                        <p>같은 날짜의 여러 검진사실을 등록할 수 있습니다.</p>
+                        <p>검진일만 입력합니다.</p>
                       </div>
                       {canManage && !healthFactForm.open && (
                         <button
@@ -3464,64 +3008,6 @@ export const StaffPage: React.FC = () => {
                               setHealthFactForm((current) => ({
                                 ...current,
                                 checkDate: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <label>
-                          재직 (선택)
-                          <select
-                            value={healthFactForm.employmentId}
-                            onChange={(event) =>
-                              setHealthFactForm((current) => ({
-                                ...current,
-                                employmentId: event.target.value,
-                              }))
-                            }
-                          >
-                            <option value="">선택하지 않음</option>
-                            {employments.map((employment) => (
-                              <option key={employment.id} value={employment.id}>
-                                {employment.staff_no ?? `재직 #${employment.id}`} ·{' '}
-                                {employment.start_date} ~ {employment.end_date ?? '재직 중'}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          검진 유형 (선택)
-                          <select
-                            value={healthFactForm.checkTypeCode}
-                            onChange={(event) =>
-                              setHealthFactForm((current) => ({
-                                ...current,
-                                checkTypeCode: event.target.value,
-                              }))
-                            }
-                          >
-                            <option value="">선택하지 않음</option>
-                            {healthFactForm.checkTypeCode &&
-                              !['GENERAL', 'SPECIAL', 'OTHER'].includes(
-                                healthFactForm.checkTypeCode,
-                              ) && (
-                                <option value={healthFactForm.checkTypeCode}>
-                                  {healthFactForm.checkTypeCode}
-                                </option>
-                              )}
-                            <option value="GENERAL">일반검진 (GENERAL)</option>
-                            <option value="SPECIAL">특수검진 (SPECIAL)</option>
-                            <option value="OTHER">기타 (OTHER)</option>
-                          </select>
-                        </label>
-                        <label className="staff-form-wide">
-                          결과메모 (선택)
-                          <textarea
-                            value={healthFactForm.resultNote}
-                            rows={3}
-                            onChange={(event) =>
-                              setHealthFactForm((current) => ({
-                                ...current,
-                                resultNote: event.target.value,
                               }))
                             }
                           />
@@ -3568,13 +3054,6 @@ export const StaffPage: React.FC = () => {
                         >
                           <div>
                             <strong>{fact.check_date}</strong>
-                            <span>
-                              {fact.check_type_code ?? '검진 유형 미등록'}
-                              {fact.employment_id !== null
-                                ? ` · 재직 #${fact.employment_id}`
-                                : ' · 재직 미선택'}
-                            </span>
-                            {fact.result_note && <span>{fact.result_note}</span>}
                           </div>
                           {canManage && (
                             <div className="staff-row-actions">
@@ -3620,213 +3099,6 @@ export const StaffPage: React.FC = () => {
                     )}
                   </section>
 
-                  <section
-                    className="staff-health-ledger"
-                    aria-label="대상별 상태"
-                    data-testid="staff-health-check-requirements-panel"
-                  >
-                    <div className="staff-health-ledger-heading">
-                      <div>
-                        <h4>대상별 상태</h4>
-                        <p>기존에 부여된 대상의 상태와 조건부 근거를 관리합니다.</p>
-                      </div>
-                    </div>
-                    {healthRequirementsQuery.isLoading && (
-                      <p className="staff-state">대상별 상태 조회 중…</p>
-                    )}
-                    {healthRequirementsQuery.isError && (
-                      <p className="staff-state staff-state-error" role="alert">
-                        대상별 상태 조회 실패
-                      </p>
-                    )}
-                    {!healthRequirementsQuery.isLoading &&
-                      !healthRequirementsQuery.isError &&
-                      healthRequirements.length === 0 && (
-                        <p className="staff-state">등록된 대상별 상태가 없습니다.</p>
-                      )}
-                    <div className="staff-health-requirement-list">
-                      {healthRequirements.map((requirement) => {
-                        const draft = healthRequirementDrafts[requirement.id] ?? {
-                          status: requirement.status,
-                          healthCheckId:
-                            requirement.health_check_id === null
-                              ? ''
-                              : String(requirement.health_check_id),
-                          exemptReasonText: requirement.exempt_reason_text ?? '',
-                        };
-                        const selectedFact = healthFacts.find(
-                          (fact) => String(fact.id) === draft.healthCheckId,
-                        );
-                        return (
-                          <article
-                            className="staff-health-requirement-row"
-                            data-testid="health-check-requirement-row"
-                            key={requirement.id}
-                          >
-                            <div className="staff-health-requirement-summary">
-                              <strong>{requirement.target_key}</strong>
-                              <span>규칙 버전 {requirement.target_rule_version_code}</span>
-                              <span>
-                                {requirement.employment_id === null
-                                  ? '재직 범위 없음'
-                                  : `재직 #${requirement.employment_id}`}
-                              </span>
-                            </div>
-                            <div
-                              className="staff-health-status-badge"
-                              data-testid={`health-status-${draft.status}`}
-                              data-health-check-id={
-                                draft.status === 'COMPLETE' && draft.healthCheckId
-                                  ? draft.healthCheckId
-                                  : undefined
-                              }
-                              data-exempt-reason={
-                                draft.status === 'EXEMPT' && draft.exemptReasonText
-                                  ? draft.exemptReasonText
-                                  : undefined
-                              }
-                            >
-                              {draft.status}
-                              {draft.status === 'EXEMPT' && draft.exemptReasonText && (
-                                <span className="staff-health-inline-note">
-                                  {draft.exemptReasonText}
-                                </span>
-                              )}
-                            </div>
-                            {canManage ? (
-                              <div className="staff-health-requirement-controls">
-                                <label>
-                                  상태
-                                  <select
-                                    aria-label="상태"
-                                    value={draft.status}
-                                    disabled={healthMutationPending}
-                                    onChange={(event) =>
-                                      updateHealthRequirementDraft(requirement, {
-                                        status: event.target.value as HealthCheckRequirementStatus,
-                                      })
-                                    }
-                                  >
-                                    <option value="COMPLETE">COMPLETE</option>
-                                    <option value="INCOMPLETE">INCOMPLETE</option>
-                                    <option value="EXEMPT">EXEMPT</option>
-                                  </select>
-                                </label>
-                                {draft.status === 'COMPLETE' && (
-                                  <label>
-                                    완료 검진사실
-                                    <select
-                                      aria-label="완료 검진사실"
-                                      value={draft.healthCheckId}
-                                      disabled={healthMutationPending}
-                                      onChange={(event) =>
-                                        updateHealthRequirementDraft(requirement, {
-                                          healthCheckId: event.target.value,
-                                        })
-                                      }
-                                    >
-                                      <option value="">선택</option>
-                                      {healthFacts.map((fact) => (
-                                        <option key={fact.id} value={fact.id}>
-                                          {fact.check_date} · {fact.result_note ?? '결과메모 없음'}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    {selectedFact && (
-                                      <span className="staff-health-inline-note">
-                                        선택된 사실 #{selectedFact.id}
-                                      </span>
-                                    )}
-                                  </label>
-                                )}
-                                {draft.status === 'EXEMPT' && (
-                                  <label>
-                                    면제사유
-                                    <textarea
-                                      aria-label="면제사유"
-                                      rows={2}
-                                      value={draft.exemptReasonText}
-                                      disabled={healthMutationPending}
-                                      onChange={(event) =>
-                                        updateHealthRequirementDraft(requirement, {
-                                          exemptReasonText: event.target.value,
-                                        })
-                                      }
-                                    />
-                                  </label>
-                                )}
-                                {healthFieldErrors.health_check_id && draft.status === 'COMPLETE' && (
-                                  <p className="staff-field-error">
-                                    {healthFieldErrors.health_check_id}
-                                  </p>
-                                )}
-                                {healthFieldErrors.exempt_reason_text && draft.status === 'EXEMPT' && (
-                                  <p className="staff-field-error">
-                                    {healthFieldErrors.exempt_reason_text}
-                                  </p>
-                                )}
-                                <div className="staff-row-actions">
-                                  <button
-                                    type="button"
-                                    onClick={() => submitHealthRequirement(requirement)}
-                                    disabled={healthMutationPending}
-                                  >
-                                    상태 저장
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setHealthRequirementInvalidateTarget(requirement);
-                                      setActionError(null);
-                                      setHealthFieldErrors({});
-                                    }}
-                                    disabled={healthMutationPending}
-                                  >
-                                    대상별 상태 무효화
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="staff-health-requirement-readonly">
-                                {draft.status === 'COMPLETE' && draft.healthCheckId && (
-                                  <span>검진사실 #{draft.healthCheckId}</span>
-                                )}
-                                {draft.status === 'EXEMPT' && draft.exemptReasonText && (
-                                  <span>면제사유: {draft.exemptReasonText}</span>
-                                )}
-                              </div>
-                            )}
-                          </article>
-                        );
-                      })}
-                    </div>
-                    {healthRequirementInvalidateTarget && (
-                      <div
-                        className="staff-confirm-panel"
-                        role="alertdialog"
-                        aria-label="대상별 상태 무효화 확인"
-                      >
-                        <p>선택한 대상별 상태를 무효화하시겠습니까?</p>
-                        <div className="staff-form-actions">
-                          <button
-                            type="button"
-                            onClick={() => setHealthRequirementInvalidateTarget(null)}
-                            disabled={healthMutationPending}
-                          >
-                            취소
-                          </button>
-                          <button
-                            type="button"
-                            className="staff-button-primary"
-                            onClick={confirmHealthRequirementInvalidate}
-                            disabled={healthMutationPending}
-                          >
-                            {healthMutationPending ? '처리 중…' : '대상별 상태 무효화 확정'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </section>
                 </section>
               )}
 
@@ -3838,9 +3110,9 @@ export const StaffPage: React.FC = () => {
                   <div className="staff-section-heading">
                     <div>
                       <h3>분기상담</h3>
-                      <p>직원·연도·분기별 상담 사실과 상태를 관리합니다.</p>
+                      <p>직원·연도·분기별 완료 여부만 관리합니다.</p>
                     </div>
-                    {canManage && quarterlyConsultationForm.mode === null && (
+                    {canManage && !quarterlyConsultationForm.open && (
                       <button
                         type="button"
                         data-testid="quarterly-consultation-add"
@@ -3851,14 +3123,14 @@ export const StaffPage: React.FC = () => {
                     )}
                   </div>
 
-                  {canManage && quarterlyConsultationForm.mode === 'create' && (
+                  {canManage && quarterlyConsultationForm.open && (
                     <form
                       className="staff-form staff-quarterly-consultation-form"
                       data-testid="quarterly-consultation-create-form"
                       onSubmit={submitQuarterlyConsultation}
                     >
                       <h4 className="staff-form-title">분기상담 추가</h4>
-                      {renderQuarterlyConsultationFields(true)}
+                      {renderQuarterlyConsultationFields()}
                       <div className="staff-form-actions staff-form-wide">
                         <button type="button" onClick={closeQuarterlyConsultationForm}>
                           취소
@@ -3869,32 +3141,6 @@ export const StaffPage: React.FC = () => {
                           disabled={consultationMutationPending}
                         >
                           {consultationMutationPending ? '저장 중…' : '분기상담 저장'}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {canManage && quarterlyConsultationForm.mode === 'replace' && (
-                    <form
-                      className="staff-form staff-quarterly-consultation-form"
-                      data-testid="quarterly-consultation-replace-form"
-                      onSubmit={submitQuarterlyConsultation}
-                    >
-                      <h4 className="staff-form-title">분기상담 무효화</h4>
-                      <p className="staff-quarterly-consultation-replace-note">
-                        선택한 행을 무효화하고 같은 연도·분기의 새 상태를 저장합니다.
-                      </p>
-                      {renderQuarterlyConsultationFields(false)}
-                      <div className="staff-form-actions staff-form-wide">
-                        <button type="button" onClick={closeQuarterlyConsultationForm}>
-                          취소
-                        </button>
-                        <button
-                          type="submit"
-                          className="staff-button-primary"
-                          disabled={consultationMutationPending}
-                        >
-                          {consultationMutationPending ? '처리 중…' : '무효화 확정'}
                         </button>
                       </div>
                     </form>
@@ -3915,152 +3161,35 @@ export const StaffPage: React.FC = () => {
                     )}
 
                   <div className="staff-quarterly-consultation-list">
-                    {quarterlyConsultations.map((consultation) => {
-                      const editing =
-                        canManage &&
-                        quarterlyConsultationForm.mode === 'edit' &&
-                        quarterlyConsultationForm.editing?.id === consultation.id;
-                      return (
-                        <article
-                          className="staff-quarterly-consultation-row"
-                          data-testid="quarterly-consultation-row"
-                          data-status={consultation.status}
-                          key={consultation.id}
-                        >
-                          <div className="staff-quarterly-consultation-summary">
-                            <strong>{consultation.calendar_year}</strong>
-                            <span>{consultation.quarter_no}분기</span>
-                            <span className="staff-quarterly-consultation-status">
-                              {consultation.status}
-                            </span>
-                          </div>
-
-                          {editing ? (
-                            <form
-                              className="staff-quarterly-consultation-inline-form"
-                              onSubmit={submitQuarterlyConsultation}
-                            >
-                              {renderQuarterlyConsultationFields(false)}
-                              <div className="staff-form-actions staff-form-wide">
-                                <button
-                                  type="button"
-                                  onClick={closeQuarterlyConsultationForm}
-                                >
-                                  취소
-                                </button>
-                                <button
-                                  type="submit"
-                                  className="staff-button-primary"
-                                  disabled={consultationMutationPending}
-                                >
-                                  {consultationMutationPending ? '저장 중…' : '저장'}
-                                </button>
-                              </div>
-                            </form>
-                          ) : (
-                            <div className="staff-quarterly-consultation-fields">
-                              {consultation.status === 'COMPLETE' && (
-                                quarterlyConsultationForm.mode !== null ? (
-                                  <div className="staff-quarterly-consultation-readonly-summary">
-                                    <span>상담일 {consultation.counseling_date ?? '미등록'}</span>
-                                    <span>처리내용 {consultation.content ?? '미등록'}</span>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <label>
-                                      상담일
-                                      <input
-                                        aria-label="상담일"
-                                        type="date"
-                                        value={consultation.counseling_date ?? ''}
-                                        readOnly
-                                      />
-                                    </label>
-                                    <label className="staff-form-wide">
-                                      처리내용
-                                      <textarea
-                                        aria-label="처리내용"
-                                        rows={3}
-                                        value={consultation.content ?? ''}
-                                        readOnly
-                                      />
-                                    </label>
-                                  </>
-                                )
-                              )}
-                              {consultation.status === 'INCOMPLETE' && (
-                                quarterlyConsultationForm.mode !== null ? (
-                                  <div className="staff-quarterly-consultation-readonly-summary">
-                                    <span>
-                                      미완료 사유 {consultation.incomplete_reason_text ?? '미등록'}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <label className="staff-form-wide">
-                                    미완료 사유
-                                    <textarea
-                                      aria-label="미완료 사유"
-                                      rows={3}
-                                      value={consultation.incomplete_reason_text ?? ''}
-                                      readOnly
-                                    />
-                                  </label>
-                                )
-                              )}
-                              {consultation.status === 'EXEMPT' && (
-                                quarterlyConsultationForm.mode !== null ? (
-                                  <div className="staff-quarterly-consultation-readonly-summary">
-                                    <span>
-                                      면제 사유 {consultation.exempt_reason_text ?? '미등록'}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <label className="staff-form-wide">
-                                    면제 사유
-                                    <textarea
-                                      aria-label="면제 사유"
-                                      rows={3}
-                                      value={consultation.exempt_reason_text ?? ''}
-                                      readOnly
-                                    />
-                                  </label>
-                                )
-                              )}
-                              {canManage && (
-                                <div className="staff-row-actions staff-form-wide">
-                                  <button
-                                    type="button"
-                                    onClick={() => openQuarterlyConsultationEdit(consultation)}
-                                  >
-                                    수정
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openQuarterlyConsultationReplace(consultation)}
-                                  >
-                                    무효화
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </article>
-                      );
-                    })}
+                    {quarterlyConsultations.map((consultation) => (
+                      <article
+                        className="staff-quarterly-consultation-row"
+                        data-testid="quarterly-consultation-row"
+                        data-completed={String(consultation.completed)}
+                        key={consultation.id}
+                      >
+                        <div className="staff-quarterly-consultation-summary">
+                          <strong>{consultation.calendar_year}</strong>
+                          <span>{consultation.quarter_no}분기</span>
+                        </div>
+                        <label className="staff-training-check-row">
+                          <input
+                            type="checkbox"
+                            aria-label={`${consultation.calendar_year}년 ${consultation.quarter_no}분기 완료`}
+                            checked={consultation.completed}
+                            disabled={!canManage || consultationMutationPending}
+                            onChange={(event) =>
+                              toggleQuarterlyConsultation(
+                                consultation,
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>{consultation.completed ? '완료' : '미완료'}</span>
+                        </label>
+                      </article>
+                    ))}
                   </div>
-
-                  {quarterlyConsultationInvalidateTarget &&
-                    quarterlyConsultationForm.mode !== 'replace' && (
-                      <div className="staff-confirm-panel" role="alertdialog">
-                        <p>선택한 분기상담을 무효화하시겠습니까?</p>
-                        <button
-                          type="button"
-                          onClick={closeQuarterlyConsultationForm}
-                        >
-                          취소
-                        </button>
-                      </div>
-                    )}
                 </section>
               )}
             </>

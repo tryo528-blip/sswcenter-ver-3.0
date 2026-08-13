@@ -19,6 +19,12 @@ RECIPIENT_PLAN_NOTIFICATION_REVISION = "20260803_0014_recipient_plan_notificatio
 RECIPIENT_STATUS_TAG_REVISION = "20260806_0015_recipient_status_tag"
 RECIPIENT_PAYER_GUARDIAN_REVISION = "20260808_0016_recipient_payer_guardian"
 RECIPIENT_GUARDIAN_EMAIL_REVISION = "20260808_0017_recipient_guardian_email"
+W2_SERVICE_PLAN_NOTICE_REVISION = "20260809_0018_w2_service_plan_notice"
+R0_W2_READ_ONLY_REVISION = "20260812_0019_r0_w2_read_only"
+W2_LINEAGE_REVISIONS = {
+    W2_SERVICE_PLAN_NOTICE_REVISION,
+    R0_W2_READ_ONLY_REVISION,
+}
 W1E_LINEAGE_REVISIONS = {
     W1E_REVISION,
     CONTINUING_EDUCATION_REVISION,
@@ -26,7 +32,54 @@ W1E_LINEAGE_REVISIONS = {
     RECIPIENT_STATUS_TAG_REVISION,
     RECIPIENT_PAYER_GUARDIAN_REVISION,
     RECIPIENT_GUARDIAN_EMAIL_REVISION,
+    *W2_LINEAGE_REVISIONS,
 }
+W2_FUNCTIONS = {
+    "fn_service_plan_notice_before_contract_start",
+    "fn_service_plan_notice_within_contract",
+    "fn_service_plan_notice_within_certification",
+    "fn_recipient_contract_service_plan_reverse_guard",
+    "fn_recipient_certification_period_service_plan_reverse_guard",
+    "fn_recipient_contract_recipient_id_immutable",
+    "fn_recipient_certification_period_recipient_id_immutable",
+}
+W2_GUARD_TRIGGER_CONTRACTS = {
+    "ct_service_plan_notice_before_contract_start": "recipient_service_plan_notice",
+    "ct_service_plan_notice_within_contract": "recipient_service_plan_notice",
+    "ct_service_plan_notice_within_certification": "recipient_service_plan_notice",
+    "ct_recipient_contract_service_plan_reverse_guard": "recipient_contract",
+    "ct_recipient_certification_period_service_plan_reverse_guard": (
+        "recipient_certification_period"
+    ),
+}
+W2_IMMUTABLE_TRIGGER_CONTRACTS = {
+    "ct_recipient_contract_recipient_id_immutable": "recipient_contract",
+    "ct_recipient_certification_period_recipient_id_immutable": (
+        "recipient_certification_period"
+    ),
+}
+W2_CONSTRAINTS = {
+    "pk_recipient_service_plan_notice",
+    "fk_service_plan_notice_recipient_contract",
+    "fk_service_plan_notice_replacement",
+    "fk_service_plan_notice_created_by_account",
+    "fk_service_plan_notice_updated_by_account",
+    "ck_service_plan_notice_date_order",
+    "ck_service_plan_notice_row_version_positive",
+}
+# Full structured snapshots live near the W2 postcheck (reuse _ConstraintSnapshot).
+W2_TABLE_PRIVILEGE_TYPES = (
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "TRUNCATE",
+    "REFERENCES",
+    "TRIGGER",
+    "MAINTAIN",
+)
+W2_OWNER = "erp_owner"
+W2_OWNED_SEQUENCE = "erp.recipient_service_plan_notice_id_seq"
 W1A_PERMISSION_CODES = {
     "COPAY_USE",
     "IO_IMPORT_USE",
@@ -340,7 +393,9 @@ def _column_contract(
     return {str(row.column_name): (str(row.data_type), str(row.is_nullable)) for row in rows}
 
 
-def _verify_role_acl_fingerprint(connection: Connection) -> None:
+def _verify_role_acl_fingerprint(
+    connection: Connection, *, current_revision: str | None = None
+) -> None:
     sensitive = connection.execute(
         text(
             """
@@ -375,6 +430,9 @@ def _verify_role_acl_fingerprint(connection: Connection) -> None:
     if tuple(sensitive) != expected_sensitive:
         raise SystemExit(f"Unexpected W1A sensitive ACL fingerprint: {tuple(sensitive)}")
 
+    # 0019 revokes erp_app USAGE on the W2 identity sequence; exclude it here and
+    # verify that sequence's SELECT-only ACL in the W2 revision postcheck.
+    exclude_w2_seq = current_revision == R0_W2_READ_ONLY_REVISION
     sequences = connection.execute(
         text(
             """
@@ -401,8 +459,13 @@ def _verify_role_acl_fingerprint(connection: Connection) -> None:
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE n.nspname = 'erp' AND c.relkind = 'S'
+              AND (
+                  CAST(:exclude_w2_seq AS boolean) IS NOT TRUE
+                  OR c.relname <> 'recipient_service_plan_notice_id_seq'
+              )
             """
-        )
+        ),
+        {"exclude_w2_seq": exclude_w2_seq},
     ).one()
     if sequences.app_exact is not True or sequences.backup_exact is not True:
         raise SystemExit("Unexpected W1A sequence ACL fingerprint")
@@ -855,6 +918,8 @@ def main() -> None:
                 RECIPIENT_STATUS_TAG_REVISION,
                 RECIPIENT_PAYER_GUARDIAN_REVISION,
                 RECIPIENT_GUARDIAN_EMAIL_REVISION,
+                W2_SERVICE_PLAN_NOTICE_REVISION,
+                R0_W2_READ_ONLY_REVISION,
             }:
                 raise SystemExit("Unexpected W1A migration revision")
             verify_wave0_invariants(
@@ -872,7 +937,9 @@ def main() -> None:
                     else W1A_PERMISSION_CODES
                 ),
             )
-            _verify_role_acl_fingerprint(connection)
+            _verify_role_acl_fingerprint(
+                connection, current_revision=str(current_revision)
+            )
 
             sensitive_columns = _column_contract(
                 connection,
@@ -1012,6 +1079,7 @@ def main() -> None:
                 | W1C_FUNCTIONS
                 | W1D_FUNCTIONS
                 | W1E_FUNCTIONS
+                | (W2_FUNCTIONS if current_revision in W2_LINEAGE_REVISIONS else set())
                 if current_revision in W1E_LINEAGE_REVISIONS
                 else W1A_FUNCTIONS
                 | VS2_FUNCTIONS
@@ -1116,6 +1184,7 @@ def main() -> None:
                             RECIPIENT_STATUS_TAG_REVISION,
                             RECIPIENT_PAYER_GUARDIAN_REVISION,
                             RECIPIENT_GUARDIAN_EMAIL_REVISION,
+                            *W2_LINEAGE_REVISIONS,
                         }
                     ),
                 )
@@ -1131,23 +1200,34 @@ def main() -> None:
                     RECIPIENT_STATUS_TAG_REVISION,
                     RECIPIENT_PAYER_GUARDIAN_REVISION,
                     RECIPIENT_GUARDIAN_EMAIL_REVISION,
+                    *W2_LINEAGE_REVISIONS,
                 }:
                     _verify_recipient_plan_notification_contract(connection)
                 if current_revision in {
                     RECIPIENT_STATUS_TAG_REVISION,
                     RECIPIENT_PAYER_GUARDIAN_REVISION,
                     RECIPIENT_GUARDIAN_EMAIL_REVISION,
+                    *W2_LINEAGE_REVISIONS,
                 }:
-                    # 0015 status tag remains required through the 0017 head.
+                    # 0015 status tag remains required through the W2 head.
                     _verify_recipient_status_tag_contract(connection)
                 if current_revision in {
                     RECIPIENT_PAYER_GUARDIAN_REVISION,
                     RECIPIENT_GUARDIAN_EMAIL_REVISION,
+                    *W2_LINEAGE_REVISIONS,
                 }:
-                    # 0016 payer guardian remains required through the 0017 head.
+                    # 0016 payer guardian remains required through the W2 head.
                     _verify_recipient_payer_guardian_contract(connection)
-                if current_revision == RECIPIENT_GUARDIAN_EMAIL_REVISION:
+                if current_revision in {
+                    RECIPIENT_GUARDIAN_EMAIL_REVISION,
+                    *W2_LINEAGE_REVISIONS,
+                }:
                     _verify_recipient_guardian_email_contract(connection)
+                if current_revision in W2_LINEAGE_REVISIONS:
+                    _verify_w2_service_plan_notice_contract(
+                        connection,
+                        read_only=(current_revision == R0_W2_READ_ONLY_REVISION),
+                    )
 
             sensitive_indexes = set(
                 connection.execute(
@@ -1234,7 +1314,11 @@ def main() -> None:
     finally:
         engine.dispose()
 
-    if current_revision == RECIPIENT_GUARDIAN_EMAIL_REVISION:
+    if current_revision == R0_W2_READ_ONLY_REVISION:
+        print("R0_W2_READ_ONLY_DB_POSTCHECK_OK")
+    elif current_revision == W2_SERVICE_PLAN_NOTICE_REVISION:
+        print("W2_SERVICE_PLAN_NOTICE_DB_POSTCHECK_OK")
+    elif current_revision == RECIPIENT_GUARDIAN_EMAIL_REVISION:
         print("RECIPIENT_GUARDIAN_EMAIL_DB_POSTCHECK_OK")
     elif current_revision == RECIPIENT_PAYER_GUARDIAN_REVISION:
         print("RECIPIENT_PAYER_GUARDIAN_DB_POSTCHECK_OK")
@@ -2304,25 +2388,41 @@ def _verify_w1c_contract(connection: Connection) -> None:
     if "benefit_code with" in constraints["ex_recipient_benefit_period"][1]:
         raise SystemExit("W1C benefit exclusion must be recipient-wide across codes")
 
+    # W1C owns only these two containment triggers. Ignore W2 (and any other)
+    # non-internal triggers on the same tables; W2 lifecycle is checked later.
     containment_triggers = {
-        str(row.tgname): (bool(row.tgdeferrable), bool(row.tginitdeferred))
+        (str(row.tgname), str(row.relname)): (
+            bool(row.tgdeferrable),
+            bool(row.tginitdeferred),
+        )
         for row in connection.execute(
             text(
                 """
-                SELECT tgname, tgdeferrable, tginitdeferred
-                FROM pg_trigger
-                WHERE tgrelid IN (
+                SELECT t.tgname, c.relname, t.tgdeferrable, t.tginitdeferred
+                FROM pg_trigger t
+                JOIN pg_class c ON c.oid = t.tgrelid
+                WHERE t.tgrelid IN (
                     'erp.recipient_certification_period'::regclass,
                     'erp.recipient_grade_period'::regclass
                 )
-                  AND NOT tgisinternal
+                  AND NOT t.tgisinternal
+                  AND t.tgname IN (
+                      'ct_recipient_grade_period_containment',
+                      'ct_recipient_certification_grade_containment'
+                  )
                 """
             )
         )
     }
     if containment_triggers != {
-        "ct_recipient_grade_period_containment": (True, False),
-        "ct_recipient_certification_grade_containment": (True, False),
+        ("ct_recipient_grade_period_containment", "recipient_grade_period"): (
+            True,
+            False,
+        ),
+        (
+            "ct_recipient_certification_grade_containment",
+            "recipient_certification_period",
+        ): (True, False),
     }:
         raise SystemExit("W1C containment triggers are invalid")
 
@@ -3591,6 +3691,633 @@ def _verify_recipient_plan_notification_contract(connection: Connection) -> None
     ).one()
     if tuple(backup_seq) != (False, True):
         raise SystemExit("recipient-plan-notification backup sequence ACL is invalid")
+
+
+# ---- W2 recipient_service_plan_notice preservation snapshot (0018 DDL 21-51) ----
+# Ownership must remain erp_owner for both table and identity sequence.
+_W2_SERVICE_PLAN_NOTICE_OWNERSHIP = (
+    W2_OWNER,
+    W2_OWNER,
+    W2_OWNED_SEQUENCE,
+)
+
+# Structured constraint snapshot derived from migration 0018 CREATE TABLE DDL.
+# Reuses the nearby recipient_plan_notification _ConstraintSnapshot layout:
+# (contype, definition|None, local_columns, ref_schema, ref_table, ref_columns,
+#  confdeltype, confupdtype, confmatchtype, condeferrable, condeferred, convalidated)
+_W2_SERVICE_PLAN_NOTICE_CONSTRAINTS: dict[str, _ConstraintSnapshot] = {
+    "pk_recipient_service_plan_notice": (
+        "p",
+        "PRIMARY KEY (id)",
+        ("id",),
+        None,
+        None,
+        (),
+        None,
+        None,
+        None,
+        False,
+        False,
+        True,
+    ),
+    "fk_service_plan_notice_recipient_contract": (
+        "f",
+        None,
+        ("recipient_contract_id",),
+        "erp",
+        "recipient_contract",
+        ("id",),
+        "r",
+        "a",
+        "s",
+        False,
+        False,
+        True,
+    ),
+    "fk_service_plan_notice_replacement": (
+        "f",
+        None,
+        ("replacement_service_plan_notice_id",),
+        "erp",
+        "recipient_service_plan_notice",
+        ("id",),
+        "r",
+        "a",
+        "s",
+        True,
+        True,
+        True,
+    ),
+    "fk_service_plan_notice_created_by_account": (
+        "f",
+        None,
+        ("created_by_account_id",),
+        "erp",
+        "user_account",
+        ("id",),
+        "r",
+        "a",
+        "s",
+        False,
+        False,
+        True,
+    ),
+    "fk_service_plan_notice_updated_by_account": (
+        "f",
+        None,
+        ("updated_by_account_id",),
+        "erp",
+        "user_account",
+        ("id",),
+        "r",
+        "a",
+        "s",
+        False,
+        False,
+        True,
+    ),
+    "ck_service_plan_notice_date_order": (
+        "c",
+        "CHECK (applied_end_date >= applied_start_date)",
+        ("applied_end_date", "applied_start_date"),
+        None,
+        None,
+        (),
+        None,
+        None,
+        None,
+        False,
+        False,
+        True,
+    ),
+    "ck_service_plan_notice_row_version_positive": (
+        "c",
+        "CHECK (row_version > 0)",
+        ("row_version",),
+        None,
+        None,
+        (),
+        None,
+        None,
+        None,
+        False,
+        False,
+        True,
+    ),
+}
+
+
+def _normalize_w2_catalog_sql(sql_text: str | None) -> str | None:
+    """Collapse whitespace only; keep semantic tokens (W2-local)."""
+    return _normalize_recipient_plan_catalog_sql(sql_text)
+
+
+def _w2_table_privilege_tuple(
+    connection: Connection, *, role_name: str
+) -> tuple[bool, bool, bool, bool, bool, bool, bool, bool]:
+    """Effective table privileges for all eight PostgreSQL table privilege types."""
+    row = connection.execute(
+        text(
+            """
+            SELECT has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'SELECT'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'INSERT'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'UPDATE'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'DELETE'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'TRUNCATE'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'REFERENCES'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'TRIGGER'
+                   ),
+                   has_table_privilege(
+                       :role_name, 'erp.recipient_service_plan_notice', 'MAINTAIN'
+                   )
+            """
+        ),
+        {"role_name": role_name},
+    ).one()
+    return (
+        bool(row[0]),
+        bool(row[1]),
+        bool(row[2]),
+        bool(row[3]),
+        bool(row[4]),
+        bool(row[5]),
+        bool(row[6]),
+        bool(row[7]),
+    )
+
+
+def _verify_w2_constraint_snapshot(
+    constraints: dict[str, _ConstraintSnapshot],
+) -> None:
+    """Pure validator: structured W2 constraint snapshot vs 0018 DDL preservation."""
+    expected = _W2_SERVICE_PLAN_NOTICE_CONSTRAINTS
+    if set(constraints) != set(expected):
+        missing = sorted(set(expected) - set(constraints))
+        extra = sorted(set(constraints) - set(expected))
+        raise SystemExit(
+            f"W2 constraint set mismatch: missing={missing}, extra={extra}"
+        )
+    if set(expected) != W2_CONSTRAINTS:
+        raise SystemExit(
+            "W2 constraint snapshot keys drifted from W2_CONSTRAINTS: "
+            f"snapshot={sorted(expected)}, constants={sorted(W2_CONSTRAINTS)}"
+        )
+
+    for name, expected_tuple in expected.items():
+        (
+            exp_contype,
+            exp_def,
+            exp_local_cols,
+            exp_ref_schema,
+            exp_ref_table,
+            exp_ref_cols,
+            exp_confdeltype,
+            exp_confupdtype,
+            exp_confmatchtype,
+            exp_condeferrable,
+            exp_condeferred,
+            exp_convalidated,
+        ) = expected_tuple
+        (
+            act_contype,
+            act_def,
+            act_local_cols,
+            act_ref_schema,
+            act_ref_table,
+            act_ref_cols,
+            act_confdeltype,
+            act_confupdtype,
+            act_confmatchtype,
+            act_condeferrable,
+            act_condeferred,
+            act_convalidated,
+        ) = constraints[name]
+
+        if exp_contype != act_contype:
+            raise SystemExit(
+                f"W2 constraint {name} type mismatch: "
+                f"expected {exp_contype!r}, got {act_contype!r}"
+            )
+        if exp_def != act_def:
+            raise SystemExit(
+                f"W2 constraint {name} definition mismatch: "
+                f"expected {exp_def!r}, got {act_def!r}"
+            )
+        if exp_local_cols != act_local_cols:
+            raise SystemExit(
+                f"W2 constraint {name} local columns mismatch: "
+                f"expected {exp_local_cols!r}, got {act_local_cols!r}"
+            )
+        if exp_ref_schema != act_ref_schema:
+            raise SystemExit(
+                f"W2 constraint {name} referenced schema mismatch: "
+                f"expected {exp_ref_schema!r}, got {act_ref_schema!r}"
+            )
+        if exp_ref_table != act_ref_table:
+            raise SystemExit(
+                f"W2 constraint {name} referenced table mismatch: "
+                f"expected {exp_ref_table!r}, got {act_ref_table!r}"
+            )
+        if exp_ref_cols != act_ref_cols:
+            raise SystemExit(
+                f"W2 constraint {name} referenced columns mismatch: "
+                f"expected {exp_ref_cols!r}, got {act_ref_cols!r}"
+            )
+        if exp_confdeltype != act_confdeltype:
+            raise SystemExit(
+                f"W2 constraint {name} delete action mismatch: "
+                f"expected {exp_confdeltype!r}, got {act_confdeltype!r}"
+            )
+        if exp_confupdtype != act_confupdtype:
+            raise SystemExit(
+                f"W2 constraint {name} update action mismatch: "
+                f"expected {exp_confupdtype!r}, got {act_confupdtype!r}"
+            )
+        if exp_confmatchtype != act_confmatchtype:
+            raise SystemExit(
+                f"W2 constraint {name} match type mismatch: "
+                f"expected {exp_confmatchtype!r}, got {act_confmatchtype!r}"
+            )
+        if exp_condeferrable != act_condeferrable:
+            raise SystemExit(
+                f"W2 constraint {name} deferrable mismatch: "
+                f"expected {exp_condeferrable}, got {act_condeferrable}"
+            )
+        if exp_condeferred != act_condeferred:
+            raise SystemExit(
+                f"W2 constraint {name} initially deferred mismatch: "
+                f"expected {exp_condeferred}, got {act_condeferred}"
+            )
+        if exp_convalidated != act_convalidated:
+            raise SystemExit(
+                f"W2 constraint {name} validated mismatch: "
+                f"expected {exp_convalidated}, got {act_convalidated}"
+            )
+
+
+def _verify_w2_service_plan_notice_contract(
+    connection: Connection, *, read_only: bool
+) -> None:
+    """Revision-aware W2 history checks for 0018 (writable) and 0019 (read-only)."""
+    if (
+        connection.execute(
+            text("SELECT to_regclass(:qualified) IS NOT NULL"),
+            {"qualified": "erp.recipient_service_plan_notice"},
+        ).scalar()
+        is not True
+    ):
+        raise SystemExit("Missing W2 recipient_service_plan_notice table")
+
+    sequence_exists = connection.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = 'erp'
+                  AND c.relname = 'recipient_service_plan_notice_id_seq'
+                  AND c.relkind = 'S'
+            )
+            """
+        )
+    ).scalar()
+    if sequence_exists is not True:
+        raise SystemExit("Missing W2 recipient_service_plan_notice identity sequence")
+
+    ownership = connection.execute(
+        text(
+            """
+            SELECT
+                pg_get_userbyid(tbl.relowner) AS table_owner,
+                pg_get_userbyid(seq.relowner) AS sequence_owner,
+                pg_get_serial_sequence(
+                    'erp.recipient_service_plan_notice', 'id'
+                ) AS owned_sequence
+            FROM pg_class tbl
+            JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+            LEFT JOIN pg_class seq ON seq.relnamespace = ns.oid
+                AND seq.relname = 'recipient_service_plan_notice_id_seq'
+                AND seq.relkind = 'S'
+            WHERE ns.nspname = 'erp'
+              AND tbl.relname = 'recipient_service_plan_notice'
+              AND tbl.relkind = 'r'
+            """
+        )
+    ).one()
+    ownership_snapshot = (
+        str(ownership.table_owner or ""),
+        str(ownership.sequence_owner or ""),
+        ownership.owned_sequence,
+    )
+    if ownership_snapshot != _W2_SERVICE_PLAN_NOTICE_OWNERSHIP:
+        raise SystemExit(
+            "W2 table/sequence owner must be erp_owner with owned identity sequence: "
+            f"expected {_W2_SERVICE_PLAN_NOTICE_OWNERSHIP}, got {ownership_snapshot}"
+        )
+
+    identity_dependency = connection.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_depend d
+                JOIN pg_class seq ON seq.oid = d.objid AND seq.relkind = 'S'
+                JOIN pg_namespace n ON n.oid = seq.relnamespace
+                WHERE d.refobjid = 'erp.recipient_service_plan_notice'::regclass
+                  AND d.deptype = 'i'
+                  AND n.nspname = 'erp'
+                  AND seq.relname = 'recipient_service_plan_notice_id_seq'
+            )
+            """
+        )
+    ).scalar()
+    if identity_dependency is not True:
+        raise SystemExit("W2 identity dependency link is invalid")
+
+    identity_attr = connection.execute(
+        text(
+            """
+            SELECT a.attidentity
+            FROM pg_attribute a
+            WHERE a.attrelid = 'erp.recipient_service_plan_notice'::regclass
+              AND a.attname = 'id'
+              AND a.attnum > 0
+              AND NOT a.attisdropped
+            """
+        )
+    ).scalar_one_or_none()
+    if identity_attr != "d":
+        raise SystemExit(
+            "W2 recipient_service_plan_notice.id must be GENERATED BY DEFAULT AS IDENTITY"
+        )
+
+    # Structured constraint snapshot (name + contype + columns + FK/CHECK flags).
+    # Name-only existence is insufficient: same-name mutated PK/FK/CHECK must fail.
+    constraint_rows = connection.execute(
+        text(
+            """
+            SELECT
+                c.conname,
+                c.contype,
+                CASE WHEN c.contype = 'f' THEN NULL
+                     ELSE pg_get_constraintdef(c.oid, true)
+                END AS definition,
+                c.confdeltype,
+                c.confupdtype,
+                c.confmatchtype,
+                c.condeferrable,
+                c.condeferred,
+                c.convalidated,
+                ARRAY(
+                    SELECT la.attname
+                    FROM unnest(c.conkey) WITH ORDINALITY AS kc(attnum, ord)
+                    JOIN pg_attribute la
+                      ON la.attrelid = c.conrelid
+                     AND la.attnum = kc.attnum
+                    ORDER BY kc.ord
+                ) AS local_columns,
+                (SELECT rn.nspname
+                 FROM pg_class rc
+                 JOIN pg_namespace rn ON rn.oid = rc.relnamespace
+                 WHERE c.contype = 'f' AND rc.oid = c.confrelid
+                ) AS ref_schema,
+                (SELECT rc.relname
+                 FROM pg_class rc
+                 WHERE c.contype = 'f' AND rc.oid = c.confrelid
+                ) AS ref_table,
+                ARRAY(
+                    SELECT ra.attname
+                    FROM unnest(c.confkey) WITH ORDINALITY AS kc(attnum, ord)
+                    JOIN pg_attribute ra
+                      ON ra.attrelid = c.confrelid
+                     AND ra.attnum = kc.attnum
+                    WHERE c.contype = 'f'
+                    ORDER BY kc.ord
+                ) AS ref_columns
+            FROM pg_constraint c
+            WHERE c.conrelid = 'erp.recipient_service_plan_notice'::regclass
+              AND c.contype IN ('p', 'f', 'c')
+            ORDER BY c.conname
+            """
+        )
+    )
+    constraints: dict[str, _ConstraintSnapshot] = {}
+    for row in constraint_rows:
+        conname = str(row.conname)
+        contype = str(row.contype)
+        definition = _normalize_w2_catalog_sql(row.definition)
+        local_columns: tuple[str, ...] = tuple(
+            str(col) for col in (row.local_columns or [])
+        )
+        ref_schema: str | None = str(row.ref_schema) if row.ref_schema else None
+        ref_table: str | None = str(row.ref_table) if row.ref_table else None
+        ref_columns: tuple[str, ...] = tuple(
+            str(col) for col in (row.ref_columns or [])
+        )
+        confdeltype: str | None = (
+            str(row.confdeltype) if contype == "f" and row.confdeltype else None
+        )
+        confupdtype: str | None = (
+            str(row.confupdtype) if contype == "f" and row.confupdtype else None
+        )
+        confmatchtype: str | None = (
+            str(row.confmatchtype) if contype == "f" and row.confmatchtype else None
+        )
+        if contype != "f" and definition is None:
+            raise SystemExit(f"W2 constraint {conname!r} definition missing")
+        constraints[conname] = (
+            contype,
+            definition,
+            local_columns,
+            ref_schema,
+            ref_table,
+            ref_columns,
+            confdeltype,
+            confupdtype,
+            confmatchtype,
+            bool(row.condeferrable),
+            bool(row.condeferred),
+            bool(row.convalidated),
+        )
+    _verify_w2_constraint_snapshot(constraints)
+
+    functions = set(
+        connection.execute(
+            text(
+                """
+                SELECT proname
+                FROM pg_proc
+                WHERE pronamespace = 'erp'::regnamespace
+                  AND proname = ANY(:names)
+                """
+            ),
+            {"names": sorted(W2_FUNCTIONS)},
+        ).scalars()
+    )
+    missing_functions = sorted(W2_FUNCTIONS - functions)
+    if missing_functions:
+        raise SystemExit(f"Missing W2 functions: {missing_functions}")
+
+    # Trigger retirement targets are exact (trigger name, table name) pairs.
+    # Same-name triggers on unrelated tables must be ignored (no global name ban).
+    trigger_rows = {
+        (str(row.tgname), str(row.relname))
+        for row in connection.execute(
+            text(
+                """
+                SELECT t.tgname, c.relname
+                FROM pg_trigger t
+                JOIN pg_class c ON c.oid = t.tgrelid
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = 'erp'
+                  AND NOT t.tgisinternal
+                  AND t.tgname = ANY(:names)
+                """
+            ),
+            {
+                "names": sorted(
+                    set(W2_GUARD_TRIGGER_CONTRACTS)
+                    | set(W2_IMMUTABLE_TRIGGER_CONTRACTS)
+                )
+            },
+        )
+    }
+
+    expected_immutable = {
+        (name, table) for name, table in W2_IMMUTABLE_TRIGGER_CONTRACTS.items()
+    }
+    present_immutable = trigger_rows & expected_immutable
+    missing_immutable = sorted(expected_immutable - present_immutable)
+    if missing_immutable:
+        raise SystemExit(f"Missing W2 immutable triggers: {missing_immutable}")
+
+    expected_guards = {
+        (name, table) for name, table in W2_GUARD_TRIGGER_CONTRACTS.items()
+    }
+    present_guards = trigger_rows & expected_guards
+    if read_only:
+        if present_guards:
+            raise SystemExit(
+                "W2 guard trigger pairs must be absent after 0019: "
+                f"{sorted(present_guards)}"
+            )
+    else:
+        missing_guards = sorted(expected_guards - present_guards)
+        if missing_guards:
+            raise SystemExit(
+                f"Missing W2 guard trigger pairs for 0018: {missing_guards}"
+            )
+
+    # Table ACL: all eight privilege types for erp_app and erp_backup.
+    # 0018 erp_app: SELECT/INSERT/UPDATE only.
+    # 0019 erp_app: SELECT only.
+    # both revisions erp_backup: SELECT only.
+    expected_app_table = (
+        (True, False, False, False, False, False, False, False)
+        if read_only
+        else (True, True, True, False, False, False, False, False)
+    )
+    expected_backup_table = (True, False, False, False, False, False, False, False)
+    app_table = _w2_table_privilege_tuple(connection, role_name="erp_app")
+    if app_table != expected_app_table:
+        raise SystemExit(
+            f"W2 erp_app table ACL is invalid (read_only={read_only}): "
+            f"privileges={dict(zip(W2_TABLE_PRIVILEGE_TYPES, app_table, strict=True))}"
+        )
+    backup_table = _w2_table_privilege_tuple(connection, role_name="erp_backup")
+    if backup_table != expected_backup_table:
+        raise SystemExit(
+            "W2 erp_backup table ACL is not SELECT-only: "
+            f"privileges={dict(zip(W2_TABLE_PRIVILEGE_TYPES, backup_table, strict=True))}"
+        )
+
+    # Column-level INSERT/UPDATE/REFERENCES must be absent.
+    # Do not use has_column_privilege for SELECT: table-level SELECT would look like
+    # a column grant and is not evidence of a column-level privilege.
+    column_write_refs = [
+        str(row.attname)
+        for row in connection.execute(
+            text(
+                """
+                SELECT a.attname
+                FROM pg_attribute a
+                WHERE a.attrelid = 'erp.recipient_service_plan_notice'::regclass
+                  AND a.attnum > 0
+                  AND NOT a.attisdropped
+                  AND a.attacl IS NOT NULL
+                  AND EXISTS (
+                      SELECT 1
+                      FROM aclexplode(a.attacl) AS acl
+                      WHERE acl.privilege_type IN ('INSERT', 'UPDATE', 'REFERENCES')
+                  )
+                ORDER BY a.attnum
+                """
+            )
+        )
+    ]
+    if column_write_refs:
+        raise SystemExit(
+            "W2 column-level INSERT/UPDATE/REFERENCES grants must be absent: "
+            f"{column_write_refs}"
+        )
+
+    # Sequence USAGE/SELECT/UPDATE (exact; preserved from prior W2 postcheck).
+    app_seq = connection.execute(
+        text(
+            """
+            SELECT has_sequence_privilege(
+                       'erp_app', 'erp.recipient_service_plan_notice_id_seq', 'USAGE'
+                   ),
+                   has_sequence_privilege(
+                       'erp_app', 'erp.recipient_service_plan_notice_id_seq', 'SELECT'
+                   ),
+                   has_sequence_privilege(
+                       'erp_app', 'erp.recipient_service_plan_notice_id_seq', 'UPDATE'
+                   )
+            """
+        )
+    ).one()
+    expected_app_seq = (
+        (False, True, False) if read_only else (True, True, False)
+    )
+    if tuple(app_seq) != expected_app_seq:
+        raise SystemExit(
+            f"W2 erp_app sequence ACL is invalid (read_only={read_only}): {tuple(app_seq)}"
+        )
+
+    backup_seq = connection.execute(
+        text(
+            """
+            SELECT has_sequence_privilege(
+                       'erp_backup', 'erp.recipient_service_plan_notice_id_seq', 'USAGE'
+                   ),
+                   has_sequence_privilege(
+                       'erp_backup', 'erp.recipient_service_plan_notice_id_seq', 'SELECT'
+                   ),
+                   has_sequence_privilege(
+                       'erp_backup', 'erp.recipient_service_plan_notice_id_seq', 'UPDATE'
+                   )
+            """
+        )
+    ).one()
+    if tuple(backup_seq) != (False, True, False):
+        raise SystemExit(
+            f"W2 erp_backup sequence ACL is not SELECT-only: {tuple(backup_seq)}"
+        )
 
 
 if __name__ == "__main__":

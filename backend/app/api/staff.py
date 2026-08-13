@@ -26,9 +26,6 @@ from app.domains.staff.schemas import (
     StaffEmploymentResponse,
     StaffHealthCheckCreateRequest,
     StaffHealthCheckListResponse,
-    StaffHealthCheckRequirementListResponse,
-    StaffHealthCheckRequirementResponse,
-    StaffHealthCheckRequirementUpdateRequest,
     StaffHealthCheckResponse,
     StaffHealthCheckUpdateRequest,
     StaffLicenseCreateRequest,
@@ -54,7 +51,6 @@ from app.domains.staff.schemas import (
     StaffPositionReplacementRequest,
     StaffQuarterlyConsultationCreateRequest,
     StaffQuarterlyConsultationListResponse,
-    StaffQuarterlyConsultationReplaceRequest,
     StaffQuarterlyConsultationResponse,
     StaffQuarterlyConsultationUpdateRequest,
     StaffServiceQualificationCloseRequest,
@@ -75,8 +71,11 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     404: {"model": ErrorEnvelope},
     409: {"model": ErrorEnvelope},
     422: {"model": ErrorEnvelope},
-    423: {"model": ErrorEnvelope},
     500: {"model": ErrorEnvelope},
+}
+SENSITIVE_REVEAL_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **ERROR_RESPONSES,
+    423: {"model": ErrorEnvelope},
 }
 
 VS2_SERVICE_CATALOG_ROUTE = "/api/v1/catalogs/services"
@@ -411,7 +410,6 @@ def invalidate_staff_service_qualification(
 
 
 VS4_HEALTH_CHECK_ROUTE = "/api/v1/staff/{staff_id}/health-checks"
-VS4_HEALTH_CHECK_REQUIREMENT_ROUTE = "/api/v1/staff/{staff_id}/health-check-requirements"
 
 
 @router.get(
@@ -474,59 +472,6 @@ def invalidate_health_check(
 
 
 @router.get(
-    VS4_HEALTH_CHECK_REQUIREMENT_ROUTE.removeprefix(router.prefix),
-    response_model=StaffHealthCheckRequirementListResponse,
-    responses=ERROR_RESPONSES,
-)
-def list_health_check_requirements(
-    staff_id: int,
-    current_account: StaffViewAccountDependency,
-    service: StaffServiceDependency,
-) -> StaffHealthCheckRequirementListResponse:
-    del current_account
-    return service.list_health_check_requirements(staff_id)
-
-
-@router.patch(
-    f"{VS4_HEALTH_CHECK_REQUIREMENT_ROUTE}/{{requirement_id}}".removeprefix(router.prefix),
-    response_model=StaffHealthCheckRequirementResponse,
-    responses=ERROR_RESPONSES,
-)
-def update_health_check_requirement(
-    staff_id: int,
-    requirement_id: int,
-    payload: StaffHealthCheckRequirementUpdateRequest,
-    current_account: StaffManageAccountDependency,
-    service: StaffServiceDependency,
-) -> StaffHealthCheckRequirementResponse:
-    return service.update_health_check_requirement(
-        staff_id, requirement_id, payload, current_account
-    )
-
-
-@router.post(
-    f"{VS4_HEALTH_CHECK_REQUIREMENT_ROUTE}/{{requirement_id}}/invalidate".removeprefix(
-        router.prefix
-    ),
-    response_model=StaffHealthCheckRequirementResponse,
-    responses=ERROR_RESPONSES,
-)
-def invalidate_health_check_requirement(
-    staff_id: int,
-    requirement_id: int,
-    payload: StaffHealthCheckRequirementUpdateRequest,
-    current_account: StaffManageAccountDependency,
-    service: StaffServiceDependency,
-) -> StaffHealthCheckRequirementResponse:
-    return service.invalidate_health_check_requirement(
-        staff_id,
-        requirement_id,
-        payload,
-        current_account,
-    )
-
-
-@router.get(
     VS5_QUARTERLY_CONSULTATION_ROUTE.removeprefix(router.prefix),
     response_model=StaffQuarterlyConsultationListResponse,
     responses=ERROR_RESPONSES,
@@ -568,28 +513,6 @@ def update_quarterly_consultation(
     service: StaffServiceDependency,
 ) -> StaffQuarterlyConsultationResponse:
     return service.update_quarterly_consultation(
-        staff_id,
-        consultation_id,
-        payload,
-        current_account,
-    )
-
-
-@router.post(
-    f"{VS5_QUARTERLY_CONSULTATION_ROUTE}/{{consultation_id}}/invalidate".removeprefix(
-        router.prefix
-    ),
-    response_model=StaffQuarterlyConsultationResponse,
-    responses=ERROR_RESPONSES,
-)
-def invalidate_quarterly_consultation(
-    staff_id: int,
-    consultation_id: int,
-    payload: StaffQuarterlyConsultationReplaceRequest,
-    current_account: StaffManageAccountDependency,
-    service: StaffServiceDependency,
-) -> StaffQuarterlyConsultationResponse:
-    return service.invalidate_quarterly_consultation(
         staff_id,
         consultation_id,
         payload,
@@ -802,7 +725,7 @@ def replace_operational_role(
 @router.post(
     "/staff/{staff_id}/sensitive-identity/reveal",
     response_model=SensitiveIdentityRevealResponse,
-    responses=ERROR_RESPONSES,
+    responses=SENSITIVE_REVEAL_ERROR_RESPONSES,
 )
 def reveal_sensitive_identity(
     staff_id: int,

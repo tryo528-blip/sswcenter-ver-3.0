@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta, timezone
-from typing import Any, Literal, Protocol, TypeVar, cast
+from typing import Any, Protocol, TypeVar
 from uuid import UUID
 
 from sqlalchemy import select
@@ -22,7 +22,6 @@ from app.db.models import (
     Staff,
     StaffEmployment,
     StaffHealthCheck,
-    StaffHealthCheckRequirement,
     StaffLicense,
     StaffOnboardingTraining,
     StaffOperationalRolePeriod,
@@ -44,13 +43,11 @@ from app.domains.staff.policies import (
 from app.domains.staff.repository import StaffRepository
 from app.domains.staff.schemas import (
     EmploymentStatus,
-    HealthCheckRequirementStatus,
     InitialOperationalRoleRequest,
     InitialPositionRequest,
     LicenseTypeListResponse,
     LicenseTypeResponse,
     PositionCode,
-    QuarterlyConsultationStatus,
     SensitiveIdentityRevealResponse,
     ServiceCatalogResponse,
     ServiceTypeResponse,
@@ -63,9 +60,6 @@ from app.domains.staff.schemas import (
     StaffEmploymentResponse,
     StaffHealthCheckCreateRequest,
     StaffHealthCheckListResponse,
-    StaffHealthCheckRequirementListResponse,
-    StaffHealthCheckRequirementResponse,
-    StaffHealthCheckRequirementUpdateRequest,
     StaffHealthCheckResponse,
     StaffHealthCheckUpdateRequest,
     StaffLicenseCreateRequest,
@@ -91,7 +85,6 @@ from app.domains.staff.schemas import (
     StaffPositionReplacementRequest,
     StaffQuarterlyConsultationCreateRequest,
     StaffQuarterlyConsultationListResponse,
-    StaffQuarterlyConsultationReplaceRequest,
     StaffQuarterlyConsultationResponse,
     StaffQuarterlyConsultationUpdateRequest,
     StaffResponse,
@@ -2157,26 +2150,8 @@ class StaffService:
         original = error.orig
         diagnostics = getattr(original, "diag", None)
         constraint_name = getattr(diagnostics, "constraint_name", None)
-        safe_message = str(original)
-        if constraint_name == "uq_staff_health_check_requirement_active":
-            return _domain_error("STAFF_HEALTH_CHECK_REQUIREMENT_DUPLICATE", 409)
-        if constraint_name in {
-            "ck_staff_health_check_requirement_status",
-            "ck_staff_health_check_requirement_status_truth",
-            "ck_staff_health_check_requirement_target_key_nonblank",
-            "ck_staff_health_check_requirement_rule_version_nonblank",
-        }:
-            return _domain_error("STAFF_HEALTH_CHECK_REQUIREMENT_INVALID", 422)
-        if constraint_name in {
-            "fk_staff_health_check_employment",
-            "fk_staff_health_check_requirement_employment",
-            "fk_staff_health_check_requirement_health_check",
-        }:
+        if constraint_name == "fk_staff_health_check_staff_id_staff":
             return _domain_error("STAFF_HEALTH_CHECK_STAFF_MISMATCH", 409)
-        if "STAFF_HEALTH_CHECK_INVALID" in safe_message:
-            return _domain_error("STAFF_HEALTH_CHECK_REQUIREMENT_INVALID", 422)
-        if "STAFF_HEALTH_CHECK_REQUIREMENT_STATUS" in safe_message:
-            return _domain_error("STAFF_HEALTH_CHECK_REQUIREMENT_INVALID", 422)
         return None
 
     @staticmethod
@@ -2184,13 +2159,10 @@ class StaffService:
         original = error.orig
         diagnostics = getattr(original, "diag", None)
         constraint_name = getattr(diagnostics, "constraint_name", None)
-        if constraint_name == "uq_staff_quarterly_consultation_active":
+        if constraint_name == "uq_staff_quarterly_consultation_staff_year_quarter":
             return _domain_error("STAFF_QUARTERLY_CONSULTATION_DUPLICATE", 409)
         if constraint_name in {
             "ck_staff_quarterly_consultation_quarter_no",
-            "ck_staff_quarterly_consultation_status",
-            "ck_staff_quarterly_consultation_status_truth",
-            "ck_staff_quarterly_consultation_text_length",
             "ck_staff_quarterly_consultation_row_version_positive",
         }:
             return _domain_error("STAFF_QUARTERLY_CONSULTATION_INVALID", 422)
@@ -2205,10 +2177,7 @@ class StaffService:
         return StaffHealthCheckResponse(
             id=health_check.id,
             staff_id=health_check.staff_id,
-            employment_id=health_check.employment_id,
             check_date=health_check.check_date,
-            check_type_code=health_check.check_type_code,
-            result_note=health_check.result_note,
             invalidated_at_utc=health_check.invalidated_at_utc,
             replacement_health_check_id=health_check.replacement_health_check_id,
             created_by_account_id=health_check.created_by_account_id,
@@ -2217,45 +2186,6 @@ class StaffService:
             updated_at_utc=health_check.updated_at_utc,
             row_version=health_check.row_version,
         )
-
-    @staticmethod
-    def _health_check_requirement_response(
-        requirement: StaffHealthCheckRequirement,
-    ) -> StaffHealthCheckRequirementResponse:
-        return StaffHealthCheckRequirementResponse(
-            id=requirement.id,
-            staff_id=requirement.staff_id,
-            employment_id=requirement.employment_id,
-            target_key=requirement.target_key,
-            target_rule_version_code=requirement.target_rule_version_code,
-            status=cast(Literal["COMPLETE", "INCOMPLETE", "EXEMPT"], requirement.status),
-            health_check_id=requirement.health_check_id,
-            exempt_reason_text=requirement.exempt_reason_text,
-            invalidated_at_utc=requirement.invalidated_at_utc,
-            replacement_health_check_requirement_id=(
-                requirement.replacement_health_check_requirement_id
-            ),
-            created_by_account_id=requirement.created_by_account_id,
-            created_at_utc=requirement.created_at_utc,
-            updated_by_account_id=requirement.updated_by_account_id,
-            updated_at_utc=requirement.updated_at_utc,
-            row_version=requirement.row_version,
-        )
-
-    def _validate_health_employment(
-        self,
-        staff_id: int,
-        employment_id: int | None,
-    ) -> None:
-        if employment_id is None:
-            return
-        employment = self.repository.get_employment(staff_id, employment_id)
-        if employment is not None:
-            return
-        other_staff_employment = self.repository.get_employment_by_id(employment_id)
-        if other_staff_employment is not None and other_staff_employment.staff_id != staff_id:
-            raise _domain_error("STAFF_HEALTH_CHECK_STAFF_MISMATCH", 409)
-        raise _domain_error("STAFF_EMPLOYMENT_NOT_FOUND", 404)
 
     def _require_health_check(
         self,
@@ -2287,57 +2217,12 @@ class StaffService:
             raise _domain_error("STAFF_HEALTH_CHECK_STAFF_MISMATCH", 409)
         raise _domain_error("STAFF_HEALTH_CHECK_NOT_FOUND", 404)
 
-    def _require_health_check_for_requirement(
-        self,
-        staff_id: int,
-        health_check_id: int,
-    ) -> StaffHealthCheck:
-        health_check = self.repository.get_health_check(staff_id, health_check_id)
-        if health_check is not None:
-            return health_check
-        other_staff_health_check = self.repository.get_health_check_by_id(health_check_id)
-        if other_staff_health_check is not None and other_staff_health_check.staff_id != staff_id:
-            raise _domain_error("STAFF_HEALTH_CHECK_STAFF_MISMATCH", 409)
-        raise _domain_error("STAFF_HEALTH_CHECK_NOT_FOUND", 422, field="health_check_id")
-
-    def _require_health_check_requirement(
-        self,
-        staff_id: int,
-        requirement_id: int,
-        *,
-        for_update: bool = False,
-    ) -> StaffHealthCheckRequirement:
-        requirement = self.repository.get_health_check_requirement(
-            staff_id,
-            requirement_id,
-            for_update=for_update,
-        )
-        if requirement is not None:
-            return requirement
-        inactive_requirement = self.repository.get_health_check_requirement(
-            staff_id,
-            requirement_id,
-            for_update=for_update,
-            active_only=False,
-        )
-        if inactive_requirement is not None:
-            return inactive_requirement
-        other_staff_requirement = self.repository.get_health_check_requirement_by_id(
-            requirement_id,
-            active_only=False,
-        )
-        if other_staff_requirement is not None and other_staff_requirement.staff_id != staff_id:
-            raise _domain_error("STAFF_HEALTH_CHECK_STAFF_MISMATCH", 409)
-        raise _domain_error("STAFF_HEALTH_CHECK_REQUIREMENT_NOT_FOUND", 404)
-
     @staticmethod
     def _health_check_snapshot(health_check: StaffHealthCheck) -> dict[str, Any]:
         return {
             "staff_id": health_check.staff_id,
             "employment_id": health_check.employment_id,
             "check_date": health_check.check_date.isoformat(),
-            "check_type_code": health_check.check_type_code,
-            "result_note": health_check.result_note,
             "invalidated_at_utc": (
                 health_check.invalidated_at_utc.isoformat()
                 if health_check.invalidated_at_utc is not None
@@ -2347,31 +2232,6 @@ class StaffService:
             "updated_by_account_id": health_check.updated_by_account_id,
             "updated_at_utc": health_check.updated_at_utc.isoformat(),
             "row_version": health_check.row_version,
-        }
-
-    @staticmethod
-    def _health_check_requirement_snapshot(
-        requirement: StaffHealthCheckRequirement,
-    ) -> dict[str, Any]:
-        return {
-            "staff_id": requirement.staff_id,
-            "employment_id": requirement.employment_id,
-            "target_key": requirement.target_key,
-            "target_rule_version_code": requirement.target_rule_version_code,
-            "status": requirement.status,
-            "health_check_id": requirement.health_check_id,
-            "exempt_reason_text": requirement.exempt_reason_text,
-            "invalidated_at_utc": (
-                requirement.invalidated_at_utc.isoformat()
-                if requirement.invalidated_at_utc is not None
-                else None
-            ),
-            "replacement_health_check_requirement_id": (
-                requirement.replacement_health_check_requirement_id
-            ),
-            "updated_by_account_id": requirement.updated_by_account_id,
-            "updated_at_utc": requirement.updated_at_utc.isoformat(),
-            "row_version": requirement.row_version,
         }
 
     def list_health_checks(self, staff_id: int) -> StaffHealthCheckListResponse:
@@ -2390,18 +2250,10 @@ class StaffService:
         current_account: CurrentAccount,
     ) -> StaffHealthCheckResponse:
         self._require_staff(staff_id)
-        self._validate_health_employment(staff_id, payload.employment_id)
         now = _now()
         health_check = StaffHealthCheck(
             staff_id=staff_id,
-            employment_id=payload.employment_id,
             check_date=payload.check_date,
-            check_type_code=(
-                payload.check_type_code.strip().upper()
-                if payload.check_type_code is not None
-                else None
-            ),
-            result_note=payload.result_note,
             created_by_account_id=current_account.id,
             created_at_utc=now,
             updated_by_account_id=current_account.id,
@@ -2440,17 +2292,6 @@ class StaffService:
             if payload.check_date is None:
                 raise _domain_error("VALIDATION_ERROR", 422, field="check_date")
             health_check.check_date = payload.check_date
-        if "employment_id" in fields_set:
-            self._validate_health_employment(staff_id, payload.employment_id)
-            health_check.employment_id = payload.employment_id
-        if "check_type_code" in fields_set:
-            health_check.check_type_code = (
-                payload.check_type_code.strip().upper()
-                if payload.check_type_code is not None
-                else None
-            )
-        if "result_note" in fields_set:
-            health_check.result_note = payload.result_note
         health_check.updated_by_account_id = current_account.id
         health_check.updated_at_utc = _now()
         health_check.row_version += 1
@@ -2491,8 +2332,6 @@ class StaffService:
             staff_id=health_check.staff_id,
             employment_id=health_check.employment_id,
             check_date=health_check.check_date,
-            check_type_code=health_check.check_type_code,
-            result_note=health_check.result_note,
             created_by_account_id=current_account.id,
             created_at_utc=now,
             updated_by_account_id=current_account.id,
@@ -2521,114 +2360,6 @@ class StaffService:
         self._commit()
         return self._health_check_response(health_check)
 
-    def list_health_check_requirements(
-        self,
-        staff_id: int,
-    ) -> StaffHealthCheckRequirementListResponse:
-        self._require_staff(staff_id)
-        return StaffHealthCheckRequirementListResponse(
-            items=[
-                self._health_check_requirement_response(requirement)
-                for requirement in self.repository.list_health_check_requirements(staff_id)
-            ]
-        )
-
-    def update_health_check_requirement(
-        self,
-        staff_id: int,
-        requirement_id: int,
-        payload: StaffHealthCheckRequirementUpdateRequest,
-        current_account: CurrentAccount,
-    ) -> StaffHealthCheckRequirementResponse:
-        self._require_staff(staff_id)
-        requirement = self._require_health_check_requirement(
-            staff_id,
-            requirement_id,
-            for_update=True,
-        )
-        self._require_version(requirement.row_version, payload.expected_row_version)
-        if payload.status is None:
-            raise _domain_error("STAFF_HEALTH_CHECK_REQUIREMENT_INVALID", 422, field="status")
-        if payload.status is HealthCheckRequirementStatus.COMPLETE:
-            self._require_health_check_for_requirement(staff_id, payload.health_check_id or 0)
-        before = self._health_check_requirement_snapshot(requirement)
-        requirement.status = payload.status.value
-        requirement.health_check_id = payload.health_check_id
-        requirement.exempt_reason_text = (
-            payload.exempt_reason_text.strip() if payload.exempt_reason_text is not None else None
-        )
-        requirement.updated_by_account_id = current_account.id
-        requirement.updated_at_utc = _now()
-        requirement.row_version += 1
-        after = self._health_check_requirement_snapshot(requirement)
-        self._audit(
-            account_id=current_account.id,
-            action_code="STAFF_HEALTH_CHECK_REQUIREMENT_UPDATE",
-            entity_type="STAFF_HEALTH_CHECK_REQUIREMENT",
-            entity_pk=requirement.id,
-            before=before,
-            after=after,
-        )
-        self._commit()
-        return self._health_check_requirement_response(requirement)
-
-    def invalidate_health_check_requirement(
-        self,
-        staff_id: int,
-        requirement_id: int,
-        payload: StaffHealthCheckRequirementUpdateRequest,
-        current_account: CurrentAccount,
-    ) -> StaffHealthCheckRequirementResponse:
-        self._require_staff(staff_id)
-        requirement = self._require_health_check_requirement(
-            staff_id,
-            requirement_id,
-            for_update=True,
-        )
-        self._require_version(requirement.row_version, payload.expected_row_version)
-        now = _now()
-        before = self._health_check_requirement_snapshot(requirement)
-        requirement.invalidated_at_utc = now
-        requirement.updated_by_account_id = current_account.id
-        requirement.updated_at_utc = now
-        requirement.row_version += 1
-        self._flush()
-        replacement = StaffHealthCheckRequirement(
-            staff_id=requirement.staff_id,
-            employment_id=requirement.employment_id,
-            target_key=requirement.target_key,
-            target_rule_version_code=requirement.target_rule_version_code,
-            status=HealthCheckRequirementStatus.INCOMPLETE.value,
-            health_check_id=None,
-            exempt_reason_text=None,
-            created_by_account_id=current_account.id,
-            created_at_utc=now,
-            updated_by_account_id=current_account.id,
-            updated_at_utc=now,
-        )
-        self.repository.add(replacement)
-        self._flush()
-        requirement.replacement_health_check_requirement_id = replacement.id
-        self._flush()
-        self._audit(
-            account_id=current_account.id,
-            action_code="STAFF_HEALTH_CHECK_REQUIREMENT_INVALIDATE",
-            entity_type="STAFF_HEALTH_CHECK_REQUIREMENT",
-            entity_pk=requirement.id,
-            before=before,
-            after=self._health_check_requirement_snapshot(requirement),
-        )
-        self._audit(
-            account_id=current_account.id,
-            action_code="STAFF_HEALTH_CHECK_REQUIREMENT_REPLACEMENT_CREATE",
-            entity_pk=replacement.id,
-            entity_type="STAFF_HEALTH_CHECK_REQUIREMENT",
-            before=None,
-            after=self._health_check_requirement_snapshot(replacement),
-        )
-        self._commit()
-        return self._health_check_requirement_response(requirement)
-
     @staticmethod
     def _quarterly_consultation_response(
         consultation: StaffQuarterlyConsultation,
@@ -2638,15 +2369,7 @@ class StaffService:
             staff_id=consultation.staff_id,
             calendar_year=consultation.calendar_year,
             quarter_no=consultation.quarter_no,
-            status=QuarterlyConsultationStatus(consultation.status),
-            counseling_date=consultation.counseling_date,
-            content=consultation.content,
-            incomplete_reason_text=consultation.incomplete_reason_text,
-            exempt_reason_text=consultation.exempt_reason_text,
-            invalidated_at_utc=consultation.invalidated_at_utc,
-            replacement_staff_quarterly_consultation_id=(
-                consultation.replacement_staff_quarterly_consultation_id
-            ),
+            completed=consultation.completed,
             created_by_account_id=consultation.created_by_account_id,
             created_at_utc=consultation.created_at_utc,
             updated_by_account_id=consultation.updated_by_account_id,
@@ -2662,23 +2385,7 @@ class StaffService:
             "staff_id": consultation.staff_id,
             "calendar_year": consultation.calendar_year,
             "quarter_no": consultation.quarter_no,
-            "status": consultation.status,
-            "counseling_date": (
-                consultation.counseling_date.isoformat()
-                if consultation.counseling_date is not None
-                else None
-            ),
-            "content": consultation.content,
-            "incomplete_reason_text": consultation.incomplete_reason_text,
-            "exempt_reason_text": consultation.exempt_reason_text,
-            "invalidated_at_utc": (
-                consultation.invalidated_at_utc.isoformat()
-                if consultation.invalidated_at_utc is not None
-                else None
-            ),
-            "replacement_staff_quarterly_consultation_id": (
-                consultation.replacement_staff_quarterly_consultation_id
-            ),
+            "completed": consultation.completed,
             "created_by_account_id": consultation.created_by_account_id,
             "created_at_utc": consultation.created_at_utc.isoformat(),
             "updated_by_account_id": consultation.updated_by_account_id,
@@ -2702,7 +2409,6 @@ class StaffService:
             return consultation
         other_staff_consultation = self.repository.get_quarterly_consultation_by_id(
             consultation_id,
-            active_only=False,
         )
         if other_staff_consultation is not None and other_staff_consultation.staff_id != staff_id:
             raise _domain_error("STAFF_QUARTERLY_CONSULTATION_STAFF_MISMATCH", 409)
@@ -2732,11 +2438,7 @@ class StaffService:
             staff_id=staff_id,
             calendar_year=payload.calendar_year,
             quarter_no=payload.quarter_no,
-            status=payload.status.value,
-            counseling_date=payload.counseling_date,
-            content=payload.content,
-            incomplete_reason_text=payload.incomplete_reason_text,
-            exempt_reason_text=payload.exempt_reason_text,
+            completed=payload.completed,
             created_by_account_id=current_account.id,
             created_at_utc=now,
             updated_by_account_id=current_account.id,
@@ -2770,11 +2472,7 @@ class StaffService:
         )
         self._require_version(consultation.row_version, payload.expected_row_version)
         before = self._quarterly_consultation_snapshot(consultation)
-        consultation.status = payload.status.value
-        consultation.counseling_date = payload.counseling_date
-        consultation.content = payload.content
-        consultation.incomplete_reason_text = payload.incomplete_reason_text
-        consultation.exempt_reason_text = payload.exempt_reason_text
+        consultation.completed = payload.completed
         consultation.updated_by_account_id = current_account.id
         consultation.updated_at_utc = _now()
         consultation.row_version += 1
@@ -2790,66 +2488,6 @@ class StaffService:
         self._commit()
         return self._quarterly_consultation_response(consultation)
 
-    def invalidate_quarterly_consultation(
-        self,
-        staff_id: int,
-        consultation_id: int,
-        payload: StaffQuarterlyConsultationReplaceRequest,
-        current_account: CurrentAccount,
-    ) -> StaffQuarterlyConsultationResponse:
-        self._require_staff(staff_id)
-        consultation = self._require_quarterly_consultation(
-            staff_id,
-            consultation_id,
-            for_update=True,
-        )
-        self._require_version(consultation.row_version, payload.expected_row_version)
-        now = _now()
-        before = self._quarterly_consultation_snapshot(consultation)
-        consultation.invalidated_at_utc = now
-        consultation.updated_by_account_id = current_account.id
-        consultation.updated_at_utc = now
-        consultation.row_version += 1
-        self._flush()
-
-        replacement = StaffQuarterlyConsultation(
-            staff_id=consultation.staff_id,
-            calendar_year=consultation.calendar_year,
-            quarter_no=consultation.quarter_no,
-            status=payload.status.value,
-            counseling_date=payload.counseling_date,
-            content=payload.content,
-            incomplete_reason_text=payload.incomplete_reason_text,
-            exempt_reason_text=payload.exempt_reason_text,
-            created_by_account_id=current_account.id,
-            created_at_utc=now,
-            updated_by_account_id=current_account.id,
-            updated_at_utc=now,
-        )
-        self.repository.add(replacement)
-        self._flush()
-        consultation.replacement_staff_quarterly_consultation_id = replacement.id
-        self._flush()
-
-        self._audit(
-            account_id=current_account.id,
-            action_code="STAFF_QUARTERLY_CONSULTATION_INVALIDATE",
-            entity_type="STAFF_QUARTERLY_CONSULTATION",
-            entity_pk=consultation.id,
-            before=before,
-            after=self._quarterly_consultation_snapshot(consultation),
-        )
-        self._audit(
-            account_id=current_account.id,
-            action_code="STAFF_QUARTERLY_CONSULTATION_REPLACEMENT_CREATE",
-            entity_type="STAFF_QUARTERLY_CONSULTATION",
-            entity_pk=replacement.id,
-            before=None,
-            after=self._quarterly_consultation_snapshot(replacement),
-        )
-        self._commit()
-        return self._quarterly_consultation_response(consultation)
-
 
 _MESSAGES.update(
     {
@@ -2858,7 +2496,7 @@ _MESSAGES.update(
             "Quarterly consultation does not belong to the requested staff."
         ),
         "STAFF_QUARTERLY_CONSULTATION_DUPLICATE": (
-            "An active quarterly consultation already exists for this staff, year, and quarter."
+            "A quarterly consultation already exists for this staff, year, and quarter."
         ),
         "STAFF_QUARTERLY_CONSULTATION_INVALID": "Quarterly consultation fields are invalid.",
     }
@@ -2867,11 +2505,6 @@ _MESSAGES.update(
 _MESSAGES.update(
     {
         "STAFF_HEALTH_CHECK_NOT_FOUND": "건강검진 사실을 찾을 수 없습니다.",
-        "STAFF_HEALTH_CHECK_REQUIREMENT_NOT_FOUND": "건강검진 대상 상태를 찾을 수 없습니다.",
         "STAFF_HEALTH_CHECK_STAFF_MISMATCH": "건강검진 이력의 직원이 요청 대상과 다릅니다.",
-        "STAFF_HEALTH_CHECK_REQUIREMENT_DUPLICATE": (
-            "같은 직원·대상키의 활성 건강검진 상태가 이미 있습니다."
-        ),
-        "STAFF_HEALTH_CHECK_REQUIREMENT_INVALID": "건강검진 상태와 연결 정보를 확인하세요.",
     }
 )

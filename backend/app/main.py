@@ -9,6 +9,7 @@ from app.api.staff import router as staff_router
 from app.api.w1a_errors import install_w1a_error_contract
 from app.api.w1c import router as w1c_router
 from app.api.w1d import router as w1d_router
+from app.api.w2 import router as w2_router
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
 
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     application.include_router(recipient_router)
     application.include_router(w1c_router)
     application.include_router(w1d_router)
+    application.include_router(w2_router)
     install_w1a_error_contract(application)
     return application
 

@@ -57,20 +57,10 @@ export type StaffHealthCheckCreateRequest = Schemas['StaffHealthCheckCreateReque
 export type StaffHealthCheckListResponse = Schemas['StaffHealthCheckListResponse'];
 export type StaffHealthCheckResponse = Schemas['StaffHealthCheckResponse'];
 export type StaffHealthCheckUpdateRequest = Schemas['StaffHealthCheckUpdateRequest'];
-export type StaffHealthCheckRequirementListResponse =
-  Schemas['StaffHealthCheckRequirementListResponse'];
-export type StaffHealthCheckRequirementResponse =
-  Schemas['StaffHealthCheckRequirementResponse'];
-export type StaffHealthCheckRequirementUpdateRequest =
-  Schemas['StaffHealthCheckRequirementUpdateRequest'];
-export type HealthCheckRequirementStatus = Schemas['HealthCheckRequirementStatus'];
-export type QuarterlyConsultationStatus = Schemas['QuarterlyConsultationStatus'];
 export type StaffQuarterlyConsultationCreateRequest =
   Schemas['StaffQuarterlyConsultationCreateRequest'];
 export type StaffQuarterlyConsultationListResponse =
   Schemas['StaffQuarterlyConsultationListResponse'];
-export type StaffQuarterlyConsultationReplaceRequest =
-  Schemas['StaffQuarterlyConsultationReplaceRequest'];
 export type StaffQuarterlyConsultationResponse =
   Schemas['StaffQuarterlyConsultationResponse'];
 export type StaffQuarterlyConsultationUpdateRequest =
@@ -584,51 +574,6 @@ export async function invalidateStaffHealthCheck(
   );
 }
 
-export async function fetchStaffHealthCheckRequirements(
-  staffId: number,
-  signal?: AbortSignal,
-): Promise<StaffHealthCheckRequirementListResponse> {
-  return healthRequest<StaffHealthCheckRequirementListResponse>(
-    `/api/v1/staff/${staffId}/health-check-requirements`,
-    {
-      method: 'GET',
-      signal,
-    },
-  );
-}
-
-export async function updateStaffHealthCheckRequirement(
-  staffId: number,
-  requirementId: number,
-  payload: StaffHealthCheckRequirementUpdateRequest,
-  signal?: AbortSignal,
-): Promise<StaffHealthCheckRequirementResponse> {
-  return healthRequest<StaffHealthCheckRequirementResponse>(
-    `/api/v1/staff/${staffId}/health-check-requirements/${requirementId}`,
-    {
-      method: 'PATCH',
-      signal,
-      body: JSON.stringify(payload),
-    },
-  );
-}
-
-export async function invalidateStaffHealthCheckRequirement(
-  staffId: number,
-  requirementId: number,
-  payload: Pick<StaffHealthCheckRequirementUpdateRequest, 'expected_row_version'>,
-  signal?: AbortSignal,
-): Promise<StaffHealthCheckRequirementResponse> {
-  return healthRequest<StaffHealthCheckRequirementResponse>(
-    `/api/v1/staff/${staffId}/health-check-requirements/${requirementId}/invalidate`,
-    {
-      method: 'POST',
-      signal,
-      body: JSON.stringify(payload),
-    },
-  );
-}
-
 export async function fetchStaffQuarterlyConsultations(
   staffId: number,
   signal?: AbortSignal,
@@ -667,22 +612,6 @@ export async function updateStaffQuarterlyConsultation(
     `/api/v1/staff/${staffId}/quarterly-consultations/${consultationId}`,
     {
       method: 'PATCH',
-      signal,
-      body: JSON.stringify(payload),
-    },
-  );
-}
-
-export async function invalidateStaffQuarterlyConsultation(
-  staffId: number,
-  consultationId: number,
-  payload: StaffQuarterlyConsultationReplaceRequest,
-  signal?: AbortSignal,
-): Promise<StaffQuarterlyConsultationResponse> {
-  return consultationRequest<StaffQuarterlyConsultationResponse>(
-    `/api/v1/staff/${staffId}/quarterly-consultations/${consultationId}/invalidate`,
-    {
-      method: 'POST',
       signal,
       body: JSON.stringify(payload),
     },

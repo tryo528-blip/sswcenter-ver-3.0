@@ -28,7 +28,6 @@ function listItem(overrides: Partial<RecipientListItem> = {}): RecipientListItem
     recipient_no: 'R-001',
     postal_code: '06236',
     address: '서울시 강남구',
-    home_phone: '02-111-2222',
     mobile_phone: '010-1111-2222',
     memo: null,
     row_version: 1,
@@ -121,9 +120,6 @@ function installRecipientListFetch(
       const id = Number(url.pathname.split('/').pop());
       const item = listItem({ id: Number.isFinite(id) ? id : 1 });
       if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-      if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-      if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       return jsonResponse({
         id: item.id,
         name: item.name,
@@ -133,7 +129,6 @@ function installRecipientListFetch(
         recipient_no: item.recipient_no,
         postal_code: item.postal_code,
         address: item.address,
-        home_phone: item.home_phone,
         mobile_phone: item.mobile_phone,
         memo: item.memo,
         payer_guardian_id: null,
@@ -292,7 +287,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-001',
           postal_code: '06236',
           address: '서울시 강남구',
-          home_phone: '02-111-2222',
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -302,9 +296,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 21,
@@ -315,7 +306,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-001',
           postal_code: '06236',
           address: '서울시 강남구',
-          home_phone: '02-111-2222',
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -348,7 +338,7 @@ describe('REC-LIST frontend contract', () => {
       }),
     );
     await waitFor(() =>
-      expect(screen.getByText('수급자·보호자·본인부담금을 저장했습니다.')).toBeInTheDocument(),
+      expect(screen.getByText('수급자·보호자·혜택 정보를 저장했습니다.')).toBeInTheDocument(),
     );
 
     // Error path: force 422 and assert role=alert error (draft preserved).
@@ -399,7 +389,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-041',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -409,9 +398,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         // Primary detail GET is deferred (not related collection GETs).
         if (/^\/api\/v1\/recipients\/\d+$/.test(url.pathname)) {
@@ -445,7 +431,6 @@ describe('REC-LIST frontend contract', () => {
         recipient_no: 'R-041',
         postal_code: null,
         address: null,
-        home_phone: null,
         mobile_phone: '010-1111-2222',
         memo: null,
         payer_guardian_id: null,
@@ -493,9 +478,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (/^\/api\/v1\/recipients\/\d+$/.test(url.pathname)) {
           return jsonResponse(
             {
@@ -572,7 +554,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-031',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -595,7 +576,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-031',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -604,9 +584,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         detailGets += 1;
         return jsonResponse({
@@ -618,7 +595,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-031',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -725,7 +701,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-032',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -748,7 +723,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-032',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -757,9 +731,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 32,
@@ -770,7 +741,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-032',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -877,7 +847,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-033',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -887,9 +856,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 33,
@@ -900,7 +866,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-033',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -956,7 +921,7 @@ describe('REC-LIST frontend contract', () => {
     });
     // Name-only re-save must not invent a copay CREATE (activeCopayPeriod null + dirty-unaware
     // buildCopayBenefitMutations would otherwise open a new benefit period every save).
-    expect(batchBodies[1].benefit_periods).toEqual([]);
+    expect(batchBodies[1]).not.toHaveProperty('benefit_period');
     expect(batchBodies[1].preserve_payer).toBe(false);
   });
 
@@ -1008,7 +973,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-036',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -1018,9 +982,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 36,
@@ -1031,7 +992,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-036',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -1109,7 +1069,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-034',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -1119,9 +1078,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 34,
@@ -1132,7 +1088,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-034',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: serverMobile,
           memo: null,
           payer_guardian_id: null,
@@ -1246,9 +1201,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 35,
           name: '불량상세',
@@ -1258,7 +1210,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-035',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -1294,9 +1245,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 9999,
           name: '잘못된아이디',
@@ -1306,7 +1254,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-036',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -1342,9 +1289,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 37,
           name: '상태누락',
@@ -1353,7 +1297,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-037',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -1389,9 +1332,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 38,
           name: '상태무효',
@@ -1401,7 +1341,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-038',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -1440,9 +1379,6 @@ describe('REC-LIST frontend contract', () => {
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 39,
@@ -1453,7 +1389,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-039',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -1499,7 +1434,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-039',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -1518,7 +1452,7 @@ describe('REC-LIST frontend contract', () => {
     expect(screen.getByTestId('recipient-basic-save')).toBeDisabled();
   });
 
-  test('create basic-batch payload has no recipient_status field', async () => {
+  test('create basic-batch omits recipient_status and manual benefit creation', async () => {
     const postBodies: Array<Record<string, unknown>> = [];
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const rawUrl =
@@ -1532,25 +1466,6 @@ describe('REC-LIST frontend contract', () => {
       if (isBasicCreateBatch(url, method)) {
         const body = parseJsonBody(init);
         postBodies.push(body);
-        // Mirror backend RecipientBasicCreateBatchRequest.require_benefit_periods:
-        // empty benefit_periods is a validation error (422), not a successful create.
-        const benefitPeriods = body.benefit_periods;
-        if (!Array.isArray(benefitPeriods) || benefitPeriods.length === 0) {
-          return jsonResponse(
-            {
-              error: { code: 'VALIDATION_ERROR', message: '입력값을 확인하세요.' },
-              field_errors: [
-                {
-                  field: 'benefit_periods',
-                  message: 'at least one benefit period is required',
-                },
-              ],
-              details: {},
-              request_id: 't-create-benefit-required',
-            },
-            422,
-          );
-        }
         const recipientBody = (body.recipient as Record<string, unknown> | undefined) ?? {};
         const recipient = {
           id: 99,
@@ -1561,7 +1476,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: null,
           postal_code: recipientBody.postal_code ?? null,
           address: recipientBody.address ?? null,
-          home_phone: recipientBody.home_phone ?? null,
           mobile_phone: recipientBody.mobile_phone ?? null,
           memo: recipientBody.memo ?? null,
           payer_guardian_id: null,
@@ -1576,14 +1490,10 @@ describe('REC-LIST frontend contract', () => {
         if (body.payer_guardian_slot !== null && body.payer_guardian_slot !== undefined) {
           saved_sections.push('payer');
         }
-        saved_sections.push('benefit_periods');
         return jsonResponse({ recipient, guardians: [], saved_sections }, 201);
       }
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 99,
@@ -1594,7 +1504,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1000-0002',
           memo: null,
           payer_guardian_id: null,
@@ -1608,9 +1517,7 @@ describe('REC-LIST frontend contract', () => {
     fireEvent.click(await screen.findByTestId('recipient-create-toggle'));
     const createForm = document.getElementById('recipient-create-form');
     expect(createForm).toBeTruthy();
-    // Create form focuses on mobile (no separate home-phone field on basic form).
     const mobilePhoneInput = within(createForm!).getByTestId('recipient-mobile-phone-input');
-    expect(within(createForm!).queryByTestId('recipient-home-phone-input')).toBeNull();
 
     // Focusing an empty live mobile input must not inject a 010- prefix (W1B paste/fill race).
     expect(mobilePhoneInput).toHaveValue('');
@@ -1638,18 +1545,7 @@ describe('REC-LIST frontend contract', () => {
     expect(Object.keys(recipientBody)).not.toContain('recipient_status');
     expect(recipientBody.name).toBe('생성수급');
     expect(recipientBody.mobile_phone).toBe('010-1000-0002');
-    expect(body).toHaveProperty('benefit_periods');
-    expect(Array.isArray(body.benefit_periods)).toBe(true);
-    expect((body.benefit_periods as unknown[]).length).toBeGreaterThan(0);
-    const firstBenefit = (body.benefit_periods as Array<Record<string, unknown>>)[0];
-    expect(firstBenefit).toEqual(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          benefit_code: expect.any(String),
-          start_date: expect.any(String),
-        }),
-      }),
-    );
+    expect(body).not.toHaveProperty('benefit_period');
     expect(body).toHaveProperty('guardians');
   });
 
@@ -1936,9 +1832,6 @@ describe('REC-LIST frontend contract', () => {
 
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         return jsonResponse({
           id: 1,
           name: '지연행',
@@ -1948,7 +1841,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: 'R-001',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -2499,9 +2391,6 @@ describe('REC-LIST frontend contract', () => {
 
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         const id = Number(url.pathname.split('/').pop());
         const item = listItem({ id: Number.isFinite(id) ? id : 1 });
         return jsonResponse({
@@ -2513,7 +2402,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: item.recipient_no,
           postal_code: item.postal_code,
           address: item.address,
-          home_phone: item.home_phone,
           mobile_phone: item.mobile_phone,
           memo: item.memo,
           payer_guardian_id: null,
@@ -2631,7 +2519,6 @@ describe('REC-LIST frontend contract', () => {
             recipient_no: item.recipient_no,
             postal_code: item.postal_code,
             address: item.address,
-            home_phone: item.home_phone,
             mobile_phone: item.mobile_phone,
             memo: item.memo,
             payer_guardian_id: null,
@@ -2644,9 +2531,6 @@ describe('REC-LIST frontend contract', () => {
 
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/primary-guardian-periods')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/payer-snapshots')) return jsonResponse({ items: [] });
-        if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
         if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
         const id = Number(url.pathname.split('/').pop());
         const item = listItem({ id: Number.isFinite(id) ? id : 1, name: '성공목록행' });
@@ -2659,7 +2543,6 @@ describe('REC-LIST frontend contract', () => {
           recipient_no: item.recipient_no,
           postal_code: item.postal_code,
           address: item.address,
-          home_phone: item.home_phone,
           mobile_phone: item.mobile_phone,
           memo: item.memo,
           payer_guardian_id: null,
@@ -2797,14 +2680,12 @@ describe('recipient payer guardian UI contract', () => {
     vi.restoreAllMocks();
   });
 
-  test('basic screen shows recipient and two guardians; no per-guardian save; no primary/payer snapshot UI', async () => {
-    const requested: string[] = [];
+  test('basic screen shows recipient and exactly two guardian slots with shared save', async () => {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const rawUrl =
         typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString();
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
-      requested.push(`${method} ${url.pathname}`);
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse(listResponse([listItem({ id: 501, name: '납부자UI' })]));
       }
@@ -2832,7 +2713,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
         return jsonResponse({
           id: 501,
@@ -2843,7 +2723,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: 'R-501',
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -2862,11 +2741,7 @@ describe('recipient payer guardian UI contract', () => {
     expect(screen.getByTestId('recipient-payer-current-label')).toHaveTextContent('수급자 본인');
     expect(screen.queryByTestId('guardian-1-save-button')).toBeNull();
     expect(screen.queryByTestId('guardian-2-save-button')).toBeNull();
-    expect(screen.queryByTestId('recipient-primary-guardian-form')).toBeNull();
-    expect(screen.queryByTestId('recipient-payer-snapshot-section')).toBeNull();
     expect(screen.getByTestId('recipient-detail-toggle')).toHaveTextContent('상세');
-    expect(requested.some((r) => r.includes('/payer-snapshots'))).toBe(false);
-    expect(requested.some((r) => r.includes('/primary-guardian-periods'))).toBe(false);
   });
 
   test('single edit mode mutual-exclusive payer checkboxes and cancel restore', async () => {
@@ -2904,7 +2779,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/502' && method === 'GET') {
         return jsonResponse({
           id: 502,
@@ -2915,7 +2789,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: payerId,
@@ -2937,7 +2810,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: payerId,
@@ -2990,7 +2862,6 @@ describe('recipient payer guardian UI contract', () => {
       if (url.pathname.endsWith('/guardians') && method === 'GET') {
         return jsonResponse({ items: [] });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/503' && method === 'GET') {
         return jsonResponse({
@@ -3002,7 +2873,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3033,7 +2903,6 @@ describe('recipient payer guardian UI contract', () => {
             recipient_no: null,
             postal_code: null,
             address: null,
-            home_phone: null,
             mobile_phone: '010-1111-2222',
             memo: null,
             payer_guardian_id: 77,
@@ -3114,7 +2983,6 @@ describe('recipient payer guardian UI contract', () => {
       if (url.pathname.endsWith('/guardians') && method === 'GET') {
         return jsonResponse({ items: listedGuardians });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/505' && method === 'GET') {
         return jsonResponse({
@@ -3126,7 +2994,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: payerId,
@@ -3156,7 +3023,6 @@ describe('recipient payer guardian UI contract', () => {
             recipient_no: null,
             postal_code: null,
             address: null,
-            home_phone: null,
             mobile_phone: '010-1111-2222',
             memo: null,
             payer_guardian_id: payerId,
@@ -3239,7 +3105,6 @@ describe('recipient payer guardian UI contract', () => {
       if (url.pathname.endsWith('/guardians') && method === 'GET') {
         return jsonResponse({ items: [] });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/510' && method === 'GET') {
         return jsonResponse({
@@ -3251,7 +3116,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3278,7 +3142,6 @@ describe('recipient payer guardian UI contract', () => {
             recipient_no: null,
             postal_code: null,
             address: null,
-            home_phone: null,
             mobile_phone: '010-1111-2222',
             memo: null,
             payer_guardian_id: 88,
@@ -3323,7 +3186,7 @@ describe('recipient payer guardian UI contract', () => {
       (batchBodies[1].guardians as Array<Record<string, unknown>>)[0],
     ).not.toHaveProperty('guardian_id');
     await waitFor(() =>
-      expect(screen.getByText('수급자·보호자·본인부담금을 저장했습니다.')).toBeInTheDocument(),
+      expect(screen.getByText('수급자·보호자·혜택 정보를 저장했습니다.')).toBeInTheDocument(),
     );
     expect(screen.getByTestId('recipient-payer-current-label')).toHaveTextContent('납부자 · 보호자1');
   });
@@ -3357,7 +3220,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/511' && method === 'GET') {
         return jsonResponse({
@@ -3369,7 +3231,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3401,7 +3262,6 @@ describe('recipient payer guardian UI contract', () => {
             recipient_no: null,
             postal_code: null,
             address: null,
-            home_phone: null,
             mobile_phone: '010-1111-2222',
             memo: null,
             payer_guardian_id: null,
@@ -3461,7 +3321,7 @@ describe('recipient payer guardian UI contract', () => {
       ]),
     );
     await waitFor(() =>
-      expect(screen.getByText('수급자·보호자·본인부담금을 저장했습니다.')).toBeInTheDocument(),
+      expect(screen.getByText('수급자·보호자·혜택 정보를 저장했습니다.')).toBeInTheDocument(),
     );
     expect(screen.getByTestId('guardian-1-name-input')).toHaveValue('기존가드수정');
   });
@@ -3496,7 +3356,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/512' && method === 'GET') {
         return jsonResponse({
@@ -3508,7 +3367,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3605,7 +3463,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/520' && method === 'GET') {
         detailGets += 1;
@@ -3618,7 +3475,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3722,7 +3578,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/521' && method === 'GET') {
         detailGets += 1;
@@ -3735,7 +3590,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3803,6 +3657,7 @@ describe('recipient payer guardian UI contract', () => {
     let detailGets = 0;
     let benefitListGets = 0;
     let batchCount = 0;
+    let batchBody: Record<string, unknown> | null = null;
     let serverBenefitCode = 'GENERAL';
     let serverBenefitRowVersion = 1;
 
@@ -3827,7 +3682,6 @@ describe('recipient payer guardian UI contract', () => {
         guardianListGets += 1;
         return jsonResponse({ items: [] });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods') && method === 'GET') {
         benefitListGets += 1;
         return jsonResponse({
@@ -3836,9 +3690,9 @@ describe('recipient payer guardian UI contract', () => {
               id: 90,
               recipient_id: 522,
               benefit_code: serverBenefitCode,
-              start_date: '2020-01-01',
-              end_date: null,
+              start_text: '기관 확인 후 적용',
               invalidated_at_utc: null,
+              replacement_benefit_period_id: null,
               row_version: serverBenefitRowVersion,
             },
           ],
@@ -3855,7 +3709,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -3864,6 +3717,7 @@ describe('recipient payer guardian UI contract', () => {
       }
       if (isBasicUpdateBatch(url, method)) {
         batchCount += 1;
+        batchBody = parseJsonBody(init);
         return jsonResponse(
           {
             error: {
@@ -3901,6 +3755,16 @@ describe('recipient payer guardian UI contract', () => {
     fireEvent.click(screen.getByTestId('recipient-basic-save'));
 
     await waitFor(() => expect(batchCount).toBe(1));
+    expect(batchBody).toMatchObject({
+      benefit_period: {
+        period_id: 90,
+        payload: {
+          expected_row_version: 1,
+          benefit_code: 'REDUCTION_6',
+          start_text: '기관 확인 후 적용',
+        },
+      },
+    });
     await waitFor(() => expect(benefitListGets).toBe(benefitGetsBefore + 1));
     await waitFor(() =>
       expect(
@@ -3960,7 +3824,6 @@ describe('recipient payer guardian UI contract', () => {
           ],
         });
       }
-      if (url.pathname.endsWith('/plan-notifications')) return jsonResponse({ items: [] });
       if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
       if (url.pathname === '/api/v1/recipients/513' && method === 'GET') {
         return jsonResponse({
@@ -3972,7 +3835,6 @@ describe('recipient payer guardian UI contract', () => {
           recipient_no: null,
           postal_code: null,
           address: null,
-          home_phone: null,
           mobile_phone: '010-1111-2222',
           memo: null,
           payer_guardian_id: null,
@@ -4011,7 +3873,6 @@ describe('recipient payer guardian UI contract', () => {
             recipient_no: null,
             postal_code: null,
             address: null,
-            home_phone: null,
             mobile_phone: '010-1111-2222',
             memo: null,
             payer_guardian_id: null,
@@ -4086,7 +3947,7 @@ describe('recipient payer guardian UI contract', () => {
       ]),
     );
     await waitFor(() =>
-      expect(screen.getByText('수급자·보호자·본인부담금을 저장했습니다.')).toBeInTheDocument(),
+      expect(screen.getByText('수급자·보호자·혜택 정보를 저장했습니다.')).toBeInTheDocument(),
     );
     expect(screen.getByTestId('guardian-1-name-input')).toHaveValue('보호자일수정');
     expect(screen.getByTestId('guardian-2-name-input')).toHaveValue('보호자이수정');

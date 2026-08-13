@@ -110,7 +110,6 @@ def test_openapi_list_item_has_no_list_status_or_row_status() -> None:
         "recipient_no",
         "postal_code",
         "address",
-        "home_phone",
         "mobile_phone",
         "memo",
         "row_version",
@@ -143,8 +142,7 @@ def test_list_item_schema_forbids_extra_and_requires_summary_fields() -> None:
             recipient_no=None,
             postal_code=None,
             address=None,
-            home_phone=None,
-            mobile_phone=None,
+            mobile_phone="010-0000-0000",
             memo=None,
             row_version=1,
             grade_code=None,
@@ -161,8 +159,7 @@ def test_list_item_schema_forbids_extra_and_requires_summary_fields() -> None:
         recipient_no=None,
         postal_code=None,
         address=None,
-        home_phone=None,
-        mobile_phone=None,
+        mobile_phone="010-0000-0000",
         memo=None,
         row_version=1,
         grade_code=None,
@@ -241,8 +238,7 @@ def _recipient(
         recipient_no=None,
         postal_code=None,
         address=None,
-        home_phone=None,
-        mobile_phone=None,
+        mobile_phone="010-0000-0000",
         memo=None,
         payer_guardian_id=payer_guardian_id,
         row_version=1,
@@ -417,8 +413,7 @@ def test_list_response_allows_null_copayment_rate_without_formula() -> None:
         recipient_no="000001",
         postal_code=None,
         address=None,
-        home_phone=None,
-        mobile_phone=None,
+        mobile_phone="010-0000-0000",
         memo=None,
         row_version=1,
         grade_code="4",
@@ -600,17 +595,15 @@ def test_create_recipient_forces_active_without_status_input() -> None:
 
     session = MagicMock()
     service = RecipientService(session)
-    captured: dict[str, Any] = {}
+    captured: list[object] = []
 
     def _capture_add(instance: object) -> None:
-        captured["instance"] = instance
+        captured.append(instance)
 
     def _fake_flush() -> None:
-        instance = captured.get("instance")
-        if instance is None:
-            return
+        instance = captured[-1]
         if getattr(instance, "id", None) is None:  # noqa: B009
-            instance.id = 10_015  # type: ignore[attr-defined]
+            instance.id = 10_015 + len(captured) - 1  # type: ignore[attr-defined]
         if getattr(instance, "row_version", None) is None:  # noqa: B009
             instance.row_version = 1  # type: ignore[attr-defined]
 
@@ -624,15 +617,20 @@ def test_create_recipient_forces_active_without_status_input() -> None:
         name="신규",
         birth_date=date(1955, 2, 2),
         sex_code=RecipientSexCode.FEMALE,
+        mobile_phone="010-0000-0015",
     )
     response = service.create_recipient(payload, account)  # type: ignore[arg-type]
-    instance = captured["instance"]
+    instance = next(item for item in captured if hasattr(item, "recipient_status"))
+    general = next(item for item in captured if hasattr(item, "benefit_code"))
     assert instance.recipient_status == RecipientStatus.ACTIVE.value  # type: ignore[attr-defined]
     assert instance.id == 10_015  # type: ignore[attr-defined]
     assert instance.row_version == 1  # type: ignore[attr-defined]
     assert response.recipient_status == RecipientStatus.ACTIVE
     assert response.id == 10_015
     assert response.row_version == 1
+    assert general.recipient_id == 10_015  # type: ignore[attr-defined]
+    assert general.benefit_code == "GENERAL"  # type: ignore[attr-defined]
+    assert general.start_text == ""  # type: ignore[attr-defined]
 
 
 def test_repository_status_predicate_applied_to_items_and_count() -> None:

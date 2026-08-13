@@ -11,7 +11,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ReviewDataRoot,
 
-    [switch]$KeepReviewArtifacts
+    [switch]$KeepReviewArtifacts,
+
+    [Parameter(Mandatory = $false)]
+    [string]$PythonExe
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,7 +69,9 @@ $SupportedRevisions = @(
     "20260803_0014_recipient_plan_notification",
     "20260806_0015_recipient_status_tag",
     "20260808_0016_recipient_payer_guardian",
-    "20260808_0017_recipient_guardian_email"
+    "20260808_0017_recipient_guardian_email",
+    "20260809_0018_w2_service_plan_notice",
+    "20260812_0019_r0_w2_read_only"
 )
 if ($SupportedRevisions -notcontains $ManifestRevision) {
     throw "Unsupported backup Alembic revision: $ManifestRevision"
@@ -202,10 +207,18 @@ try {
         "20260803_0014_recipient_plan_notification",
         "20260806_0015_recipient_status_tag",
         "20260808_0016_recipient_payer_guardian",
-        "20260808_0017_recipient_guardian_email"
+        "20260808_0017_recipient_guardian_email",
+        "20260809_0018_w2_service_plan_notice",
+        "20260812_0019_r0_w2_read_only"
     )) {
+        $VerifyArgs = @{
+            DatabaseUrl = $ReviewUrl
+        }
+        if ($PSBoundParameters.ContainsKey("PythonExe")) {
+            $VerifyArgs["PythonExe"] = $PythonExe
+        }
         $PostcheckOutput = @(
-            & (Join-Path $PSScriptRoot "verify-w1a-vs1-db.ps1") -DatabaseUrl $ReviewUrl
+            & (Join-Path $PSScriptRoot "verify-w1a-vs1-db.ps1") @VerifyArgs
         )
         $PostcheckExitCode = $LASTEXITCODE
         $PostcheckOutput | Write-Output
@@ -295,6 +308,18 @@ try {
             $PostcheckOutput -notcontains "RECIPIENT_GUARDIAN_EMAIL_DB_POSTCHECK_OK"
         ) {
             throw "Restored recipient-guardian-email database postcheck marker is missing"
+        }
+        if (
+            $ManifestRevision -eq "20260809_0018_w2_service_plan_notice" -and
+            $PostcheckOutput -notcontains "W2_SERVICE_PLAN_NOTICE_DB_POSTCHECK_OK"
+        ) {
+            throw "Restored W2 service-plan-notice database postcheck marker is missing"
+        }
+        if (
+            $ManifestRevision -eq "20260812_0019_r0_w2_read_only" -and
+            $PostcheckOutput -notcontains "R0_W2_READ_ONLY_DB_POSTCHECK_OK"
+        ) {
+            throw "Restored R0 W2 read-only database postcheck marker is missing"
         }
     }
 

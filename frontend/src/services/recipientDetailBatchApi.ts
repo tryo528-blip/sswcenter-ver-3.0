@@ -15,17 +15,15 @@ type PeriodMutation<T> = {
 
 export interface RecipientDetailBatchRequest {
   certification_identity?: { certification_number: string };
-  certification_period?: PeriodMutation<{ start_date: string; end_date: string }>;
-  grade_period?: PeriodMutation<{
-    certification_period_id: number;
+  certification_period?: PeriodMutation<{
     grade_code: string;
     start_date: string;
     end_date: string;
   }>;
   benefit_period?: PeriodMutation<{
     benefit_code: string;
-    start_date: string;
-    end_date?: string | null;
+    /** Opaque display-only text; never a parsed or validated date. */
+    start_text?: string;
   }>;
   approval_amount_period?: PeriodMutation<{
     amount_krw: number;
@@ -38,9 +36,6 @@ export interface RecipientDetailBatchRequest {
     start_date: string;
     end_date?: string | null;
     service_start_date?: string | null;
-    signer_name?: string | null;
-    signer_relationship_text?: string | null;
-    signer_phone?: string | null;
     end_reason_text?: string | null;
   };
 }
@@ -58,15 +53,14 @@ export type BasicGuardianMutation = {
 
 export type BasicBenefitPeriodMutation = PeriodMutation<{
   benefit_code: string;
-  start_date: string;
-  end_date?: string | null;
+  /** Opaque display-only text; never a parsed or validated date. */
+  start_text?: string;
 }>;
 
 export interface RecipientBasicCreateBatchRequest {
   recipient: RecipientCreateRequest;
   guardians: BasicGuardianMutation[];
   payer_guardian_slot: 0 | 1 | null;
-  benefit_periods: BasicBenefitPeriodMutation[];
 }
 
 export interface RecipientBasicUpdateBatchRequest {
@@ -74,7 +68,7 @@ export interface RecipientBasicUpdateBatchRequest {
   guardians: BasicGuardianMutation[];
   payer_guardian_slot: 0 | 1 | null;
   preserve_payer: boolean;
-  benefit_periods: BasicBenefitPeriodMutation[];
+  benefit_period?: BasicBenefitPeriodMutation;
 }
 
 export interface RecipientBasicBatchResponse {

@@ -95,6 +95,152 @@
   }
 }
 
+/* Dashboard W2 contract correction. Kept here because dashboard-specific
+   overrides are intentionally isolated from the shared editorial stylesheet. */
+.dashboard-content-grid-w2 .dashboard-top-rail {
+  min-height: 560px;
+}
+
+.dashboard-content-grid-w2 .dashboard-deadline-card {
+  min-height: 560px;
+}
+
+.dashboard-work-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 10px;
+}
+
+.dashboard-work-heading h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 17px;
+}
+
+.dashboard-official-groups,
+.dashboard-official-group {
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-official-staff-name {
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color-thin);
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.dashboard-content-grid-w2 .dashboard-work-area {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.dashboard-official-card {
+  display: flex;
+  min-width: 0;
+  min-height: 238px;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-thin);
+  border-top: 2px solid var(--color-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-subtle);
+}
+
+.dashboard-official-card-fields {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.dashboard-official-card-fields > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.dashboard-official-card-fields dt {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.dashboard-official-card-fields dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-official-card-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.dashboard-official-card-controls button,
+.dashboard-deadline-pagination button {
+  min-height: 30px;
+  padding: 5px 10px;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+}
+
+.dashboard-official-card-controls button:disabled,
+.dashboard-deadline-pagination button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.dashboard-work-empty {
+  margin: 0;
+  padding: 20px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-thin);
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+}
+
+.dashboard-content-grid-w2 .dashboard-deadline-list {
+  align-content: start;
+  overflow: auto;
+}
+
+.dashboard-deadline-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color-thin);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-content-grid-w2 .dashboard-deadline-card,
+  .dashboard-content-grid-w2 .dashboard-top-rail {
+    min-height: 0;
+  }
+
+  .dashboard-content-grid-w2 .dashboard-work-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 #docs {
   border-right: 1px solid var(--border);
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from collections.abc import Iterable
+from datetime import date, timedelta
 
 _PHONE_SEPARATORS = re.compile(r"[\s\-.()]")
 _DOMESTIC_PHONE = re.compile(r"^0\d{8,10}$")
@@ -136,3 +137,52 @@ def normalize_role_code(value: str) -> str:
     if _ROLE_CODE.fullmatch(normalized) is None:
         raise ValueError("W1A_SEM_ROLE_CODE_INVALID")
     return normalized
+
+
+def _shift_calendar_year(value: date, years: int) -> date:
+    try:
+        return value.replace(year=value.year + years)
+    except ValueError:
+        # February 29 has no direct counterpart in a non-leap year.
+        return date(value.year + years, 2, 28)
+
+
+def health_check_entry_window(employment_start: date) -> tuple[date, date]:
+    """Return the inclusive new-hire/re-entry health-check acceptance window."""
+
+    return (
+        _shift_calendar_year(employment_start, -1) + timedelta(days=1),
+        _shift_calendar_year(employment_start, 1),
+    )
+
+
+def is_entry_health_check_date(employment_start: date, check_date: date) -> bool:
+    window_start, window_end = health_check_entry_window(employment_start)
+    return window_start <= check_date <= window_end
+
+
+def has_entry_health_check(employment_start: date, check_dates: Iterable[date]) -> bool:
+    return any(is_entry_health_check_date(employment_start, value) for value in check_dates)
+
+
+def requires_annual_health_check(
+    *,
+    employment_start: date,
+    employment_end: date | None,
+    calendar_year: int,
+) -> bool:
+    """Return whether an existing employee owes the calendar-year submission."""
+
+    if employment_start.year >= calendar_year:
+        return False
+    if employment_end is not None and employment_end <= date(calendar_year, 12, 30):
+        return False
+    return True
+
+
+def is_annual_health_check_date(calendar_year: int, check_date: date) -> bool:
+    return date(calendar_year, 1, 1) <= check_date <= date(calendar_year, 12, 31)
+
+
+def has_annual_health_check(calendar_year: int, check_dates: Iterable[date]) -> bool:
+    return any(is_annual_health_check_date(calendar_year, value) for value in check_dates)

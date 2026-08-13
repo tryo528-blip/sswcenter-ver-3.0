@@ -1,5 +1,7 @@
 param(
-    [switch]$Check
+    [switch]$Check,
+    [string]$PythonExecutable = "",
+    [string]$NpmExecutable = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,15 +13,39 @@ $OutputEncoding = $Utf8NoBom
 $WorkspaceRoot = Split-Path -Parent $PSScriptRoot
 $BackendRoot = Join-Path $WorkspaceRoot "backend"
 $FrontendRoot = Join-Path $WorkspaceRoot "frontend"
-$PythonExe = Join-Path $BackendRoot ".venv\Scripts\python.exe"
+$IsWindowsHost = [System.IO.Path]::DirectorySeparatorChar -eq '\'
+$PythonExe = if ($IsWindowsHost) { Join-Path $BackendRoot ".venv\Scripts\python.exe" } else { Join-Path $BackendRoot ".venv/bin/python" }
+$NpmExe = if ($IsWindowsHost) { "C:\Program Files\nodejs\npm.cmd" } else { "/usr/bin/npm" }
 $GeneratedFile = Join-Path $FrontendRoot "src\generated\sswcenter-api.ts"
 
-if (-not (Test-Path -LiteralPath $PythonExe)) {
-    throw "Python executable missing: $PythonExe"
+if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
+    if (-not [System.IO.Path]::IsPathRooted($PythonExecutable)) { throw "PythonExecutable must be an absolute path" }
+    $PythonExe = [System.IO.Path]::GetFullPath($PythonExecutable)
+}
+if (-not [string]::IsNullOrWhiteSpace($NpmExecutable)) {
+    if (-not [System.IO.Path]::IsPathRooted($NpmExecutable)) { throw "NpmExecutable must be an absolute path" }
+    $NpmExe = [System.IO.Path]::GetFullPath($NpmExecutable)
 }
 
-# 1. Extract OpenAPI JSON from FastAPI app
-$TempOpenApiJson = Join-Path ([System.IO.Path]::GetTempPath()) ("openapi-" + [Guid]::NewGuid().ToString("N") + ".json")
+foreach ($tool in @($PythonExe, $NpmExe)) {
+    if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) {
+        throw "Required executable missing: $tool"
+    }
+}
+
+# 1. Extract OpenAPI JSON from FastAPI app.  The desktop host can expose
+# C:\Windows\Temp through TEMP/TMP without granting delete rights to the
+# interactive user, so keep generated scratch files in the user's local temp.
+$TempRoot = if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+    [System.IO.Path]::GetTempPath()
+} else {
+    Join-Path $env:LOCALAPPDATA "Temp"
+}
+$TempRoot = [System.IO.Path]::GetFullPath($TempRoot)
+if (-not (Test-Path -LiteralPath $TempRoot -PathType Container)) {
+    throw "OpenAPI temp directory missing: $TempRoot"
+}
+$TempOpenApiJson = Join-Path $TempRoot ("openapi-" + [Guid]::NewGuid().ToString("N") + ".json")
 $TempGeneratedTs = $null
 
 try {
@@ -61,10 +87,10 @@ Path(sys.argv[1]).write_text(
     }
 
     # 2. Generate TypeScript using openapi-typescript
-    $TempGeneratedTs = Join-Path ([System.IO.Path]::GetTempPath()) ("generated-ts-" + [Guid]::NewGuid().ToString("N") + ".ts")
+    $TempGeneratedTs = Join-Path $TempRoot ("generated-ts-" + [Guid]::NewGuid().ToString("N") + ".ts")
     Push-Location $FrontendRoot
     try {
-        & npm.cmd exec openapi-typescript -- $TempOpenApiJson --output $TempGeneratedTs
+        & $NpmExe exec openapi-typescript -- $TempOpenApiJson --output $TempGeneratedTs
         if ($LASTEXITCODE -ne 0) {
             throw "openapi-typescript generation failed"
         }

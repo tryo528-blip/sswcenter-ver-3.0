@@ -2,6 +2,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateIndex, CreateTable
 
 from app.db import models as wave0_models  # noqa: F401
+from app.db import w2_models as current_w2_models  # noqa: F401
 from app.db.base import Base
 
 EXPECTED_CURRENT_TABLES = {
@@ -15,39 +16,44 @@ EXPECTED_CURRENT_TABLES = {
     "erp.care_assignment",
     "erp.center",
     "erp.installation_state",
+    "erp.license_type",
+    "erp.monthly_professional_assignment",
     "erp.permission_definition",
     "erp.recipient",
     "erp.recipient_benefit_period",
     "erp.recipient_certification_identity",
     "erp.recipient_certification_period",
     "erp.recipient_contract",
-    "erp.recipient_grade_period",
     "erp.recipient_guardian",
-    "erp.recipient_guardian_primary_period",
     "erp.recipient_legacy_mapping",
     "erp.recipient_local_approval_amount_period",
-    "erp.recipient_payer_snapshot",
     "erp.recipient_plan_notification",
-    "erp.license_type",
+    "erp.recipient_service_plan_notice",
     "erp.service_group",
     "erp.service_type",
     "erp.staff",
     "erp.staff_employment",
+    "erp.staff_health_check",
     "erp.staff_legacy_mapping",
     "erp.staff_license",
-    "erp.staff_health_check",
-    "erp.staff_health_check_requirement",
     "erp.staff_onboarding_training",
     "erp.staff_operational_role_period",
     "erp.staff_periodic_training_status",
     "erp.staff_position_period",
     "erp.staff_quarterly_consultation",
-    "erp.staff_service_qualification_period",
     "erp.staff_sensitive_identity",
+    "erp.staff_service_qualification_period",
     "erp.system_run",
     "erp.system_run_event",
     "erp.training_course",
     "erp.user_account",
+    "erp.w2_official_work_card",
+    "erp.w2_personal_todo",
+    "erp.w2_personal_todo_list",
+    "erp.w2_schedule",
+    "erp.w2_schedule_month_control",
+    "erp.w2_schedule_staff",
+    "erp.w2_service_plan_notice",
 }
 
 

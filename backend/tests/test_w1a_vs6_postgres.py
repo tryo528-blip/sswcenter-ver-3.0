@@ -24,6 +24,10 @@ MIGRATION_PATH = (
 DATABASE_URL = os.environ.get("SSWCENTER_DATABASE_URL")
 APP_DATABASE_URL = os.environ.get("SSWCENTER_APP_DATABASE_URL")
 BACKUP_DATABASE_URL = os.environ.get("SSWCENTER_BACKUP_DATABASE_URL")
+pytestmark = pytest.mark.skipif(
+    not all((DATABASE_URL, APP_DATABASE_URL, BACKUP_DATABASE_URL)),
+    reason="requires the dedicated W1A VS6 PostgreSQL harness",
+)
 REVISION = "20260728_0008_w1a_staff_legacy_mapping"
 PARENT_REVISION = "20260728_0007_w1a_staff_quarterly_consultation"
 TABLE_NAME = "staff_legacy_mapping"
