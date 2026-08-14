@@ -197,7 +197,7 @@ function Copy-FoundationBackendTree {
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
     foreach ($Entry in Get-ChildItem -LiteralPath $Source -Force) {
-        if ($Entry.Name -in @(".venv", "__pycache__", ".pytest_cache", ".mypy_cache")) {
+        if ($Entry.Name -in @(".venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache")) {
             continue
         }
         if ($Entry.Name -like ".env*") {
@@ -251,6 +251,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "FOUNDATION_0025_POSTGRES_NOT_READY"
     }
+    Write-Output "FOUNDATION_0025_STAGE=postgres_ready"
     $StartedPostgresIds = @(
         Get-Process -Name postgres -ErrorAction SilentlyContinue |
             Where-Object { $BaselinePostgresIds -notcontains $_.Id } |
@@ -262,8 +263,10 @@ try {
         "(SELECT count(*)::text FROM pg_tables WHERE schemaname = 'erp') || '|' || " +
         "COALESCE(to_regclass('erp.alembic_version')::text, '')"
     )
+    Write-Output "FOUNDATION_0025_STAGE=maintenance_fingerprint"
 
     Copy-FoundationBackendTree -Source $BackendRoot -Destination $BackendCopy
+    Write-Output "FOUNDATION_0025_STAGE=backend_copy"
     $TempEnv = @(
         "SSWCENTER_ENVIRONMENT=development",
         "SSWCENTER_DATABASE_URL=$SourceDatabaseUrl",
@@ -312,6 +315,7 @@ try {
     if ($InitExitCode -ne 0) {
         throw "FOUNDATION_0025_INIT_FAILED"
     }
+    Write-Output "FOUNDATION_0025_STAGE=development_init"
     foreach ($Marker in @($CurrentMarker, $CurrentHeadMarker, "DEFAULT_POSTGRES_UNCHANGED")) {
         if ($InitOutput -notcontains $Marker) {
             throw "FOUNDATION_0025_INIT_MARKER_MISSING"
@@ -356,6 +360,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "FOUNDATION_0025_BACKUP_FAILED"
     }
+    Write-Output "FOUNDATION_0025_STAGE=backup"
     $BackupLine = @($BackupOutput | ForEach-Object { [string]$_ } | Where-Object {
         $_ -like "BACKUP_OK *"
     }) | Select-Object -Last 1
@@ -383,6 +388,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "FOUNDATION_0025_RESTORE_FAILED"
     }
+    Write-Output "FOUNDATION_0025_STAGE=restore"
     $ReviewDatabaseCreated = $true
     $ReviewDataRootCreated = $true
     if (-not (@($RestoreOutput | ForEach-Object { [string]$_ }) -contains "RESTORE_DRILL_OK $ReviewDatabaseName")) {
