@@ -5,6 +5,10 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+# psql otherwise inherits the Windows console code page and can misread the
+# UTF-8 offline migration file when seeded labels contain Korean text.
+$env:PGCLIENTENCODING = "UTF8"
+
 $PostgresBin = "C:\Program Files\PostgreSQL\17\bin"
 $InitDbExe = Join-Path $PostgresBin "initdb.exe"
 $PgCtlExe = Join-Path $PostgresBin "pg_ctl.exe"
