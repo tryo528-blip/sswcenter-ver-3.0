@@ -17,13 +17,34 @@ from app.core.auth import (
 )
 from app.core.settings import Environment, Settings, get_settings
 from app.db.models import AccountPermission, UserAccount
-from app.db.session import build_session_factory, create_postgres_engine
+from app.db.session import (
+    application_is_ready,
+    build_session_factory,
+    create_postgres_engine,
+)
 from app.domains.recipient.service import RecipientService
 from app.domains.staff.service import StaffService
 from app.domains.w1c.service import W1CService
 from app.domains.w1d.service import W1DService
 
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
+_WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def require_application_readiness(
+    request: Request,
+    settings: SettingsDependency,
+) -> None:
+    """Fail closed before any mutating route can open a database session."""
+
+    if request.method not in _WRITE_METHODS:
+        return
+    ready, reason = application_is_ready(settings)
+    if not ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "service_not_ready", "reason": reason or "not_ready"},
+        )
 
 
 @lru_cache(maxsize=8)
@@ -32,7 +53,8 @@ def _database_runtime(database_url: str) -> tuple[Engine, sessionmaker[Session]]
     return engine, build_session_factory(engine)
 
 
-def get_db_session(settings: SettingsDependency) -> Iterator[Session]:
+def get_db_session(request: Request, settings: SettingsDependency) -> Iterator[Session]:
+    require_application_readiness(request, settings)
     if settings.database_url is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
