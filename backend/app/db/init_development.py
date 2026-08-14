@@ -9,7 +9,7 @@ from sqlalchemy.engine import URL, make_url
 
 from alembic import command
 from app.core.settings import Environment, get_settings
-from app.db.postcheck_w1a_vs1 import main as run_postcheck
+from app.db.postcheck_dispatch import main as run_current_head_postcheck
 
 MAINTENANCE_DATABASE = "postgres"
 TARGET_DATABASE = "sswcenter_dev"
@@ -99,7 +99,7 @@ def main() -> None:
     os.environ["SSWCENTER_DATABASE_URL"] = target_url.render_as_string(hide_password=False)
     get_settings.cache_clear()
     command.upgrade(Config("alembic.ini"), "head")
-    run_postcheck()
+    run_current_head_postcheck()
 
     maintenance_after = _maintenance_fingerprint(source_url)
     if maintenance_after != maintenance_before:
