@@ -241,8 +241,7 @@ try {
         --pgdata=$DataDirectory `
         --log=$LogFile `
         --options="-h 127.0.0.1 -p $Port" `
-        start `
-        | Out-Null
+        start
     if ($LASTEXITCODE -ne 0) {
         throw "FOUNDATION_0025_POSTGRES_START_FAILED"
     }
@@ -449,7 +448,7 @@ finally {
                 Remove-Item -LiteralPath $ReviewDataRoot -Recurse -Force
             }
             $ReviewDataRootCreated = $false
-            & $PgCtlExe --pgdata=$DataDirectory --mode=fast stop --wait | Out-Null
+            & $PgCtlExe --pgdata=$DataDirectory --mode=fast stop --wait
             if ($LASTEXITCODE -ne 0) {
                 throw "FOUNDATION_0025_POSTGRES_STOP_FAILED"
             }
