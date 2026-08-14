@@ -33,7 +33,7 @@ PR #4는 [FOUNDATION-0025 current-head init·복구 구현](../packets/FOUNDATIO
 
 | 분류 | 수 | 비고 |
 |---|---:|---|
-| `CURRENT_CONFIRMED` | 14 | U-02~U-07, U-11~U-15, U-17, U-19~U-21 등 잔여 제품·계약 공백 |
+| `CURRENT_CONFIRMED` | 14 | U-02~U-06, U-11~U-15, U-17, U-19~U-21 등 잔여 제품·계약 공백 |
 | `SATISFIED_BY_PR_4` | 2 | U-08, U-09; 구현·증거의 current-main 병합 |
 | `SATISFIED_BY_PR_2` | 1 | U-01 PIN 정본 |
 | `SATISFIED_BY_PR_1` | 1 | U-10 catalog 후보 |
