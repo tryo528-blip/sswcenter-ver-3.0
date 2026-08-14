@@ -22,6 +22,10 @@ Set-StrictMode -Version Latest
 
 Import-Module (Join-Path $PSScriptRoot "PostgresTools.psm1") -Force
 
+$CurrentRevision = "20260813_0025_w1_relationship_lock_contract_correction"
+$CurrentMarker = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
+$CurrentHeadMarker = "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"
+
 $Connection = ConvertFrom-SswPostgresUrl -DatabaseUrl $AdminDatabaseUrl
 if ($Connection.Database -ne "postgres") {
     throw "Restore drill administration URL must target the postgres maintenance database"
@@ -71,7 +75,8 @@ $SupportedRevisions = @(
     "20260808_0016_recipient_payer_guardian",
     "20260808_0017_recipient_guardian_email",
     "20260809_0018_w2_service_plan_notice",
-    "20260812_0019_r0_w2_read_only"
+    "20260812_0019_r0_w2_read_only",
+    $CurrentRevision
 )
 if ($SupportedRevisions -notcontains $ManifestRevision) {
     throw "Unsupported backup Alembic revision: $ManifestRevision"
@@ -190,6 +195,69 @@ try {
         & (Join-Path $PSScriptRoot "verify-wave0-db.ps1") -DatabaseUrl $ReviewUrl
         if ($LASTEXITCODE -ne 0) {
             throw "Restored Wave 0 database postcheck failed"
+        }
+    }
+    elseif ($ManifestRevision -eq $CurrentRevision) {
+        $ResolvedPythonExe = if ($PSBoundParameters.ContainsKey("PythonExe")) {
+            [System.IO.Path]::GetFullPath($PythonExe)
+        }
+        else {
+            [System.IO.Path]::GetFullPath(
+                (Join-Path (Split-Path -Parent $PSScriptRoot) "backend\.venv\Scripts\python.exe")
+            )
+        }
+        if (-not (Test-Path -LiteralPath $ResolvedPythonExe -PathType Leaf)) {
+            throw "Current 0025 restore requires an existing Python executable"
+        }
+
+        New-Item -ItemType Directory -Path $ResolvedReviewDataRoot | Out-Null
+        $CreatedReviewDataRoot = $true
+        $EnvironmentNames = @(
+            "SSWCENTER_ENVIRONMENT",
+            "SSWCENTER_DATABASE_URL",
+            "SSWCENTER_DATA_ROOT",
+            "PYTHONDONTWRITEBYTECODE"
+        )
+        $PreviousEnvironment = @{}
+        foreach ($EnvironmentName in $EnvironmentNames) {
+            $PreviousEnvironment[$EnvironmentName] = [Environment]::GetEnvironmentVariable(
+                $EnvironmentName,
+                "Process"
+            )
+        }
+        $PostcheckOutput = @()
+        $PostcheckExitCode = 1
+        Push-Location (Join-Path (Split-Path -Parent $PSScriptRoot) "backend")
+        try {
+            $env:SSWCENTER_ENVIRONMENT = "test"
+            $env:SSWCENTER_DATABASE_URL = $ReviewUrl
+            $env:SSWCENTER_DATA_ROOT = $ResolvedReviewDataRoot
+            $env:PYTHONDONTWRITEBYTECODE = "1"
+            $PostcheckOutput = @(
+                & $ResolvedPythonExe -c "from app.db.postcheck_dispatch import main; main()"
+            )
+            $PostcheckExitCode = $LASTEXITCODE
+        }
+        finally {
+            Pop-Location
+            foreach ($EnvironmentName in $EnvironmentNames) {
+                $PreviousValue = $PreviousEnvironment[$EnvironmentName]
+                if ($null -eq $PreviousValue) {
+                    Remove-Item -LiteralPath "Env:$EnvironmentName" -ErrorAction SilentlyContinue
+                }
+                else {
+                    Set-Item -Path "Env:$EnvironmentName" -Value $PreviousValue
+                }
+            }
+        }
+        if ($PostcheckExitCode -ne 0) {
+            throw "Restored current 0025 postcheck failed"
+        }
+        if ($PostcheckOutput -notcontains $CurrentMarker) {
+            throw "Restored current 0025 postcheck marker is missing"
+        }
+        if ($PostcheckOutput -notcontains $CurrentHeadMarker) {
+            throw "Restored current-head postcheck marker is missing"
         }
     }
     elseif ($ManifestRevision -in @(
@@ -323,8 +391,10 @@ try {
         }
     }
 
-    New-Item -ItemType Directory -Path $ResolvedReviewDataRoot | Out-Null
-    $CreatedReviewDataRoot = $true
+    if (-not $CreatedReviewDataRoot) {
+        New-Item -ItemType Directory -Path $ResolvedReviewDataRoot | Out-Null
+        $CreatedReviewDataRoot = $true
+    }
     foreach ($FileEntry in @($Manifest.files)) {
         $RelativeFilePath = [string]$FileEntry.relative_path
         $BackupDataFile = [System.IO.Path]::GetFullPath(
