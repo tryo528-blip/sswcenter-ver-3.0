@@ -59,12 +59,12 @@ foreach ($Name in $ProcessEnvironmentNames) {
     $PreviousProcessEnvironment[$Name] = [Environment]::GetEnvironmentVariable($Name, "Process")
 }
 
-$env:TEMP = $TempRoot
-$env:TMP = $TempRoot
-$env:TMPDIR = $TempRoot
-
-New-Item -ItemType Directory -Path $DataDirectory -Force | Out-Null
 try {
+    $env:TEMP = $TempRoot
+    $env:TMP = $TempRoot
+    $env:TMPDIR = $TempRoot
+
+    New-Item -ItemType Directory -Path $DataDirectory -Force | Out-Null
     & $InitDbExe --pgdata=$DataDirectory --username=postgres --auth=trust --encoding=UTF8 --locale=C
     if ($LASTEXITCODE -ne 0) { throw "initdb failed" }
 
