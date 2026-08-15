@@ -115,7 +115,7 @@ function getViewportSize() {
 }
 
 export const LoginForm: React.FC = () => {
-  const { login, error, isLoading, clearError } = useAuth();
+  const { login, error, pinError, isLoading, clearError } = useAuth();
   const [pin, setPin] = useState('');
   const [whaleAsset] = useState(() => pickRandom(LOGIN_WHALE_IMAGES));
   const [whaleAspectRatio, setWhaleAspectRatio] = useState(whaleAsset.aspectRatio);
@@ -248,8 +248,8 @@ export const LoginForm: React.FC = () => {
               className="auth-input auth-login-input"
               data-testid="login-pin-input"
               aria-label="PIN 번호"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? 'login-error' : undefined}
+              aria-invalid={Boolean(pinError)}
+              aria-describedby={pinError ? 'login-error' : undefined}
               maxLength={LOGIN_PIN_LENGTH}
               value={pin}
               onChange={handlePinChange}

@@ -321,6 +321,8 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     expect(screen.getByTestId('login-error')).toHaveTextContent(
       '시스템 인증 상태를 확인하는 중 오류가 발생했습니다.',
     );
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('login-pin-input')).not.toHaveAttribute('aria-describedby');
     expect(unauthorized).not.toHaveBeenCalled();
     window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, unauthorized);
   });
