@@ -60,6 +60,25 @@ const staff = {
   current_operational_roles: [],
 };
 
+const staff2 = {
+  ...staff,
+  id: 30,
+  name: '이요양',
+  current_employment: {
+    ...staff.current_employment,
+    id: 31,
+    staff_id: 30,
+  },
+  current_positions: [
+    {
+      ...staff.current_positions[0],
+      id: 32,
+      staff_id: 30,
+      employment_id: 31,
+    },
+  ],
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -170,5 +189,80 @@ describe('U12 caregiver assignment panel', () => {
       expect.stringContaining('/care-assignments'),
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  test('keeps authorized assignment history visible when staff lookup is forbidden', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients/1/contracts' && method === 'GET') {
+        return jsonResponse({ items: [contract] });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return jsonResponse({ detail: { code: 'permission_required' } }, 403);
+      }
+      if (
+        url.pathname === '/api/v1/recipients/1/contracts/10/care-assignments'
+        && method === 'GET'
+      ) {
+        return jsonResponse({
+          items: [
+            {
+              id: 30,
+              recipient_id: 1,
+              recipient_contract_id: 10,
+              staff_id: 20,
+              employment_id: 21,
+              assignment_kind: 'GENERAL',
+              family_relationship_text: null,
+              start_date: '2026-08-01',
+              end_date: null,
+              invalidated_at_utc: null,
+              replacement_assignment_id: null,
+              row_version: 1,
+            },
+          ],
+        });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<RecipientCareAssignmentPanel recipientId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('care-assignment-row-30')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('care-assignment-error')).not.toBeInTheDocument();
+  });
+
+  test('loads every staff page before building the caregiver selector', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients/1/contracts' && method === 'GET') {
+        return jsonResponse({ items: [contract] });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        const page = url.searchParams.get('page');
+        return page === '2'
+          ? jsonResponse({ items: [staff2], total: 2, page: 2, page_size: 200 })
+          : jsonResponse({ items: [staff], total: 2, page: 1, page_size: 200 });
+      }
+      if (url.pathname.startsWith('/api/v1/staff/') && method === 'GET') {
+        return jsonResponse({ error: { code: 'NOT_FOUND', message: 'detail unavailable' } }, 404);
+      }
+      if (url.pathname.endsWith('/care-assignments') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<RecipientCareAssignmentPanel recipientId={1} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('care-assignment-staff-select')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('option', { name: /이요양/ })).toBeInTheDocument();
   });
 });

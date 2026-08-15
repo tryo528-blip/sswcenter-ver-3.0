@@ -10,7 +10,12 @@ import {
   type CareAssignmentCreateRequest,
   type CareAssignmentReplaceRequest,
 } from '../../services/careAssignmentApi';
-import { fetchStaffPage, type StaffResponse } from '../../services/staffApi';
+import {
+  fetchAllStaff,
+  fetchStaffDetail,
+  type StaffDetailResponse,
+  type StaffResponse,
+} from '../../services/staffApi';
 import {
   listContracts,
   type ContractResponse,
@@ -59,9 +64,41 @@ function draftFromAssignment(assignment: CareAssignment): Draft {
   };
 }
 
+function periodOverlaps(
+  periodStart: string,
+  periodEnd: string | null | undefined,
+  windowStart: string,
+  windowEnd: string,
+): boolean {
+  const effectiveEnd = periodEnd ?? '9999-12-31';
+  return periodStart <= windowEnd && effectiveEnd >= windowStart;
+}
+
+function staffHistoryCanCover(
+  staff: StaffResponse,
+  details: StaffDetailResponse | undefined,
+  employmentId: number,
+  windowStart: string,
+  windowEnd: string,
+): boolean {
+  const employment = (details?.employments ?? []).find((item) => item.id === employmentId)
+    ?? (staff.current_employment?.id === employmentId ? staff.current_employment : null);
+  if (!employment || !periodOverlaps(employment.start_date, employment.end_date, windowStart, windowEnd)) {
+    return false;
+  }
+  const positions = details?.positions?.filter((item) => item.employment_id === employmentId)
+    ?? (staff.current_employment?.id === employmentId ? staff.current_positions ?? [] : []);
+  return positions.some(
+    (position) =>
+      position.position_code === 'CARE_WORKER'
+      && periodOverlaps(position.start_date, position.end_date, windowStart, windowEnd),
+  );
+}
+
 export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
   const [contracts, setContracts] = useState<ContractResponse[]>([]);
   const [staff, setStaff] = useState<StaffResponse[]>([]);
+  const [staffDetails, setStaffDetails] = useState<Record<number, StaffDetailResponse>>({});
   const [contractId, setContractId] = useState<string>('');
   const [assignments, setAssignments] = useState<CareAssignment[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -71,22 +108,48 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const generationRef = useRef(0);
 
-  const eligibleStaff = useMemo(
-    () =>
-      staff.filter(
-        (item) =>
-          item.current_employment &&
-          (item.current_positions ?? []).some(
-            (position) => position.position_code === 'CARE_WORKER',
-          ),
-      ),
-    [staff],
-  );
-
   const activeContracts = useMemo(
     () => contracts.filter((contract) => !contract.invalidated_at_utc),
     [contracts],
   );
+
+  const selectedContract = useMemo(
+    () => activeContracts.find((contract) => String(contract.id) === contractId),
+    [activeContracts, contractId],
+  );
+
+  const eligibleStaff = useMemo(() => {
+    const windowStart = draft.startDate || selectedContract?.start_date || '';
+    const windowEnd = draft.endDate || selectedContract?.end_date || '9999-12-31';
+    if (!windowStart) return [];
+    const choices = new Map<string, { staff: StaffResponse; employmentId: number }>();
+    for (const item of staff) {
+      const details = staffDetails[item.id];
+      const employments = details?.employments
+        ?? (item.current_employment ? [item.current_employment] : []);
+      for (const employment of employments) {
+        if (!staffHistoryCanCover(item, details, employment.id, windowStart, windowEnd)) continue;
+        choices.set(assignmentKey(item.id, employment.id), {
+          staff: item,
+          employmentId: employment.id,
+        });
+      }
+    }
+
+    const editingAssignment = editingId
+      ? assignments.find((assignment) => assignment.id === editingId)
+      : null;
+    if (editingAssignment) {
+      const editingStaff = staff.find((item) => item.id === editingAssignment.staff_id);
+      const key = assignmentKey(editingAssignment.staff_id, editingAssignment.employment_id);
+      if (editingStaff && !choices.has(key)) {
+        choices.set(key, { staff: editingStaff, employmentId: editingAssignment.employment_id });
+      }
+    }
+    return [...choices.values()].sort((left, right) =>
+      staffLabel(left.staff).localeCompare(staffLabel(right.staff), 'ko'),
+    );
+  }, [assignments, draft.endDate, draft.startDate, editingId, selectedContract, staff, staffDetails]);
 
   const loadAssignments = useCallback(
     async (nextContractId: string, generation: number) => {
@@ -108,19 +171,41 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     setAssignments([]);
     setContracts([]);
     setStaff([]);
+    setStaffDetails({});
     try {
-      const [contractResponse, staffResponse] = await Promise.all([
-        listContracts(recipientId),
-        fetchStaffPage({ page: 1, pageSize: 200 }),
-      ]);
+      const contractResponse = await listContracts(recipientId);
       if (generation !== generationRef.current) return;
       const nextContracts = contractResponse.items ?? [];
       setContracts(nextContracts);
-      setStaff(staffResponse.items ?? []);
       const nextContract = nextContracts.find((item) => !item.invalidated_at_utc);
       const nextContractId = nextContract ? String(nextContract.id) : '';
       setContractId(nextContractId);
       await loadAssignments(nextContractId, generation);
+
+      // Staff access is independent from recipient assignment-history access.
+      // A 403 here must not hide the already-authorized contract history.
+      try {
+        const staffResponse = await fetchAllStaff();
+        if (generation !== generationRef.current) return;
+        setStaff(staffResponse.items);
+        const detailEntries = await Promise.all(
+          staffResponse.items.map(async (item) => {
+            try {
+              return [item.id, await fetchStaffDetail(item.id)] as const;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        if (generation !== generationRef.current) return;
+        setStaffDetails(
+          Object.fromEntries(detailEntries.filter((entry): entry is readonly [number, StaffDetailResponse] => entry !== null)),
+        );
+      } catch (staffError) {
+        if (generation === generationRef.current && !(staffError instanceof ApiError && staffError.status === 403)) {
+          setError(errorMessage(staffError));
+        }
+      }
     } catch (requestError) {
       if (generation === generationRef.current) setError(errorMessage(requestError));
     } finally {
@@ -138,13 +223,17 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
   }, [load]);
 
   const handleContractChange = (nextContractId: string) => {
+    const generation = ++generationRef.current;
     setContractId(nextContractId);
     setEditingId(null);
     setDraft(EMPTY_DRAFT);
-    const generation = generationRef.current;
+    setAssignments([]);
+    setLoading(true);
     setError(null);
     void loadAssignments(nextContractId, generation).catch((requestError: unknown) => {
       if (generation === generationRef.current) setError(errorMessage(requestError));
+    }).finally(() => {
+      if (generation === generationRef.current) setLoading(false);
     });
   };
 
@@ -243,10 +332,10 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
                   disabled={saving}
                 >
                   <option value="">선택하세요</option>
-                  {eligibleStaff.map((item) => (
+                  {eligibleStaff.map(({ staff: item, employmentId }) => (
                     <option
-                      key={item.id}
-                      value={assignmentKey(item.id, item.current_employment!.id)}
+                      key={assignmentKey(item.id, employmentId)}
+                      value={assignmentKey(item.id, employmentId)}
                     >
                       {staffLabel(item)}
                     </option>
