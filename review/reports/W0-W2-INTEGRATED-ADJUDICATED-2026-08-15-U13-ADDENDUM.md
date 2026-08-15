@@ -1,9 +1,11 @@
 # U-13 W1E 전문직 담당 workspace 후보 부록
 
-> 상태: `IMPLEMENTED_REVIEW_PENDING`
+> 상태: `IMPLEMENTED_REVIEWED`
 > 기준 브랜치: `codex/u13-professional-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `a076beb` (`perf(u13): batch assignment staff history queries`)
+> 최종 후보: `d2af57c175455f5e47a8fcc893c0cb124aa175aa` (`docs(u13): pin batched staff option candidate`)
+> 정기 `/review`: 최신 커밋 기준 지적 없음
+> 최종 로컬 보안 diff scan: `0 findings` (scan `eac6f292-5da6-43a1-9c9a-baaa2279ba45`)
 
 ## 범위
 
@@ -43,10 +45,10 @@ live 증거를 새로 주장하지 않는다.
 
 | 검사 | 결과 |
 |---|---|
-| U-13 frontend focused | `1 file / 7 passed` |
+| U-13 frontend focused (리뷰 후 재실행) | `1 file / 7 passed` |
 | frontend supported suite | `26 files / 236 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
-| W2 backend contract | `11 passed` |
+| W2 backend contract (리뷰 후 재실행) | `11 passed` |
 | OpenAPI generation | `OPENAPI_TYPES_UP_TO_DATE` |
 | changed frontend oxlint | exit `0` |
 | changed backend Ruff/py_compile | exit `0` |
@@ -59,6 +61,7 @@ live 증거를 새로 주장하지 않는다.
   표현하지 않는다. 상세 공백 시각화는 후속 UI 범위다.
 - 실제 PostgreSQL 권한·exclusion·replacement trigger 검증은 기존 W2 backend
   contract/PG evidence의 범위이며 이 후보의 새 live 증거가 아니다.
-- 현재 후보 `a076beb`에 대해 `/review`를 다시 요청하고, 지적사항 수정 후 최종 SHA를
-  다시 고정해야 한다. 이 부록은
-  W1F PASS·release 승인·최종 보안검사를 의미하지 않는다.
+- 현재 최종 후보는 `d2af57c175455f5e47a8fcc893c0cb124aa175aa`이며, 최신 `/review`는
+  지적 없이 종료됐다. 최종 로컬 보안 diff scan도 reportable finding `0`으로 봉인됐다.
+- 보안 scan은 정적 diff 범위이며, live PostgreSQL·인증 브라우저·운영 배포 perimeter는
+  검증하지 않았다. 이 부록은 W1F PASS·release 승인·전체 W0~W2 acceptance를 의미하지 않는다.
