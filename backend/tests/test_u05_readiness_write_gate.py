@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -68,7 +69,7 @@ def test_database_readiness_rejects_stale_or_missing_migration_head(
 ) -> None:
     monkeypatch.setattr(
         session,
-        "create_postgres_engine",
+        "_readiness_engine",
         lambda _url: _FakeEngine(["20260813_0024_w2_service_plan_notice_current"]),
     )
 
@@ -84,7 +85,7 @@ def test_database_readiness_rejects_missing_or_multiple_migration_heads(
     for revision_values in ([], ["20260813_0025_w1_relationship_lock_contract_correction"] * 2):
         monkeypatch.setattr(
             session,
-            "create_postgres_engine",
+            "_readiness_engine",
             lambda _url, values=revision_values: _FakeEngine(values),
         )
 
@@ -92,6 +93,31 @@ def test_database_readiness_rejects_missing_or_multiple_migration_heads(
 
         assert ready is False
         assert reason == "migration_revision_invalid"
+
+
+def test_readiness_engine_is_shared_and_uses_a_bounded_pool(monkeypatch: Any) -> None:
+    created: list[tuple[str, dict[str, object]]] = []
+    fake_engine = object()
+
+    def fake_create(database_url: str, **kwargs: object) -> object:
+        created.append((database_url, kwargs))
+        return fake_engine
+
+    monkeypatch.setattr(session, "create_postgres_engine", fake_create)
+    session._READINESS_ENGINES.clear()
+    try:
+        first = session._readiness_engine("postgresql://example.invalid/sswcenter")
+        second = session._readiness_engine("postgresql://example.invalid/sswcenter")
+    finally:
+        session._READINESS_ENGINES.clear()
+
+    assert first is second is fake_engine
+    assert created == [
+        (
+            "postgresql://example.invalid/sswcenter",
+            {"pool_size": 1, "max_overflow": 0},
+        )
+    ]
 
 
 def test_application_readiness_requires_runtime_root_and_logs_directory(
@@ -114,6 +140,24 @@ def test_application_readiness_requires_runtime_root_and_logs_directory(
     (tmp_path / "logs").mkdir()
     ready, reason = session.application_is_ready(settings)
     assert (ready, reason) == (True, None)
+
+
+def test_directory_probe_uses_one_stable_per_process_marker(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    opened: list[str] = []
+    original_open = Path.open
+
+    def spy_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        opened.append(path.name)
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", spy_open)
+
+    assert session._probe_directory_write(tmp_path) is True
+    assert opened == [f".sswcenter-readiness-{os.getpid()}.tmp"]
+    assert not (tmp_path / opened[0]).exists()
 
 
 def test_runtime_paths_use_a_real_create_delete_probe(

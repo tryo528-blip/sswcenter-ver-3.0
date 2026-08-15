@@ -47,6 +47,17 @@ $ClusterStarted = $false
 $PreviousTemp = [Environment]::GetEnvironmentVariable("TEMP", "Process")
 $PreviousTmp = [Environment]::GetEnvironmentVariable("TMP", "Process")
 $PreviousTmpDir = [Environment]::GetEnvironmentVariable("TMPDIR", "Process")
+$ProcessEnvironmentNames = @(
+    "PGCLIENTENCODING",
+    "SSWCENTER_ENVIRONMENT",
+    "SSWCENTER_DATABASE_URL",
+    "SSWCENTER_DATA_ROOT",
+    "SSWCENTER_U05_LIVE"
+)
+$PreviousProcessEnvironment = @{}
+foreach ($Name in $ProcessEnvironmentNames) {
+    $PreviousProcessEnvironment[$Name] = [Environment]::GetEnvironmentVariable($Name, "Process")
+}
 
 $env:TEMP = $TempRoot
 $env:TMP = $TempRoot
@@ -95,11 +106,14 @@ try {
     Write-Output "U05_EPHEMERAL_POSTGRES_GREEN"
 }
 finally {
-    Remove-Item Env:PGCLIENTENCODING -ErrorAction SilentlyContinue
-    Remove-Item Env:SSWCENTER_ENVIRONMENT -ErrorAction SilentlyContinue
-    Remove-Item Env:SSWCENTER_DATABASE_URL -ErrorAction SilentlyContinue
-    Remove-Item Env:SSWCENTER_DATA_ROOT -ErrorAction SilentlyContinue
-    Remove-Item Env:SSWCENTER_U05_LIVE -ErrorAction SilentlyContinue
+    foreach ($Name in $ProcessEnvironmentNames) {
+        $PreviousValue = $PreviousProcessEnvironment[$Name]
+        if ($null -eq $PreviousValue) {
+            Remove-Item -LiteralPath "Env:$Name" -ErrorAction SilentlyContinue
+        } else {
+            Set-Item -LiteralPath "Env:$Name" -Value $PreviousValue
+        }
+    }
     if ($null -eq $PreviousTemp) {
         Remove-Item Env:TEMP -ErrorAction SilentlyContinue
     } else {
