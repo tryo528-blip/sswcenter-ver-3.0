@@ -4,6 +4,8 @@ import gzip
 import json
 import logging
 
+import pytest
+
 from app.core.logging import DailySizeCompressedFileHandler, SensitiveDataFilter
 from app.domains.staff.policies import normalize_sensitive_text
 
@@ -50,6 +52,51 @@ def test_structured_sensitive_values_are_redacted() -> None:
     assert "session-secret" not in message
     assert "csrf-secret" not in message
     assert message.count("[REDACTED]") == 3
+
+
+@pytest.mark.parametrize(
+    ("message", "secret"),
+    (
+        ("PIN 123456", "123456"),
+        ("PIN -> 123456", "123456"),
+        ("PIN => 123456", "123456"),
+        ("PIN: 123456", "123456"),
+        ("PIN|123456", "123456"),
+        ("current_pin 654321", "654321"),
+        ("PIN 12345", "12345"),
+        ("PIN 1234567", "1234567"),
+    ),
+)
+def test_unstructured_pin_separators_are_redacted(message: str, secret: str) -> None:
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg=message,
+        args=(),
+        exc_info=None,
+    )
+
+    assert SensitiveDataFilter().filter(record)
+    redacted = record.getMessage()
+    assert secret not in redacted
+    assert "[REDACTED]" in redacted
+
+
+def test_pin_word_without_a_numeric_value_is_not_over_redacted() -> None:
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="PIN rejected by policy",
+        args=(),
+        exc_info=None,
+    )
+
+    assert SensitiveDataFilter().filter(record)
+    assert record.getMessage() == "PIN rejected by policy"
 
 
 def test_staff_identity_and_current_pin_are_redacted() -> None:

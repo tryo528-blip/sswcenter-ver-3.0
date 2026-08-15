@@ -33,6 +33,14 @@ class SensitiveDataFilter(logging.Filter):
         ),
         (
             re.compile(
+                r"(?ix)\b(pin|current_pin)\b"
+                r"(\s*(?:->|=>|[-–—=:|/])\s*|\s+)"
+                r"([0-9][^\s,;]*)"
+            ),
+            r"\1\2[REDACTED]",
+        ),
+        (
+            re.compile(
                 r"(?i)\b("
                 r"resident_number(?:_ciphertext|_nonce|_lookup_hmac|_key_version)?"
                 r"|current_pin"
