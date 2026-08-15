@@ -29,6 +29,7 @@ import type {
   RecipientListResponse,
   RecipientListServiceGroupItem,
   RecipientListStatusFilter,
+  RecipientInputSexCode,
   RecipientSexCode,
   RecipientStatus,
   RecipientUpdateRequest,
@@ -301,10 +302,12 @@ function formatMobilePhoneInput(value: string): string {
 }
 
 function recipientCreatePayload(form: RecipientFormState): RecipientCreateRequest {
+  const sexCode: RecipientInputSexCode | null =
+    form.sex_code === 'MALE' || form.sex_code === 'FEMALE' ? form.sex_code : null;
   return {
     name: optionalText(form.name),
     birth_date: form.birth_date || null,
-    sex_code: form.sex_code || null,
+    sex_code: sexCode,
     postal_code: optionalText(form.postal_code),
     address: optionalText(form.address),
     mobile_phone: form.mobile_phone.trim(),
@@ -385,7 +388,11 @@ function recipientChangedFieldsPayload(
   for (const field of changed) {
     if (field === 'name') payload.name = next.name;
     else if (field === 'birth_date') payload.birth_date = next.birth_date;
-    else if (field === 'sex_code') payload.sex_code = next.sex_code as RecipientSexCode | null;
+    else if (field === 'sex_code') {
+      if (next.sex_code === 'MALE' || next.sex_code === 'FEMALE' || next.sex_code === null) {
+        payload.sex_code = next.sex_code as RecipientInputSexCode | null;
+      }
+    }
     else if (field === 'recipient_status') {
       payload.recipient_status = next.recipient_status as RecipientStatus;
     } else if (field === 'postal_code') payload.postal_code = next.postal_code;
@@ -415,7 +422,8 @@ function validateDetailRecipient(raw: unknown, expectedId: string): Recipient | 
   if (
     candidate.sex_code !== null &&
     candidate.sex_code !== 'MALE' &&
-    candidate.sex_code !== 'FEMALE'
+    candidate.sex_code !== 'FEMALE' &&
+    candidate.sex_code !== 'TEST'
   ) return null;
   if (typeof candidate.mobile_phone !== 'string' || !candidate.mobile_phone.trim()) return null;
   // payer_guardian_id: null = self; positive number = guardian; missing treated as null for older mocks.
@@ -2205,17 +2213,28 @@ export const RecipientsPage = () => {
                     value={createOpen ? recipientForm.sex_code : detailForm.sex_code}
                     onChange={(event) => {
                       const sexCode = event.target.value as RecipientSexCode | '';
+                      if (sexCode === 'TEST' || (!createOpen && detailForm.sex_code === 'TEST')) {
+                        return;
+                      }
                       if (createOpen) {
                         setRecipientForm((current) => ({ ...current, sex_code: sexCode }));
                         return;
                       }
                       setDetailForm((current) => ({ ...current, sex_code: sexCode }));
                     }}
-                    disabled={basicEditOpen && inputsLocked}
+                    disabled={
+                      (basicEditOpen && inputsLocked) ||
+                      (!createOpen && detailForm.sex_code === 'TEST')
+                    }
                   >
                     <option value="">미입력</option>
                     <option value="MALE">남성</option>
                     <option value="FEMALE">여성</option>
+                    {!createOpen && detailForm.sex_code === 'TEST' ? (
+                      <option value="TEST" disabled>
+                        합성(TEST · 읽기 전용)
+                      </option>
+                    ) : null}
                   </select>
                 ) : (
                   <strong>
@@ -2223,7 +2242,9 @@ export const RecipientsPage = () => {
                       ? '남성'
                       : detailViewRecipient?.sex_code === 'FEMALE'
                         ? '여성'
-                        : '없음'}
+                        : detailViewRecipient?.sex_code === 'TEST'
+                          ? '합성(TEST)'
+                          : '없음'}
                   </strong>
                 )}
               </div>

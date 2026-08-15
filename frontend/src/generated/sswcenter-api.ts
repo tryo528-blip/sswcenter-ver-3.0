@@ -2048,7 +2048,7 @@ export interface components {
             name?: string | null;
             /** Birth Date */
             birth_date?: string | null;
-            sex_code?: components["schemas"]["RecipientSexCode"] | null;
+            sex_code?: components["schemas"]["RecipientInputSexCode"] | null;
             /** Postal Code */
             postal_code?: string | null;
             /** Address */
@@ -2227,10 +2227,15 @@ export interface components {
             row_version: number;
         };
         /**
+         * RecipientInputSexCode
+         * @enum {string}
+         */
+        RecipientInputSexCode: "MALE" | "FEMALE";
+        /**
          * RecipientSexCode
          * @enum {string}
          */
-        RecipientSexCode: "MALE" | "FEMALE";
+        RecipientSexCode: "MALE" | "FEMALE" | "TEST";
         /**
          * RecipientStatus
          * @description Manually assigned recipient display/filter tag (memo-like).
@@ -2248,7 +2253,7 @@ export interface components {
             name?: string | null;
             /** Birth Date */
             birth_date?: string | null;
-            sex_code?: components["schemas"]["RecipientSexCode"] | null;
+            sex_code?: components["schemas"]["RecipientInputSexCode"] | null;
             /** Recipient Status */
             recipient_status?: components["schemas"]["RecipientStatus"];
             /** Postal Code */

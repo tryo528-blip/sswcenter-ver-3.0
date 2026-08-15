@@ -7,6 +7,7 @@ export type RecipientStatus = Schemas['RecipientStatus'];
 export type RecipientListStatusFilter = Schemas['RecipientListStatusFilter'];
 export type RecipientListServiceGroupItem = Schemas['RecipientListServiceGroupItem'];
 export type RecipientListServiceTypeItem = Schemas['RecipientListServiceTypeItem'];
+export type RecipientInputSexCode = Schemas['RecipientInputSexCode'];
 export type RecipientSexCode = Schemas['RecipientSexCode'];
 
 // These recipient contracts intentionally mirror the current backend schema.
@@ -15,7 +16,7 @@ export type RecipientSexCode = Schemas['RecipientSexCode'];
 export interface RecipientCreateRequest {
   name?: string | null;
   birth_date?: string | null;
-  sex_code?: RecipientSexCode | null;
+  sex_code?: RecipientInputSexCode | null;
   postal_code?: string | null;
   address?: string | null;
   mobile_phone: string;
@@ -26,7 +27,7 @@ export interface RecipientUpdateRequest {
   expected_row_version: number;
   name?: string | null;
   birth_date?: string | null;
-  sex_code?: RecipientSexCode | null;
+  sex_code?: RecipientInputSexCode | null;
   recipient_status?: RecipientStatus;
   postal_code?: string | null;
   address?: string | null;

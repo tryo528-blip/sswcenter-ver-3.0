@@ -101,6 +101,7 @@ function hasRecipientRowWithExactName(name: string): boolean {
 
 function installRecipientListFetch(
   resolveList: (query: ListQuery) => RecipientListResponse,
+  detailOverrides: Partial<RecipientListItem> = {},
 ): { requests: ListQuery[] } {
   const requests: ListQuery[] = [];
 
@@ -118,7 +119,7 @@ function installRecipientListFetch(
 
     if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
       const id = Number(url.pathname.split('/').pop());
-      const item = listItem({ id: Number.isFinite(id) ? id : 1 });
+      const item = listItem({ id: Number.isFinite(id) ? id : 1, ...detailOverrides });
       if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
       return jsonResponse({
         id: item.id,
@@ -244,6 +245,78 @@ describe('REC-LIST frontend contract', () => {
     expect(within(row).queryByText('이용중')).toBeNull();
     expect(within(row).queryByText('계약종료')).toBeNull();
     expect(within(row).queryByText('대기중')).toBeNull();
+  });
+
+  test('TEST sentinel detail response is accepted but the sex control stays read-only', async () => {
+    installRecipientListFetch(
+      () => listResponse([listItem({ id: 15, name: '합성 수급자', sex_code: 'TEST' })]),
+      { sex_code: 'TEST' },
+    );
+
+    render(<RecipientsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: /합성 수급자/ }));
+
+    const sexSelect = await screen.findByTestId('recipient-detail-sex-code-select');
+    await waitFor(() => expect(sexSelect).toHaveValue('TEST'));
+    expect(sexSelect).toBeDisabled();
+    expect(screen.getByRole('option', { name: /합성\(TEST · 읽기 전용\)/ })).toBeDisabled();
+  });
+
+  test('clearing an existing sex value sends an explicit null update', async () => {
+    const batchBodies: Array<Record<string, unknown>> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const rawUrl =
+        typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString();
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse(listResponse([listItem({ id: 16, name: '성별초기화' })]));
+      }
+      if (isBasicUpdateBatch(url, method)) {
+        const body = parseJsonBody(init);
+        batchBodies.push(body);
+        return jsonResponse({
+          recipient: {
+            ...listItem({ id: 16, name: '성별초기화', sex_code: null }),
+            recipient_status: 'ACTIVE',
+            payer_guardian_id: null,
+          },
+          guardians: [],
+          saved_sections: ['recipient'],
+        });
+      }
+      if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
+        if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
+        if (url.pathname.endsWith('/benefit-periods')) return jsonResponse({ items: [] });
+        return jsonResponse({
+          id: 16,
+          name: '성별초기화',
+          birth_date: '1950-03-15',
+          sex_code: 'FEMALE',
+          recipient_status: 'ACTIVE',
+          recipient_no: 'R-016',
+          postal_code: null,
+          address: null,
+          mobile_phone: '010-1111-2222',
+          memo: null,
+          payer_guardian_id: null,
+          row_version: 1,
+        });
+      }
+      return jsonResponse({ detail: { code: 'not_found' } }, 404);
+    }) as typeof globalThis.fetch;
+
+    render(<RecipientsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: /성별초기화/ }));
+    await waitFor(() => expect(screen.getByTestId('recipient-detail-sex-code-select')).toHaveValue('FEMALE'));
+    enterBasicEdit();
+    fireEvent.change(screen.getByTestId('recipient-detail-sex-code-select'), { target: { value: '' } });
+    fireEvent.click(screen.getByTestId('recipient-basic-save'));
+
+    await waitFor(() => expect(batchBodies).toHaveLength(1));
+    expect(batchBodies[0].recipient).toEqual(
+      expect.objectContaining({ sex_code: null, expected_row_version: 1 }),
+    );
   });
 
   test('detail name save goes through basic-batch and shows success/error', async () => {
