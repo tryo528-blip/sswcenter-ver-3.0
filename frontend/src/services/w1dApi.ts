@@ -55,8 +55,12 @@ export interface ContractListResponse {
 
 export async function listContracts(
   recipientId: number | string,
+  signal?: AbortSignal,
 ): Promise<ContractListResponse> {
-  return apiRequest(`/api/v1/recipients/${w1dIdPath(recipientId)}/contracts`);
+  return apiRequest(`/api/v1/recipients/${w1dIdPath(recipientId)}/contracts`, {
+    method: 'GET',
+    signal,
+  });
 }
 
 export async function createContract(

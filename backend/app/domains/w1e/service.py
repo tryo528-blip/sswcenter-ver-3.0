@@ -45,6 +45,7 @@ class W1EService:
         constraint = _constraint_name(error)
         mapping = {
             "ex_care_assignment_same_contract_staff_period": "CARE_ASSIGNMENT_PERIOD_CONFLICT",
+            "fk_care_assignment_employment": "CARE_ASSIGNMENT_STAFF_INELIGIBLE",
             "ct_care_assignment_within_contract": "CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD",
             "ct_care_assignment_within_employment": "CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD",
             "ct_care_assignment_within_position": "CARE_ASSIGNMENT_STAFF_INELIGIBLE",

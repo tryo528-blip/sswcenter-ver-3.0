@@ -156,3 +156,18 @@ def test_u12_error_mapping_is_fail_closed_for_unknown_database_errors() -> None:
     mapped = W1EService._map_integrity_error(error)
     assert mapped.code == "UNEXPECTED_SERVER_ERROR"
     assert mapped.status_code == 500
+
+
+def test_u12_error_mapping_rejects_mismatched_staff_employment_as_eligibility_error() -> None:
+    class EmploymentForeignKeyDiagnostic:
+        constraint_name = "fk_care_assignment_employment"
+
+    class EmploymentForeignKeyOriginal:
+        diag = EmploymentForeignKeyDiagnostic()
+
+    from sqlalchemy.exc import IntegrityError
+
+    error = IntegrityError("statement", {}, EmploymentForeignKeyOriginal())
+    mapped = W1EService._map_integrity_error(error)
+    assert mapped.code == "CARE_ASSIGNMENT_STAFF_INELIGIBLE"
+    assert mapped.status_code == 409

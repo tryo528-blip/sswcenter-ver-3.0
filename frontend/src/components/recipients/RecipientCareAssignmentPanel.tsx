@@ -121,21 +121,25 @@ type StaffContext = {
 
 async function mapStaffContexts(
   staffItems: StaffResponse[],
+  signal?: AbortSignal,
 ): Promise<ReadonlyMap<number, StaffContext>> {
   const entries: Array<readonly [number, StaffContext] | null> = new Array(staffItems.length).fill(null);
   let nextIndex = 0;
 
   async function worker(): Promise<void> {
     while (true) {
+      if (signal?.aborted) return;
       const index = nextIndex++;
       if (index >= staffItems.length) return;
       const item = staffItems[index];
       try {
-        const detail = await fetchStaffDetail(item.id);
+        const detail = await fetchStaffDetail(item.id, signal);
+        if (signal?.aborted) return;
         let qualifications: StaffServiceQualificationResponse[] = [];
         try {
-          qualifications = (await fetchStaffServiceQualifications(item.id)).items ?? [];
+          qualifications = (await fetchStaffServiceQualifications(item.id, signal)).items ?? [];
         } catch {
+          if (signal?.aborted) return;
           // GENERAL choices fail closed without qualification evidence; FAMILY
           // choices can still use employment/position history.
         }
@@ -144,6 +148,7 @@ async function mapStaffContexts(
           qualifications,
         }];
       } catch {
+        if (signal?.aborted) return;
         entries[index] = null;
       }
     }
@@ -177,6 +182,7 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generationRef = useRef(0);
+  const staffLoadAbortRef = useRef<AbortController | null>(null);
 
   const activeContracts = useMemo(
     () => contracts.filter((contract) => !contract.invalidated_at_utc),
@@ -261,6 +267,9 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
   );
 
   const load = useCallback(async () => {
+    staffLoadAbortRef.current?.abort();
+    const staffLoadController = new AbortController();
+    staffLoadAbortRef.current = staffLoadController;
     const generation = ++generationRef.current;
     setLoading(true);
     setError(null);
@@ -270,7 +279,7 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     setStaffDetails({});
     setStaffQualifications({});
     try {
-      const contractResponse = await listContracts(recipientId);
+      const contractResponse = await listContracts(recipientId, staffLoadController.signal);
       if (generation !== generationRef.current) return;
       const nextContracts = contractResponse.items ?? [];
       setContracts(nextContracts);
@@ -282,10 +291,13 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
       // Staff access is independent from recipient assignment-history access.
       // A 403 here must not hide the already-authorized contract history.
       try {
-        const staffResponse = await fetchAllStaff();
+      const staffResponse = await fetchAllStaff(staffLoadController.signal);
         if (generation !== generationRef.current) return;
         setStaff(staffResponse.items);
-        const contextEntries = await mapStaffContexts(staffResponse.items);
+        const contextEntries = await mapStaffContexts(
+          staffResponse.items,
+          staffLoadController.signal,
+        );
         if (generation !== generationRef.current) return;
         setStaffDetails(
           Object.fromEntries(
@@ -315,6 +327,8 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     void load();
     return () => {
       generationRef.current += 1;
+      staffLoadAbortRef.current?.abort();
+      staffLoadAbortRef.current = null;
     };
   }, [load]);
 

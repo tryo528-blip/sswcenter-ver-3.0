@@ -2638,7 +2638,7 @@ export const RecipientsPage = () => {
               ) : null}
               {activeId ? (
                 <RecipientCareAssignmentPanel
-                  key={`care-assignment-${activeId}-${detailBatchRevision}`}
+                  key={`care-assignment-${activeId}-${detailBatchRevision}-${workspaceReload}`}
                   recipientId={activeId}
                 />
               ) : null}
