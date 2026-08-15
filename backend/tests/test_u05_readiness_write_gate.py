@@ -178,6 +178,22 @@ def test_runtime_paths_use_a_real_create_delete_probe(
     assert (ready, reason) == (False, "logs_path_not_writable")
 
 
+def test_runtime_path_metadata_denial_fails_closed(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    original_is_dir = Path.is_dir
+
+    def deny_root_metadata(path: Path) -> bool:
+        if path == tmp_path:
+            raise PermissionError("metadata denied")
+        return original_is_dir(path)
+
+    monkeypatch.setattr(Path, "is_dir", deny_root_metadata)
+
+    assert session.runtime_paths_are_ready(tmp_path) == (False, "data_root_not_writable")
+
+
 def test_runtime_paths_probe_append_access_for_configured_logs(
     monkeypatch: Any,
     tmp_path: Path,

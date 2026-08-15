@@ -136,19 +136,25 @@ def runtime_paths_are_ready(data_root: Path | None) -> tuple[bool, str | None]:
 
     if data_root is None:
         return False, "data_root_not_configured"
-    if not data_root.is_dir():
-        return False, "data_root_missing"
-    if not os.access(data_root, os.R_OK | os.X_OK) or not _probe_directory_write(data_root):
+    try:
+        if not data_root.is_dir():
+            return False, "data_root_missing"
+        if not os.access(data_root, os.R_OK | os.X_OK) or not _probe_directory_write(data_root):
+            return False, "data_root_not_writable"
+    except OSError:
         return False, "data_root_not_writable"
 
     logs_root = data_root / "logs"
-    if not logs_root.is_dir():
-        return False, "logs_path_missing"
-    if (
-        not os.access(logs_root, os.R_OK | os.X_OK)
-        or not _probe_directory_write(logs_root)
-        or not _probe_log_append(logs_root)
-    ):
+    try:
+        if not logs_root.is_dir():
+            return False, "logs_path_missing"
+        if (
+            not os.access(logs_root, os.R_OK | os.X_OK)
+            or not _probe_directory_write(logs_root)
+            or not _probe_log_append(logs_root)
+        ):
+            return False, "logs_path_not_writable"
+    except OSError:
         return False, "logs_path_not_writable"
     return True, None
 
