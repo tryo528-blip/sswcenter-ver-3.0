@@ -364,6 +364,8 @@ def test_staff_permission_matrix_and_capabilities(admin_client: TestClient) -> N
             "staff.view": True,
             "staff.manage": True,
             "staff.sensitive_identity.reveal": True,
+            "recipient.view": True,
+            "recipient.manage": True,
         }
 
         viewer_capabilities = viewer.get("/api/v1/session-capabilities")
@@ -372,6 +374,8 @@ def test_staff_permission_matrix_and_capabilities(admin_client: TestClient) -> N
             "staff.view": True,
             "staff.manage": False,
             "staff.sensitive_identity.reveal": False,
+            "recipient.view": True,
+            "recipient.manage": False,
         }
         assert viewer.get("/api/v1/staff").status_code == 200
         viewer_detail = viewer.get(f"/api/v1/staff/{admin_staff_id}")

@@ -323,6 +323,8 @@ class SessionCapabilitiesResponse(StrictModel):
     staff_view: bool = Field(alias="staff.view")
     staff_manage: bool = Field(alias="staff.manage")
     staff_sensitive_identity_reveal: bool = Field(alias="staff.sensitive_identity.reveal")
+    recipient_view: bool = Field(alias="recipient.view")
+    recipient_manage: bool = Field(alias="recipient.manage")
 
 
 class ServiceTypeResponse(StrictModel):

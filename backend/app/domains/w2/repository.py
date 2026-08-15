@@ -46,6 +46,71 @@ class W2Repository:
     def staff(self, staff_id: int) -> Staff | None:
         return self.session.get(Staff, staff_id)
 
+    def professional_assignment_staff_options(
+        self,
+        *,
+        search: str | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[
+        list[tuple[Staff, list[StaffEmployment], list[StaffPositionPeriod]]],
+        int,
+    ]:
+        professional_staff_ids = select(StaffPositionPeriod.staff_id).where(
+            StaffPositionPeriod.position_code.in_(("SOCIAL_WORKER", "NURSE")),
+        )
+        filters = [Staff.id.in_(professional_staff_ids)]
+        if search:
+            escaped = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
+            filters.append(
+                or_(
+                    Staff.name.ilike(pattern, escape="\\"),
+                    Staff.display_name.ilike(pattern, escape="\\"),
+                )
+            )
+        count_statement = select(func.count()).select_from(Staff).where(*filters)
+        total = int(self.session.scalar(count_statement) or 0)
+        staff_items = list(
+            self.session.scalars(
+                select(Staff)
+                .where(*filters)
+                .order_by(Staff.name.asc(), Staff.id.asc())
+                .offset(offset)
+                .limit(limit)
+            ).all()
+        )
+        staff_ids = [staff.id for staff in staff_items]
+        employment_by_staff: dict[int, list[StaffEmployment]] = {}
+        for employment in self.session.scalars(
+            select(StaffEmployment)
+            .where(
+                StaffEmployment.staff_id.in_(staff_ids),
+                StaffEmployment.invalidated_at_utc.is_(None),
+            )
+            .order_by(StaffEmployment.start_date.desc(), StaffEmployment.id.desc())
+        ).all():
+            employment_by_staff.setdefault(employment.staff_id, []).append(employment)
+        position_by_staff: dict[int, list[StaffPositionPeriod]] = {}
+        for position in self.session.scalars(
+            select(StaffPositionPeriod)
+            .where(
+                StaffPositionPeriod.staff_id.in_(staff_ids),
+                StaffPositionPeriod.invalidated_at_utc.is_(None),
+            )
+            .order_by(StaffPositionPeriod.start_date.desc(), StaffPositionPeriod.id.desc())
+        ).all():
+            position_by_staff.setdefault(position.staff_id, []).append(position)
+        options = [
+            (
+                staff,
+                employment_by_staff.get(staff.id, []),
+                position_by_staff.get(staff.id, []),
+            )
+            for staff in staff_items
+        ]
+        return options, total
+
     def service_type(self, service_type_id: int) -> ServiceType | None:
         return self.session.get(ServiceType, service_type_id)
 

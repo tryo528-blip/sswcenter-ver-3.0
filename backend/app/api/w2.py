@@ -32,6 +32,7 @@ from app.domains.w2.schemas import (
     ProfessionalAssignmentHistoryResponse,
     ProfessionalAssignmentReplaceRequest,
     ProfessionalAssignmentResponse,
+    ProfessionalAssignmentStaffOptionListResponse,
     ScheduleCreateRequest,
     ScheduleDeleteRequest,
     ScheduleFinalizeRequest,
@@ -69,6 +70,28 @@ def get_w2_service(request: Request, database_session: DatabaseSession) -> W2Ser
 
 
 W2ServiceDependency = Annotated[W2Service, Depends(get_w2_service)]
+
+
+@router.get(
+    "/professional-assignments/staff-options",
+    response_model=ProfessionalAssignmentStaffOptionListResponse,
+    operation_id="listW2ProfessionalAssignmentStaffOptions",
+    responses=ERROR_RESPONSES,
+)
+def list_professional_assignment_staff_options(
+    current_account: RecipientManageAccountDependency,
+    service: W2ServiceDependency,
+    search: str | None = Query(default=None, max_length=200),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=200, ge=1, le=200),
+) -> ProfessionalAssignmentStaffOptionListResponse:
+    """Return the minimal staff/history projection only to assignment managers."""
+    del current_account
+    return service.list_professional_assignment_staff_options(
+        search=search,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get(

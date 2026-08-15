@@ -22,6 +22,7 @@ from app.db.w2_models import (
     W2ServicePlanNotice,
 )
 from app.domains.recipient.service_plan_notice import deadline_date, default_end_date
+from app.domains.staff.schemas import PositionCode
 from app.domains.w2.errors import domain_error
 from app.domains.w2.policies import (
     OfficialCardSource,
@@ -45,9 +46,13 @@ from app.domains.w2.schemas import (
     PersonalTodoResponse,
     PersonalTodoUpdateRequest,
     ProfessionalAssignmentCreateRequest,
+    ProfessionalAssignmentEmploymentCoverage,
     ProfessionalAssignmentHistoryResponse,
+    ProfessionalAssignmentPositionCoverage,
     ProfessionalAssignmentReplaceRequest,
     ProfessionalAssignmentResponse,
+    ProfessionalAssignmentStaffOptionListResponse,
+    ProfessionalAssignmentStaffOptionResponse,
     ScheduleAssignedStaffResponse,
     ScheduleCreateRequest,
     ScheduleDeleteRequest,
@@ -471,6 +476,60 @@ class W2Service:
                 422,
                 field="staff_id",
             )
+
+    @staticmethod
+    def _professional_assignment_staff_option(
+        staff: Any,
+        employments: list[Any],
+        positions: list[Any],
+    ) -> ProfessionalAssignmentStaffOptionResponse:
+        employment_responses = [
+            ProfessionalAssignmentEmploymentCoverage(
+                id=employment.id,
+                start_date=employment.start_date,
+                end_date=employment.end_date,
+            )
+            for employment in employments
+        ]
+        position_responses = [
+            ProfessionalAssignmentPositionCoverage(
+                id=position.id,
+                employment_id=position.employment_id,
+                position_code=PositionCode(position.position_code),
+                start_date=position.start_date,
+                end_date=position.end_date,
+            )
+            for position in positions
+        ]
+        return ProfessionalAssignmentStaffOptionResponse(
+            id=staff.id,
+            name=staff.name,
+            display_name=staff.display_name,
+            employments=employment_responses,
+            positions=position_responses,
+        )
+
+    def list_professional_assignment_staff_options(
+        self,
+        *,
+        search: str | None,
+        page: int,
+        page_size: int,
+    ) -> ProfessionalAssignmentStaffOptionListResponse:
+        options, total = self.repository.professional_assignment_staff_options(
+            search=search,
+            offset=(page - 1) * page_size,
+            limit=page_size,
+        )
+        return ProfessionalAssignmentStaffOptionListResponse(
+            items=[
+                self._professional_assignment_staff_option(staff, employments, positions)
+                for staff, employments, positions in options
+            ],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
 
     def create_professional_assignment(
         self,

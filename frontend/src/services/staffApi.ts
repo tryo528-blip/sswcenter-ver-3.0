@@ -13,6 +13,7 @@ type Schemas = components['schemas'];
 export type StaffCreateRequest = Schemas['StaffCreateRequest'];
 export type StaffCreateResponse = Schemas['StaffCreateResponse'];
 export type StaffDetailResponse = Schemas['StaffDetailResponse'];
+export type StaffResponse = Schemas['StaffResponse'];
 export type StaffEmploymentCloseRequest = Schemas['StaffEmploymentCloseRequest'];
 export type StaffEmploymentCreateRequest = Schemas['StaffEmploymentCreateRequest'];
 export type StaffListResponse = Schemas['StaffListResponse'];
