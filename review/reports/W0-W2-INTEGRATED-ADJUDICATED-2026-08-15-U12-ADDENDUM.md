@@ -3,7 +3,7 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u12-care-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `e9c5f29` (`feat(w1e): add caregiver assignment API and UI`)
+> 구현 후보: `467253e` (`fix(u12): decouple assignment history from staff access`)
 
 ## 범위
 
@@ -14,6 +14,9 @@
   `replacement_assignment_id`를 연결한다. 기존 업무 ID와 history는 유지한다.
 - 수급자 상세에 계약 선택, CARE_WORKER 직원 선택, GENERAL/FAMILY 기간 입력,
   관계 snapshot 입력, history와 정정 제어를 추가했다.
+- staff 권한이 없는 계정에서도 계약·배정 history 조회가 중단되지 않도록 staff
+  선택 로딩을 분리하고, staff 전체 페이지·기간별 employment/position history를
+  사용해 선택지를 구성한다. 계약 전환마다 stale 응답 generation도 폐기한다.
 - OpenAPI 생성 타입을 갱신했다.
 
 ## API surface
@@ -35,8 +38,8 @@ PUT  /api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments/
 |---|---|
 | U-12 backend focused | `28 passed` |
 | backend full | `397 passed, 139 skipped`; 기존 fixed-hash 1건만 실패 (`B37B...` 기대 vs 현재 `B0CC...`) |
-| U-12 frontend | `2 passed` |
-| frontend supported suite | `26 files / 231 passed` |
+| U-12 frontend | `4 passed` |
+| frontend supported suite | `26 files / 233 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
 | OpenAPI generation | `OPENAPI_TYPES_UP_TO_DATE` |
 | changed backend Ruff | exit `0` |
