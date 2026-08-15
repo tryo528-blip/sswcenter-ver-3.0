@@ -215,10 +215,22 @@ def staff_capabilities(
         current_account,
         {"STAFF_MANAGE"},
     )
+    can_recipient_view = _has_any_permission(
+        database_session,
+        current_account,
+        {"RECIPIENT_VIEW", "RECIPIENT_MANAGE"},
+    )
+    can_recipient_manage = _has_any_permission(
+        database_session,
+        current_account,
+        {"RECIPIENT_MANAGE"},
+    )
     return {
         "staff.view": can_view,
         "staff.manage": can_manage,
         "staff.sensitive_identity.reveal": can_manage,
+        "recipient.view": can_recipient_view,
+        "recipient.manage": can_recipient_manage,
     }
 
 

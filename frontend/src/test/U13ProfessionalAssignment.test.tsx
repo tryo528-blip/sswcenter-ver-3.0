@@ -101,6 +101,14 @@ const professionalStaffOption2 = {
   positions: professionalStaff2.current_positions,
 };
 
+const recipientCapabilities = {
+  'staff.view': true,
+  'staff.manage': true,
+  'staff.sensitive_identity.reveal': true,
+  'recipient.view': true,
+  'recipient.manage': true,
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -183,6 +191,9 @@ describe('U13 professional assignment client and workspace', () => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
       }
@@ -243,6 +254,9 @@ describe('U13 professional assignment client and workspace', () => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
       }
@@ -271,6 +285,9 @@ describe('U13 professional assignment client and workspace', () => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return url.searchParams.get('page') === '2'
           ? jsonResponse({ items: [recipient2], total: 2, page: 2, page_size: 200 })
@@ -310,6 +327,9 @@ describe('U13 professional assignment client and workspace', () => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient, recipient2], total: 2, page: 1, page_size: 200 });
       }
@@ -381,6 +401,9 @@ describe('U13 professional assignment client and workspace', () => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
       }
@@ -410,12 +433,62 @@ describe('U13 professional assignment client and workspace', () => {
     expect(staffSelect.querySelector('option[value="40:41"]')).not.toBeInTheDocument();
   });
 
+  test('hides management controls and renders every uncovered assignment interval for view-only users', async () => {
+    const viewOnlyCapabilities = {
+      ...recipientCapabilities,
+      'recipient.manage': false,
+    };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(viewOnlyCapabilities);
+      }
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
+        return jsonResponse({ items: [professionalStaffOption], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
+        return jsonResponse({
+          items: [{
+            id: 90,
+            recipient_id: 1,
+            service_month: '2026-08-01',
+            staff_id: 20,
+            employment_id: 21,
+            start_date: '2026-08-10',
+            end_date: '2026-08-20',
+            invalidated_at_utc: null,
+            replacement_assignment_id: null,
+            row_version: 1,
+          }],
+        });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    fireEvent.change(await screen.findByTestId('professional-assignment-recipient-select'), {
+      target: { value: '1' },
+    });
+    await waitFor(() => expect(screen.getByTestId('professional-assignment-row-90')).toBeInTheDocument());
+    expect(screen.queryByTestId('professional-assignment-staff-select')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '정정' })).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('professional-assignment-gap')).toHaveLength(2);
+  });
+
   test('clears saving when the recipient context changes during a pending mutation', async () => {
     let resolvePost: ((response: Response) => void) | undefined;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;
       const url = new URL(rawUrl, 'http://localhost');
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient, recipient2], total: 2, page: 1, page_size: 200 });
       }

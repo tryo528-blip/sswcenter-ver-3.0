@@ -22,12 +22,7 @@ from app.db.w2_models import (
     W2ServicePlanNotice,
 )
 from app.domains.recipient.service_plan_notice import deadline_date, default_end_date
-from app.domains.staff.schemas import (
-    EmploymentStatus,
-    PositionCode,
-    StaffEmploymentResponse,
-    StaffPositionPeriodResponse,
-)
+from app.domains.staff.schemas import PositionCode
 from app.domains.w2.errors import domain_error
 from app.domains.w2.policies import (
     OfficialCardSource,
@@ -51,7 +46,9 @@ from app.domains.w2.schemas import (
     PersonalTodoResponse,
     PersonalTodoUpdateRequest,
     ProfessionalAssignmentCreateRequest,
+    ProfessionalAssignmentEmploymentCoverage,
     ProfessionalAssignmentHistoryResponse,
+    ProfessionalAssignmentPositionCoverage,
     ProfessionalAssignmentReplaceRequest,
     ProfessionalAssignmentResponse,
     ProfessionalAssignmentStaffOptionListResponse,
@@ -486,35 +483,21 @@ class W2Service:
         employments: list[Any],
         positions: list[Any],
     ) -> ProfessionalAssignmentStaffOptionResponse:
-        as_of = _today_seoul()
         employment_responses = [
-            StaffEmploymentResponse(
+            ProfessionalAssignmentEmploymentCoverage(
                 id=employment.id,
-                staff_id=employment.staff_id,
-                employment_no=employment.employment_no,
-                staff_no=employment.staff_no,
                 start_date=employment.start_date,
                 end_date=employment.end_date,
-                end_reason_code=employment.end_reason_code,
-                status=(
-                    EmploymentStatus.ACTIVE
-                    if employment.start_date <= as_of
-                    and (employment.end_date is None or employment.end_date >= as_of)
-                    else EmploymentStatus.ENDED
-                ),
-                row_version=employment.row_version,
             )
             for employment in employments
         ]
         position_responses = [
-            StaffPositionPeriodResponse(
+            ProfessionalAssignmentPositionCoverage(
                 id=position.id,
-                staff_id=position.staff_id,
                 employment_id=position.employment_id,
                 position_code=PositionCode(position.position_code),
                 start_date=position.start_date,
                 end_date=position.end_date,
-                row_version=position.row_version,
             )
             for position in positions
         ]

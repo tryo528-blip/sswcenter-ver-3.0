@@ -11,6 +11,7 @@ import {
   type ProfessionalAssignmentInput,
   type ProfessionalAssignmentStaffOption,
 } from '../../services/professionalAssignmentApi';
+import { fetchSessionCapabilities } from '../../services/staffApi';
 
 type ProfessionalPosition = 'SOCIAL_WORKER' | 'NURSE';
 
@@ -43,6 +44,12 @@ function errorMessage(error: unknown): string {
 function nextDate(value: string): string {
   const date = new Date(`${value}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function previousDate(value: string): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, 10);
 }
 
@@ -103,12 +110,42 @@ function staffHistoryCanCover(
       && (item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE'),
   );
   if (!periodsCoverWindow(positions, windowStart, windowEnd)) return null;
-  const position = positions.find(
-    (item) => item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE',
-  );
+  const position = positions
+    .filter(
+      (item) =>
+        item.start_date <= windowStart
+        && (item.end_date === null || item.end_date >= windowStart),
+    )
+    .sort((left, right) => right.start_date.localeCompare(left.start_date))[0];
   return position?.position_code === 'SOCIAL_WORKER' || position?.position_code === 'NURSE'
     ? position.position_code
     : null;
+}
+
+function uncoveredAssignmentIntervals(
+  assignments: ProfessionalAssignment[],
+  windowStart: string,
+  windowEnd: string,
+): Array<{ start_date: string; end_date: string }> {
+  let cursor = windowStart;
+  const intervals: Array<{ start_date: string; end_date: string }> = [];
+  const active = assignments
+    .filter((assignment) => assignment.invalidated_at_utc === null)
+    .filter(
+      (assignment) => assignment.start_date <= windowEnd && assignment.end_date >= windowStart,
+    )
+    .sort((left, right) => left.start_date.localeCompare(right.start_date));
+  for (const assignment of active) {
+    if (assignment.start_date > cursor) {
+      intervals.push({ start_date: cursor, end_date: previousDate(assignment.start_date) });
+    }
+    if (assignment.end_date >= cursor) {
+      cursor = nextDate(assignment.end_date);
+      if (cursor > windowEnd) break;
+    }
+  }
+  if (cursor <= windowEnd) intervals.push({ start_date: cursor, end_date: windowEnd });
+  return intervals;
 }
 
 export default function ProfessionalAssignmentWorkspace() {
@@ -123,8 +160,11 @@ export default function ProfessionalAssignmentWorkspace() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [canManage, setCanManage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generationRef = useRef(0);
+  const contextRef = useRef({ recipientId, month });
+  contextRef.current = { recipientId, month };
 
   const eligibleStaff = useMemo(() => {
     const windowStart = startDate || monthStart(month);
@@ -193,7 +233,8 @@ export default function ProfessionalAssignmentWorkspace() {
 
   useEffect(() => {
     let active = true;
-    void fetchAllRecipients()
+    const controller = new AbortController();
+    void fetchAllRecipients(controller.signal)
       .then((response) => {
         if (active) setRecipients(response.items);
       })
@@ -203,7 +244,7 @@ export default function ProfessionalAssignmentWorkspace() {
 
     void (async () => {
       try {
-        const response = await fetchAllProfessionalAssignmentStaffOptions();
+        const response = await fetchAllProfessionalAssignmentStaffOptions(controller.signal);
         if (!active) return;
         setStaff(response.items);
       } catch (requestError: unknown) {
@@ -213,8 +254,17 @@ export default function ProfessionalAssignmentWorkspace() {
       }
     })();
 
+    void fetchSessionCapabilities(controller.signal)
+      .then((capabilities) => {
+        if (active) setCanManage(capabilities['recipient.manage'] === true);
+      })
+      .catch(() => {
+        if (active) setCanManage(false);
+      });
+
     return () => {
       active = false;
+      controller.abort();
       generationRef.current += 1;
     };
   }, []);
@@ -257,16 +307,26 @@ export default function ProfessionalAssignmentWorkspace() {
       : createProfessionalAssignment(recipientId, monthStart(month), payload);
     void request
       .then(async () => {
-        if (generation !== generationRef.current) return;
+        const currentContext = contextRef.current;
+        if (
+          String(currentContext.recipientId) !== String(recipientId)
+          || currentContext.month !== month
+        ) return;
         setEditingId(null);
         setStaffKey('');
-        await loadAssignments(recipientId, month, generation);
+        await loadAssignments(recipientId, month, generationRef.current);
       })
       .catch((requestError: unknown) => {
         if (generation === generationRef.current) setError(errorMessage(requestError));
       })
       .finally(() => {
-        if (generation === generationRef.current) setSaving(false);
+        const currentContext = contextRef.current;
+        if (
+          String(currentContext.recipientId) === String(recipientId)
+          && currentContext.month === month
+        ) {
+          setSaving(false);
+        }
       });
   };
 
@@ -307,7 +367,7 @@ export default function ProfessionalAssignmentWorkspace() {
       ) : null}
       {recipientId ? (
         <>
-          <form onSubmit={handleSubmit} className="professional-assignment-form">
+          {canManage ? <form onSubmit={handleSubmit} className="professional-assignment-form">
             <label>
               담당자
               <select
@@ -365,10 +425,17 @@ export default function ProfessionalAssignmentWorkspace() {
                 취소
               </button>
             ) : null}
-          </form>
+          </form> : null}
           <div className="professional-assignment-history" data-testid="professional-assignment-history">
             {loading ? <p>담당 이력을 불러오는 중입니다.</p> : null}
             {!loading && !assignments.length ? <p>담당 없음</p> : null}
+            {!loading && assignments.length
+              ? uncoveredAssignmentIntervals(assignments, monthStart(month), monthEnd(month)).map((interval) => (
+                  <p key={`${interval.start_date}-${interval.end_date}`} data-testid="professional-assignment-gap">
+                    담당 없음 · {interval.start_date} ~ {interval.end_date}
+                  </p>
+                ))
+              : null}
             {assignments.map((assignment) => (
               <article key={assignment.id} data-testid={`professional-assignment-row-${assignment.id}`}>
                 <strong>
@@ -377,7 +444,7 @@ export default function ProfessionalAssignmentWorkspace() {
                 {assignment.invalidated_at_utc ? (
                   <span>정정됨{assignment.replacement_assignment_id ? ` → #${assignment.replacement_assignment_id}` : ''}</span>
                 ) : (
-                  <button
+                  canManage ? <button
                     type="button"
                     onClick={() => {
                       setEditingId(assignment.id);
@@ -387,7 +454,7 @@ export default function ProfessionalAssignmentWorkspace() {
                     }}
                   >
                     정정
-                  </button>
+                  </button> : null
                 )}
               </article>
             ))}

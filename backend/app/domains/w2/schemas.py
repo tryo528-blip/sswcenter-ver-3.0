@@ -6,7 +6,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.domains.staff.schemas import StaffEmploymentResponse, StaffPositionPeriodResponse
+from app.domains.staff.schemas import PositionCode
 
 
 class StrictModel(BaseModel):
@@ -83,12 +83,26 @@ class ProfessionalAssignmentHistoryResponse(StrictModel):
     items: list[ProfessionalAssignmentResponse]
 
 
+class ProfessionalAssignmentEmploymentCoverage(StrictModel):
+    id: PositiveId
+    start_date: date
+    end_date: date | None
+
+
+class ProfessionalAssignmentPositionCoverage(StrictModel):
+    id: PositiveId
+    employment_id: PositiveId
+    position_code: PositionCode
+    start_date: date
+    end_date: date | None
+
+
 class ProfessionalAssignmentStaffOptionResponse(StrictModel):
     id: PositiveId
     name: str
     display_name: str | None
-    employments: list[StaffEmploymentResponse] = Field(default_factory=list)
-    positions: list[StaffPositionPeriodResponse] = Field(default_factory=list)
+    employments: list[ProfessionalAssignmentEmploymentCoverage] = Field(default_factory=list)
+    positions: list[ProfessionalAssignmentPositionCoverage] = Field(default_factory=list)
 
 
 class ProfessionalAssignmentStaffOptionListResponse(StrictModel):

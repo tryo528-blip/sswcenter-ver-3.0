@@ -37,6 +37,9 @@ from app.domains.w2.schemas import (
     OfficialWorkCardDisplay,
     OfficialWorkCardKind,
     PersonalTodoUpdateRequest,
+    ProfessionalAssignmentEmploymentCoverage,
+    ProfessionalAssignmentPositionCoverage,
+    ProfessionalAssignmentStaffOptionResponse,
     ScheduleCreateRequest,
     ScheduleStaffInput,
 )
@@ -313,6 +316,32 @@ def test_router_has_period_assignment_and_no_unapproved_schedule_commands() -> N
         not (path.startswith("/api/v1/official-work-cards") and "DELETE" in methods)
         for path, methods in methods_by_path.items()
     )
+
+
+def test_professional_staff_option_is_a_minimal_recipient_scoped_projection() -> None:
+    assert set(ProfessionalAssignmentEmploymentCoverage.model_fields) == {
+        "id",
+        "start_date",
+        "end_date",
+    }
+    assert set(ProfessionalAssignmentPositionCoverage.model_fields) == {
+        "id",
+        "employment_id",
+        "position_code",
+        "start_date",
+        "end_date",
+    }
+    with pytest.raises(ValidationError):
+        ProfessionalAssignmentStaffOptionResponse.model_validate(
+            {
+                "id": 1,
+                "name": "직원",
+                "display_name": None,
+                "employments": [],
+                "positions": [],
+                "staff_no": "HR-SECRET",
+            }
+        )
 
 
 def test_repository_locks_all_multirow_ledgers_in_id_order() -> None:

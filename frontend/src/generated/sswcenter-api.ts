@@ -1958,10 +1958,46 @@ export interface components {
              */
             end_date: string;
         };
+        /** ProfessionalAssignmentEmploymentCoverage */
+        ProfessionalAssignmentEmploymentCoverage: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+        };
         /** ProfessionalAssignmentHistoryResponse */
         ProfessionalAssignmentHistoryResponse: {
             /** Items */
             items: components["schemas"]["ProfessionalAssignmentResponse"][];
+        };
+        /** ProfessionalAssignmentPositionCoverage */
+        ProfessionalAssignmentPositionCoverage: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            position_code: components["schemas"]["PositionCode"];
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
         };
         /** ProfessionalAssignmentReplaceRequest */
         ProfessionalAssignmentReplaceRequest: {
@@ -2055,9 +2091,9 @@ export interface components {
             /** Display Name */
             display_name: string | null;
             /** Employments */
-            employments?: components["schemas"]["StaffEmploymentResponse"][];
+            employments?: components["schemas"]["ProfessionalAssignmentEmploymentCoverage"][];
             /** Positions */
-            positions?: components["schemas"]["StaffPositionPeriodResponse"][];
+            positions?: components["schemas"]["ProfessionalAssignmentPositionCoverage"][];
         };
         /** RecipientBasicBatchResponse */
         RecipientBasicBatchResponse: {
@@ -2590,6 +2626,10 @@ export interface components {
             "staff.manage": boolean;
             /** Staff.Sensitive Identity.Reveal */
             "staff.sensitive_identity.reveal": boolean;
+            /** Recipient.View */
+            "recipient.view": boolean;
+            /** Recipient.Manage */
+            "recipient.manage": boolean;
         };
         /**
          * SexCode
