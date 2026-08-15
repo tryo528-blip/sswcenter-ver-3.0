@@ -18,6 +18,7 @@ from app.api.dependencies import (
     DatabaseSession,
     RecipientManageAccountDependency,
     RecipientViewAccountDependency,
+    StaffViewAccountDependency,
 )
 from app.domains.staff.schemas import ErrorEnvelope
 from app.domains.w2.schemas import (
@@ -79,14 +80,15 @@ W2ServiceDependency = Annotated[W2Service, Depends(get_w2_service)]
     responses=ERROR_RESPONSES,
 )
 def list_professional_assignment_staff_options(
-    current_account: RecipientViewAccountDependency,
+    recipient_view_account: RecipientViewAccountDependency,
+    staff_view_account: StaffViewAccountDependency,
     service: W2ServiceDependency,
     search: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=200, ge=1, le=200),
 ) -> ProfessionalAssignmentStaffOptionListResponse:
-    """Return a minimal staff/history projection under the recipient read boundary."""
-    del current_account
+    """Return staff/history options only within both read permission boundaries."""
+    del recipient_view_account, staff_view_account
     return service.list_professional_assignment_staff_options(
         search=search,
         page=page,

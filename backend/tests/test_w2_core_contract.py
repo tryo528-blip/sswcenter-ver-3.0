@@ -13,6 +13,7 @@ from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 
+from app.api.dependencies import require_recipient_view, require_staff_view
 from app.api.w2 import router
 from app.db import models as existing_models  # noqa: F401
 from app.db.w2_models import (
@@ -332,3 +333,19 @@ def test_repository_locks_all_multirow_ledgers_in_id_order() -> None:
         renewal_source,
     ):
         assert ".with_for_update()" in source
+
+
+def test_professional_assignment_staff_options_requires_both_read_permissions() -> None:
+    routes = [
+        route
+        for route in router.routes
+        if getattr(route, "path", None) == "/api/v1/professional-assignments/staff-options"
+    ]
+    assert len(routes) == 1
+
+    dependency_calls = {
+        dependency.call
+        for dependency in routes[0].dependant.dependencies
+    }
+    assert require_recipient_view in dependency_calls
+    assert require_staff_view in dependency_calls
