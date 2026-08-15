@@ -15,6 +15,7 @@ class StrictModel(BaseModel):
 class RecipientSexCode(StrEnum):
     MALE = "MALE"
     FEMALE = "FEMALE"
+    TEST = "TEST"
 
 
 class RecipientStatus(StrEnum):

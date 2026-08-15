@@ -2230,7 +2230,7 @@ export interface components {
          * RecipientSexCode
          * @enum {string}
          */
-        RecipientSexCode: "MALE" | "FEMALE";
+        RecipientSexCode: "MALE" | "FEMALE" | "TEST";
         /**
          * RecipientStatus
          * @description Manually assigned recipient display/filter tag (memo-like).
