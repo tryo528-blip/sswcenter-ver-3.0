@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → 별도 U-03 candidate commit
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `7a962ba`
 > 지위: U-03 한 슬라이스의 구현·검증 후보 기록. PR 병합·보안 review·W0 전체 acceptance와 동일하지 않다.
 
 ## 판정
@@ -17,13 +17,17 @@
 
 - `frontend/src/components/auth/LoginForm.tsx`
   - `AuthProvider.error`를 로그인 화면의 alert로 렌더링한다.
-  - 오류가 있는 동안 PIN input의 `aria-invalid`와 `aria-describedby`가 실제 오류 상태를 반영한다.
+  - 실제 PIN 제출 실패에만 별도 `pinError`를 연결해 PIN input의 `aria-invalid`와
+    `aria-describedby`가 system/bootstrap 상태 오류를 PIN 오류로 오인하지 않도록 한다.
+- `frontend/src/context/AuthProvider.tsx` / `AuthContext.ts`
+  - system/auth bootstrap 오류와 401/423/429 PIN 제출 오류를 별도 상태로 유지한다.
 - `frontend/src/services/api.ts`
   - `/api/bootstrap/status`의 401은 이미 익명 초기 상태를 확인하는 요청이므로 전역 `AUTH_UNAUTHORIZED_EVENT`를 발생시키지 않는다.
   - 따라서 `AuthProvider.checkAuthStatus`가 generation guard에 막히지 않고 loading을 종료한다.
 - `frontend/src/test/Auth.test.tsx`
   - 로그인 401/423/429의 사용자-visible 메시지를 각각 검증한다.
   - bootstrap status 401에서 login form 전환·loading 종료·unauthorized event 부재를 검증한다.
+  - bootstrap status 401에서는 PIN input이 invalid/description 상태가 아님도 검증한다.
 
 ## 검증 증거
 
