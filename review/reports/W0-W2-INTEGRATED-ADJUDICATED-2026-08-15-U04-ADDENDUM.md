@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `ff34198`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `b6c6586`
 > 지위: U-04 한 슬라이스의 구현·검증 후보 기록. W0 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -29,6 +29,7 @@
 - Ruff: 변경 Python 파일 exit `0`.
 - mypy: 변경 logging source exit `0`.
 - `git diff --check`: exit `0`.
+- 보고서의 Markdown hard-break trailing whitespace를 제거해 위 diff-check 범위를 재현 가능하게 했다.
 
 ## 남은 경계
 
