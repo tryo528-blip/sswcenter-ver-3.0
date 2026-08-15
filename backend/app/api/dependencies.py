@@ -17,13 +17,38 @@ from app.core.auth import (
 )
 from app.core.settings import Environment, Settings, get_settings
 from app.db.models import AccountPermission, UserAccount
-from app.db.session import build_session_factory, create_postgres_engine
+from app.db.session import (
+    application_is_ready,
+    build_session_factory,
+    create_postgres_engine,
+)
 from app.domains.recipient.service import RecipientService
 from app.domains.staff.service import StaffService
 from app.domains.w1c.service import W1CService
 from app.domains.w1d.service import W1DService
+from app.domains.w1e.service import W1EService
 
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
+
+
+def require_application_readiness(
+    request: Request,
+    settings: SettingsDependency,
+) -> None:
+    """Fail closed before any database-backed route can open a session.
+
+    Authentication refreshes ``last_seen_at_utc`` and idle expiry even for
+    otherwise read-only routes. Checking readiness for every database-backed
+    dependency therefore prevents an authenticated GET from writing into a
+    stale or partially configured schema.
+    """
+
+    ready, reason = application_is_ready(settings)
+    if not ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "service_not_ready", "reason": reason or "not_ready"},
+        )
 
 
 @lru_cache(maxsize=8)
@@ -32,7 +57,8 @@ def _database_runtime(database_url: str) -> tuple[Engine, sessionmaker[Session]]
     return engine, build_session_factory(engine)
 
 
-def get_db_session(settings: SettingsDependency) -> Iterator[Session]:
+def get_db_session(request: Request, settings: SettingsDependency) -> Iterator[Session]:
+    require_application_readiness(request, settings)
     if settings.database_url is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -330,4 +356,21 @@ def get_w1d_service(
 W1DServiceDependency = Annotated[
     W1DService,
     Depends(get_w1d_service),
+]
+
+
+def get_w1e_service(
+    request: Request,
+    database_session: DatabaseSession,
+) -> W1EService:
+    request_id = getattr(request.state, "request_id", None)
+    return W1EService(
+        database_session,
+        request_id=request_id if isinstance(request_id, UUID) else None,
+    )
+
+
+W1EServiceDependency = Annotated[
+    W1EService,
+    Depends(get_w1e_service),
 ]

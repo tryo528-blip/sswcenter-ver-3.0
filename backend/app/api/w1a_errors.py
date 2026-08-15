@@ -22,6 +22,41 @@ from app.domains.staff.schemas import ErrorBody, ErrorEnvelope, ErrorField
 logger = logging.getLogger(__name__)
 
 
+def _uses_structured_validation_errors(path: str) -> bool:
+    return (
+        path.startswith("/api/v1/")
+        or path == "/api/bootstrap"
+        or path.startswith("/api/auth/")
+    )
+
+
+def _uses_structured_http_error(path: str, status_code: int) -> bool:
+    return path.startswith("/api/v1/") or (
+        status_code == 422
+        and (path == "/api/bootstrap" or path.startswith("/api/auth/"))
+    )
+
+
+def _validation_field_errors(exc: RequestValidationError) -> list[dict[str, str]]:
+    fields = []
+    for item in exc.errors():
+        error_type = item.get("type")
+        raw_location = tuple(item.get("loc", ()))
+        if error_type == "extra_forbidden" and raw_location:
+            raw_location = raw_location[:-1]
+        location = [str(part) for part in raw_location if part not in {"body"}]
+        field = ".".join(location)
+        if error_type == "extra_forbidden" and not field:
+            field = "body"
+        fields.append(
+            {
+                "field": field,
+                "message": "입력값을 확인하세요.",
+            }
+        )
+    return fields
+
+
 def _request_id(request: Request) -> UUID:
     value = getattr(request.state, "request_id", None)
     return value if isinstance(value, UUID) else uuid4()
@@ -106,35 +141,19 @@ def install_w1a_error_contract(application: FastAPI) -> None:
         request: Request,
         exc: RequestValidationError,
     ) -> Response:
-        if not request.url.path.startswith("/api/v1/"):
+        if not _uses_structured_validation_errors(request.url.path):
             return await request_validation_exception_handler(request, exc)
-        fields = []
-        for item in exc.errors():
-            error_type = item.get("type")
-            raw_location = tuple(item.get("loc", ()))
-            if error_type == "extra_forbidden" and raw_location:
-                raw_location = raw_location[:-1]
-            location = [str(part) for part in raw_location if part not in {"body"}]
-            field = ".".join(location)
-            if error_type == "extra_forbidden" and not field:
-                field = "body"
-            fields.append(
-                {
-                    "field": field,
-                    "message": "입력값을 확인하세요.",
-                }
-            )
         return _error_response(
             request,
             status_code=422,
             code="VALIDATION_ERROR",
             message="입력값을 확인하세요.",
-            field_errors=fields,
+            field_errors=_validation_field_errors(exc),
         )
 
     @application.exception_handler(HTTPException)
     async def http_error_handler(request: Request, exc: HTTPException) -> Response:
-        if not request.url.path.startswith("/api/v1/"):
+        if not _uses_structured_http_error(request.url.path, exc.status_code):
             return await http_exception_handler(request, exc)
         detail: dict[str, Any] = exc.detail if isinstance(exc.detail, dict) else {}
         raw_code = str(detail.get("code", "HTTP_ERROR"))

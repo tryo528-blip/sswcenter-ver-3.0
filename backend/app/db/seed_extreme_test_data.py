@@ -28,6 +28,7 @@ ACTIVE_START = date(2026, 1, 1)
 ENDED_START = date(2020, 1, 1)
 ENDED_DATE = date(2025, 12, 31)
 ACTIVE_CERTIFICATION_END = date(2099, 12, 31)
+GRADE_CODES = ("1", "2", "3", "4", "5")
 
 FAMILY_NAMES = (
     "김",
@@ -250,7 +251,6 @@ def _add_recipient(
         memo=SEED_MARKER,
         postal_code="00000",
         address="합성 테스트 주소",
-        home_phone=_phone(500 + sequence),
         mobile_phone=_phone(500 + sequence),
         created_by_account_id=account_id,
         updated_by_account_id=account_id,
@@ -266,9 +266,6 @@ def _add_recipient(
             end_date=end_date,
             service_start_date=start_date,
             end_reason_text="합성 테스트 종료" if ended else None,
-            signer_name="홍길동",
-            signer_relationship_text="센터장",
-            signer_phone="010-9000-0000",
             created_by_account_id=account_id,
             updated_by_account_id=account_id,
         )
@@ -285,6 +282,7 @@ def _add_recipient(
     database_session.add(
         RecipientCertificationPeriod(
             recipient_id=recipient.id,
+            grade_code=GRADE_CODES[(sequence - 1) % len(GRADE_CODES)],
             start_date=start_date,
             end_date=end_date if ended else ACTIVE_CERTIFICATION_END,
             created_by_account_id=account_id,
