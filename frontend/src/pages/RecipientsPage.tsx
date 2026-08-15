@@ -411,7 +411,7 @@ function recipientHasDraftChanges(baseline: Recipient, draft: RecipientFormState
  * Runtime-validate detail GET before opening the editor.
  * Rejects wrong id, missing/null/invalid recipient_status, or missing required mobile phone.
  */
-export function validateDetailRecipient(raw: unknown, expectedId: string): Recipient | null {
+function validateDetailRecipient(raw: unknown, expectedId: string): Recipient | null {
   if (raw === null || typeof raw !== 'object') return null;
   const candidate = raw as Partial<Recipient>;
   if (normalizeId(candidate.id) !== expectedId) return null;
