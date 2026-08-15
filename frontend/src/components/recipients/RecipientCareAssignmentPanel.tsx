@@ -234,7 +234,33 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     if (editingAssignment) {
       const editingStaff = staff.find((item) => item.id === editingAssignment.staff_id);
       const key = assignmentKey(editingAssignment.staff_id, editingAssignment.employment_id);
-      if (editingStaff && !choices.has(key)) {
+      const editingStaffDetails = editingStaff ? staffDetails[editingStaff.id] : undefined;
+      const historyStillCovers = editingStaff
+        ? staffHistoryCanCover(
+            editingStaff,
+            editingStaffDetails,
+            editingAssignment.employment_id,
+            windowStart,
+            windowEnd,
+          )
+        : false;
+      const qualificationStillCovers =
+        draft.assignmentKind !== 'GENERAL'
+        || Boolean(
+          serviceTypeCode
+          && editingStaff
+          && periodsCoverWindow(
+            (staffQualifications[editingStaff.id] ?? []).filter(
+              (qualification) =>
+                qualification.employment_id === editingAssignment.employment_id
+                && qualification.service_type_code === serviceTypeCode
+                && qualification.invalidated_at_utc === null,
+            ),
+            windowStart,
+            windowEnd,
+          ),
+        );
+      if (editingStaff && !choices.has(key) && historyStillCovers && qualificationStillCovers) {
         choices.set(key, { staff: editingStaff, employmentId: editingAssignment.employment_id });
       }
     }
