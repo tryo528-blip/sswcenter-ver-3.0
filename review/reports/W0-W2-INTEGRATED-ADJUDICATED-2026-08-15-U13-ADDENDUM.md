@@ -3,7 +3,7 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u13-professional-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `740fe9e` (`fix(u13): load assignment staff through recipient boundary`)
+> 구현 후보: `a076beb` (`perf(u13): batch assignment staff history queries`)
 
 ## 범위
 
@@ -59,6 +59,6 @@ live 증거를 새로 주장하지 않는다.
   표현하지 않는다. 상세 공백 시각화는 후속 UI 범위다.
 - 실제 PostgreSQL 권한·exclusion·replacement trigger 검증은 기존 W2 backend
   contract/PG evidence의 범위이며 이 후보의 새 live 증거가 아니다.
-- 현재 후보 `740fe9e`에 대해 `/review`를 다시 요청하고, 지적사항 수정 후 최종 SHA를
+- 현재 후보 `a076beb`에 대해 `/review`를 다시 요청하고, 지적사항 수정 후 최종 SHA를
   다시 고정해야 한다. 이 부록은
   W1F PASS·release 승인·최종 보안검사를 의미하지 않는다.
