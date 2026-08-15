@@ -125,7 +125,10 @@ class SensitiveDataFilter(logging.Filter):
         return text
 
     def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = self._redact(record.getMessage())
+        # Use the marker-preserving pipeline for ordinary messages too.  A
+        # normalized RRN may otherwise be mistaken for the PIN value and leave
+        # a later separated PIN token untouched.
+        record.msg = self._redact(record.getMessage(), preserve_rrn_marker=True)
         record.args = ()
         if record.exc_info:
             exception_text = "".join(traceback.format_exception(*record.exc_info))
@@ -133,7 +136,7 @@ class SensitiveDataFilter(logging.Filter):
             record.msg = f"{record.msg}\n{self._redact(exception_text, preserve_rrn_marker=True)}"
             record.exc_text = None
         if record.stack_info:
-            record.stack_info = self._redact(record.stack_info)
+            record.stack_info = self._redact(record.stack_info, preserve_rrn_marker=True)
         return True
 
 
