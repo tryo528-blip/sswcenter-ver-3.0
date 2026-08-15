@@ -86,14 +86,25 @@ class SensitiveDataFilter(logging.Filter):
             text = normalize_sensitive_text(text).replace(
                 "[REDACTED-RRN]", cls._rrn_marker_placeholder
             )
-        for pattern, replacement in cls._patterns:
-            # RRN values were already normalized above; the marker placeholder
-            # keeps those values stable while PIN patterns still run over the
-            # same exception text.
-            text = pattern.sub(replacement, text)
+            # Apply the other secret patterns around the protected marker.
+            # Running them over the marker itself would match the surrounding
+            # ``resident_number=`` label and downgrade the RRN classification
+            # to the generic ``[REDACTED]`` token.
+            parts = text.split(cls._rrn_marker_placeholder)
+            text = cls._rrn_marker_placeholder.join(
+                cls._apply_patterns(part) for part in parts
+            )
+        else:
+            text = cls._apply_patterns(text)
         if preserve_rrn_marker:
             return text.replace(cls._rrn_marker_placeholder, "[REDACTED-RRN]")
         return normalize_sensitive_text(text)
+
+    @classmethod
+    def _apply_patterns(cls, text: str) -> str:
+        for pattern, replacement in cls._patterns:
+            text = pattern.sub(replacement, text)
+        return text
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.msg = self._redact(record.getMessage())
