@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → source candidate `c3511ec`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → source candidate `b1fbc03`
 > 지위: U-06 한 슬라이스의 구현·검증 후보 기록. W0 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -21,6 +21,7 @@
   - Python/JSON 형태의 quoted PIN key 뒤 numeric value도 exception traceback을 포함해 마스킹한다.
   - 비콜론 구분자 뒤 quoted PIN과 marker처럼 보이는 사용자 입력도 마스킹한다.
   - RRN이 PIN 라벨과 값 사이에 놓인 exception traceback에서도 RRN 분류를 보존하면서 PIN을 마스킹한다.
+  - 일반 로그 메시지에서도 RRN이 PIN 라벨과 값 사이에 놓인 경우 PIN을 마스킹한다.
   - RRN marker를 보존하는 exception 경로에서도 PIN 패턴을 건너뛰지 않으며, 보호 토큰은 호출별 UUID로 충돌을 방지한다.
 - `backend/tests/test_logging.py`
   - 공백·화살표·구분자와 5/7자리 numeric PIN 후보를 mutation-sensitive하게 검증한다.
@@ -29,11 +30,11 @@
   - quoted PIN이 포함된 exception traceback 회귀를 추가한다.
   - marker-looking user text가 traceback PIN redaction을 우회하지 않는 회귀를 추가한다.
 - `backend/tests/test_u06_rrn_traceback_marker.py`
-  - RRN marker 뒤 separated PIN이 traceback에서 평문으로 남지 않는 회귀를 추가한다.
+  - RRN marker 뒤 separated PIN이 일반 로그와 traceback에서 평문으로 남지 않는 회귀를 추가한다.
 
 ## 검증 증거
 
-- latest focused pytest: `26 passed`, exit `0`.
+- latest focused pytest: `27 passed`, exit `0`.
 - latest `ruff` exit `0`, changed-source `mypy` exit `0`, `py_compile` exit `0`, `git diff --check` exit `0`.
 - 전체 backend pytest의 기존 baseline은 `400 passed, 139 skipped`; 기존 `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
 - review 지적사항 반영 후에도 변경 logging source `mypy` exit `0`을 재확인했다.
