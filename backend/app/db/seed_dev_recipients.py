@@ -16,7 +16,6 @@ from app.db.models import (
 from app.db.session import build_session_factory, create_postgres_engine
 from app.domains.recipient.detail_batch import (
     BasicGuardianMutation,
-    BenefitPeriodMutation,
     RecipientBasicCreateBatchRequest,
 )
 from app.domains.recipient.schemas import (
@@ -30,10 +29,10 @@ from app.domains.recipient.service import RecipientService
 from app.domains.w1c.schemas import (
     BenefitCode,
     BenefitPeriodCreateRequest,
+    BenefitPeriodReplacementRequest,
     CertificationIdentityCreateRequest,
     CertificationPeriodCreateRequest,
     GradeCode,
-    GradePeriodCreateRequest,
 )
 from app.domains.w1c.service import W1CService
 
@@ -230,10 +229,10 @@ def _require_admin_account(database_session: Session) -> CurrentAccount:
     return CurrentAccount(admin.id, admin.display_name, admin.role_code)
 
 
-def _benefit_start_date(index: int, *, today: date) -> date:
-    # Always on or before today so the period is immediately effective for list/detail views.
+def _benefit_start_text(index: int, *, today: date) -> str:
+    # Keep the opaque display value immediately effective without treating it as a date in the API.
     offset_days = 30 + (index % 700)
-    return today - timedelta(days=offset_days)
+    return (today - timedelta(days=offset_days)).isoformat()
 
 
 def _build_guardians(index: int) -> list[BasicGuardianMutation]:
@@ -289,15 +288,9 @@ def _attach_certification_and_grade(
         CertificationIdentityCreateRequest(certification_number=cert_number),
         current_account,
     )
-    certification = w1c_service.create_certification_period(
+    w1c_service.create_certification_period(
         recipient_id,
-        CertificationPeriodCreateRequest(start_date=cert_start, end_date=cert_end),
-        current_account,
-    )
-    w1c_service.create_grade_period(
-        recipient_id,
-        GradePeriodCreateRequest(
-            certification_period_id=certification.id,
+        CertificationPeriodCreateRequest(
             grade_code=grade_code,
             start_date=cert_start,
             end_date=cert_end,
@@ -312,9 +305,8 @@ def _seed_recipient_name(index: int) -> str:
     return f"{NAME_PREFIX}{_pseudonym(index)}-{index:03d}"
 
 
-def _build_batch_request(index: int, *, today: date) -> RecipientBasicCreateBatchRequest:
+def _build_batch_request(index: int) -> RecipientBasicCreateBatchRequest:
     sex_code = RecipientSexCode.MALE if index % 2 == 0 else RecipientSexCode.FEMALE
-    benefit_code = BENEFIT_CODES[index % len(BENEFIT_CODES)]
     guardians = _build_guardians(index)
     payer_slot: Literal[0, 1] | None
     if guardians:
@@ -339,22 +331,18 @@ def _build_batch_request(index: int, *, today: date) -> RecipientBasicCreateBatc
             sex_code=sex_code,
             postal_code=postal_code,
             address=address,
-            home_phone=_phone(1000 + index),
             mobile_phone=_phone(index),
             memo=SEED_MARKER,
         ),
         guardians=guardians,
         payer_guardian_slot=payer_slot,
-        benefit_periods=[
-            BenefitPeriodMutation(
-                period_id=None,
-                payload=BenefitPeriodCreateRequest(
-                    benefit_code=benefit_code,
-                    start_date=_benefit_start_date(index, today=today),
-                    end_date=None,
-                ),
-            )
-        ],
+    )
+
+
+def _build_benefit_request(index: int, *, today: date) -> BenefitPeriodCreateRequest:
+    return BenefitPeriodCreateRequest(
+        benefit_code=BENEFIT_CODES[index % len(BENEFIT_CODES)],
+        start_text=_benefit_start_text(index, today=today),
     )
 
 
@@ -380,7 +368,7 @@ def _create_seed_recipient(
     Caller must set session.info[_DEFER_COMMIT_KEY] so service _commit() only flushes,
     then perform a single final commit for the whole seed run.
     """
-    payload = _build_batch_request(index, today=today)
+    payload = _build_batch_request(index)
     recipient = recipient_service.create_recipient(payload.recipient, current_account)
     guardians: dict[int, GuardianResponse] = {}
     for mutation in sorted(payload.guardians, key=lambda item: item.slot):
@@ -400,12 +388,24 @@ def _create_seed_recipient(
             ),
             current_account,
         )
-    for benefit_mutation in payload.benefit_periods:
-        w1c_service.create_benefit_period(
-            recipient.id,
-            benefit_mutation.payload,
-            current_account,
-        )
+    # RecipientService creates the initial GENERAL benefit atomically with
+    # the recipient. Replace that row instead of inserting a second active
+    # benefit, which would violate the one-active-benefit constraint.
+    initial_benefits = w1c_service.list_benefit_periods(recipient.id).items
+    if len(initial_benefits) != 1:
+        raise RuntimeError("SEED_RECIPIENT_INITIAL_BENEFIT_SHAPE_INVALID")
+    initial_benefit = initial_benefits[0]
+    desired_benefit = _build_benefit_request(index, today=today)
+    w1c_service.replace_benefit_period(
+        recipient.id,
+        initial_benefit.id,
+        BenefitPeriodReplacementRequest(
+            expected_row_version=initial_benefit.row_version,
+            benefit_code=desired_benefit.benefit_code,
+            start_text=desired_benefit.start_text,
+        ),
+        current_account,
+    )
     _attach_certification_and_grade(
         w1c_service=w1c_service,
         recipient_id=recipient.id,
