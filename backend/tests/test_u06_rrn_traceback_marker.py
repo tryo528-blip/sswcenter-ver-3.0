@@ -25,3 +25,27 @@ def test_exception_traceback_preserves_rrn_marker() -> None:
     assert record.exc_info is None
     assert candidate not in record.getMessage()
     assert "[REDACTED-RRN]" in record.getMessage()
+
+
+def test_exception_traceback_redacts_pin_after_rrn_marker() -> None:
+    rrn = "900101-1" + "234567"
+    pin = "123" + "456"
+    try:
+        raise ValueError(f"PIN {rrn} -> {pin}")
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    assert rrn not in message
+    assert "123456" not in message
+    assert "[REDACTED-RRN]" in message
+    assert "[REDACTED]" in message

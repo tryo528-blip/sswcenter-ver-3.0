@@ -19,6 +19,14 @@ TOTAL_LOG_CAP_BYTES = 2 * 1024 * 1024 * 1024
 
 
 class SensitiveDataFilter(logging.Filter):
+    _rrn_marker_pin_pattern = re.compile(
+        r"(?ix)\b(?P<label>pin|current_pin)\b"
+        r"(?P<middle>(?:(?:\s|__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__|->|=>|[-–—=:|/])+))"
+        r"(?:"
+        r"(?P<quote>[\"'])(?:[0-9][^\s,;]*?)(?P=quote)"
+        r"|[0-9][^\s,;]*"
+        r")"
+    )
     _patterns = (
         (
             re.compile(
@@ -89,6 +97,13 @@ class SensitiveDataFilter(logging.Filter):
             while placeholder in text:
                 placeholder = f"__SSWCENTER_REDACTED_RRN_{uuid4().hex}__"
             text = text.replace("[REDACTED-RRN]", placeholder)
+            # A normalized RRN can sit between a PIN label and its value. Apply
+            # the PIN rule once across the protected marker before splitting it
+            # into per-part strings for the remaining rules.
+            text = cls._rrn_marker_pin_pattern.sub(
+                lambda match: f"{match.group('label')}{match.group('middle')}[REDACTED]",
+                text,
+            )
             # Apply the other secret patterns around the protected marker.
             # Running them over the marker itself would match the surrounding
             # ``resident_number=`` label and downgrade the RRN classification
