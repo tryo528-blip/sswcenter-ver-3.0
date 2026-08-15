@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `e169d18`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `ea3fde1`
 > 지위: U-15 한 슬라이스의 구현·검증 후보 기록. W1 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -23,6 +23,7 @@
   - 입력 요청에는 `RecipientInputSexCode`, 응답에는 `RecipientSexCode`를 참조하도록 동기화했다.
 - `frontend/src/services/recipientApi.ts` 및 `frontend/src/pages/RecipientsPage.tsx`
   - 생성·수정 타입과 payload에서 `TEST`를 배제하고, 상세 `TEST`는 읽기 전용 선택값으로 표시한다.
+  - 기존 성별을 `미입력`으로 지울 때 `sex_code: null`을 명시적으로 전송한다.
 - `backend/tests/test_u15_recipient_sex_sentinel.py`
   - 생성·수정 request가 `TEST`를 거부하고 response projection이 `TEST`를 보존하는지 검증한다.
 - `frontend/src/test/RECListFrontend.test.tsx`
@@ -30,12 +31,12 @@
 
 ## 검증 증거
 
-- U-15 frontend focused Vitest: `52 passed`.
+- U-15 frontend focused Vitest: `53 passed`.
 - frontend supported Vitest: `25 files, 230 passed`.
 - frontend build (`tsc -b` + Vite): exit `0`.
 - 변경 파일 oxlint: exit `0`; 기존 `RecipientsPage.tsx`의 exhaustive-deps 경고 2건만 남았다.
 - backend Ruff 및 `py_compile`: exit `0`.
-- backend U-15 pytest 시도: SQLAlchemy 미설치(`ModuleNotFoundError: No module named 'sqlalchemy'`)로 수집 단계 중단. 따라서 이 candidate에는 backend runtime pytest 증거가 없다.
+- backend U-15 pytest: `1 passed`, exit `0` (shared backend venv).
 - OpenAPI generator `-Check`: 동일한 backend 의존성 부재로 재실행하지 못했으며, checked-in generated contract는 입력/응답 enum 분리를 반영했다.
 - `git diff --check`: exit `0`.
 
