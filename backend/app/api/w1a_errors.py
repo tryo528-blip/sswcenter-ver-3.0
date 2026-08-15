@@ -30,6 +30,13 @@ def _uses_structured_validation_errors(path: str) -> bool:
     )
 
 
+def _uses_structured_http_error(path: str, status_code: int) -> bool:
+    return path.startswith("/api/v1/") or (
+        status_code == 422
+        and (path == "/api/bootstrap" or path.startswith("/api/auth/"))
+    )
+
+
 def _validation_field_errors(exc: RequestValidationError) -> list[dict[str, str]]:
     fields = []
     for item in exc.errors():
@@ -146,7 +153,7 @@ def install_w1a_error_contract(application: FastAPI) -> None:
 
     @application.exception_handler(HTTPException)
     async def http_error_handler(request: Request, exc: HTTPException) -> Response:
-        if not request.url.path.startswith("/api/v1/"):
+        if not _uses_structured_http_error(request.url.path, exc.status_code):
             return await http_exception_handler(request, exc)
         detail: dict[str, Any] = exc.detail if isinstance(exc.detail, dict) else {}
         raw_code = str(detail.get("code", "HTTP_ERROR"))

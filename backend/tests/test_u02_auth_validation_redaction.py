@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 from app.api.auth import BootstrapRequest, LoginRequest
@@ -20,7 +20,13 @@ def _validation_app() -> FastAPI:
     @application.post("/api/bootstrap")
     def bootstrap(payload: BootstrapRequest) -> dict[str, bool]:
         del payload
-        return {"ok": True}
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_sex_code",
+                "message": "raw business detail should not be exposed",
+            },
+        )
 
     return application
 
@@ -68,6 +74,27 @@ def test_bootstrap_validation_does_not_echo_pin_or_request_body() -> None:
     assert "input" not in response.text
     assert submitted_pin not in response.text
     assert submitted_center not in response.text
+
+
+def test_bootstrap_business_validation_uses_redacted_error_envelope() -> None:
+    response = TestClient(_validation_app()).post(
+        "/api/bootstrap",
+        json={
+            "center_name": "SENSITIVE_CENTER_456",
+            "admin_name": "합성 관리자",
+            "birth_date": "1990-01-01",
+            "sex_code": "TEST",
+            "start_date": "2026-08-15",
+            "pin": "123456",
+        },
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert set(body) == {"error", "field_errors", "details", "request_id"}
+    assert body["error"]["code"] == "INVALID_SEX_CODE"
+    assert "detail" not in body
+    assert "raw business detail" not in response.text
 
 
 def test_non_auth_validation_keeps_its_existing_default_handler_scope() -> None:

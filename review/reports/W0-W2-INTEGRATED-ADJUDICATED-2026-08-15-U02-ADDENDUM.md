@@ -19,6 +19,7 @@
   - `/api/v1/` 기존 구조화 validation 경로를 유지한다.
   - `/api/auth/**`와 `/api/bootstrap`도 같은 `VALIDATION_ERROR`/`field_errors` 봉투를 사용한다.
   - FastAPI 기본 `RequestValidationError`의 `input` 전체를 인증 응답에서 제거한다.
+  - 인증·bootstrap의 업무 422 `HTTPException`도 같은 봉투로 정규화하고 원문 `detail.message`를 노출하지 않는다.
 - `backend/app/api/auth.py`와 `frontend/src/generated/sswcenter-api.ts`
   - 로그인·bootstrap의 OpenAPI 422 응답을 `ErrorEnvelope`로 명시하고 생성 TypeScript 계약을 재생성했다.
 - `backend/tests/test_u02_auth_validation_redaction.py`
@@ -29,8 +30,8 @@
 
 ## 검증 증거
 
-- U-02 focused pytest: `4 passed`, exit `0`.
-- 관련 회귀(`test_u02`, `test_health`, `test_security`, `test_settings`): `69 passed`, exit `0`.
+- U-02 focused pytest: `5 passed`, exit `0`.
+- 관련 회귀(`test_u02`, `test_health`, `test_security`, `test_settings`): `70 passed`, exit `0`.
 - OpenAPI 생성물 check: `OPENAPI_TYPES_UP_TO_DATE`, exit `0`.
 - Ruff: 변경 Python 파일 exit `0`.
 - `git diff --check`: exit `0`.
