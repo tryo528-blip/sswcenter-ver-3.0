@@ -79,6 +79,90 @@ const staff2 = {
   ],
 };
 
+const staffPeriodEnded = {
+  ...staff2,
+  id: 40,
+  name: '기간부족 요양',
+  current_employment: {
+    ...staff2.current_employment,
+    id: 41,
+    staff_id: 40,
+    end_date: '2026-06-30',
+  },
+  current_positions: [
+    {
+      ...staff2.current_positions[0],
+      id: 42,
+      staff_id: 40,
+      employment_id: 41,
+      end_date: '2026-06-30',
+    },
+  ],
+};
+
+const staffUnqualified = {
+  ...staff2,
+  id: 50,
+  name: '자격없는 요양',
+  current_employment: {
+    ...staff2.current_employment,
+    id: 51,
+    staff_id: 50,
+  },
+  current_positions: [
+    {
+      ...staff2.current_positions[0],
+      id: 52,
+      staff_id: 50,
+      employment_id: 51,
+    },
+  ],
+};
+
+function staffDetailResponse(item: typeof staff | typeof staff2): Record<string, unknown> {
+  return {
+    ...item,
+    employments: [item.current_employment],
+    positions: item.current_positions,
+    operational_roles: [],
+  };
+}
+
+function qualificationResponse(staffId: number, employmentId: number): Record<string, unknown> {
+  return {
+    items: [
+      {
+        id: staffId * 10,
+        staff_id: staffId,
+        employment_id: employmentId,
+        service_type_code: 'HOME_CARE',
+        service_type_display_name: '방문요양',
+        service_group_code: 'HOME_CARE',
+        start_date: '2026-01-01',
+        end_date: null,
+        source_license_id: null,
+        invalidated_at_utc: null,
+        replacement_qualification_id: null,
+        row_version: 1,
+      },
+    ],
+  };
+}
+
+function staffContextResponse(pathname: string): Response | null {
+  const detailMatch = pathname.match(/^\/api\/v1\/staff\/(\d+)$/);
+  if (detailMatch) {
+    const item = Number(detailMatch[1]) === staff2.id ? staff2 : staff;
+    return jsonResponse(staffDetailResponse(item));
+  }
+  const qualificationMatch = pathname.match(/^\/api\/v1\/staff\/(\d+)\/service-qualifications$/);
+  if (qualificationMatch) {
+    const item = Number(qualificationMatch[1]) === staff2.id ? staff2 : staff;
+    return jsonResponse(qualificationResponse(item.id, item.current_employment.id));
+  }
+  return null;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -97,6 +181,8 @@ describe('U12 caregiver assignment panel', () => {
       if (url.pathname === '/api/v1/staff' && method === 'GET') {
         return jsonResponse({ items: [staff], total: 1, page: 1, page_size: 200 });
       }
+      const staffContext = staffContextResponse(url.pathname);
+      if (staffContext && method === 'GET') return staffContext;
       if (
         url.pathname === '/api/v1/recipients/1/contracts/10/care-assignments'
         && method === 'GET'
@@ -164,6 +250,8 @@ describe('U12 caregiver assignment panel', () => {
       if (url.pathname === '/api/v1/staff' && method === 'GET') {
         return jsonResponse({ items: [staff], total: 1, page: 1, page_size: 200 });
       }
+      const staffContext = staffContextResponse(url.pathname);
+      if (staffContext && method === 'GET') return staffContext;
       if (url.pathname.endsWith('/care-assignments') && method === 'GET') {
         return jsonResponse({ items: [] });
       }
@@ -250,9 +338,8 @@ describe('U12 caregiver assignment panel', () => {
           ? jsonResponse({ items: [staff2], total: 2, page: 2, page_size: 200 })
           : jsonResponse({ items: [staff], total: 2, page: 1, page_size: 200 });
       }
-      if (url.pathname.startsWith('/api/v1/staff/') && method === 'GET') {
-        return jsonResponse({ error: { code: 'NOT_FOUND', message: 'detail unavailable' } }, 404);
-      }
+      const staffContext = staffContextResponse(url.pathname);
+      if (staffContext && method === 'GET') return staffContext;
       if (url.pathname.endsWith('/care-assignments') && method === 'GET') {
         return jsonResponse({ items: [] });
       }
@@ -264,5 +351,109 @@ describe('U12 caregiver assignment panel', () => {
       expect(screen.getByTestId('care-assignment-staff-select')).toBeInTheDocument();
     });
     expect(screen.getByRole('option', { name: /이요양/ })).toBeInTheDocument();
+  });
+
+  test('requires full assignment-period coverage and GENERAL service qualification', async () => {
+    const staffItems = [staff, staffPeriodEnded, staffUnqualified];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients/1/contracts' && method === 'GET') {
+        return jsonResponse({ items: [{ ...contract, end_date: '2026-12-31' }] });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return jsonResponse({ items: staffItems, total: staffItems.length, page: 1, page_size: 200 });
+      }
+      const detailMatch = url.pathname.match(/^\/api\/v1\/staff\/(\d+)$/);
+      if (detailMatch && method === 'GET') {
+        const item = staffItems.find((candidate) => candidate.id === Number(detailMatch[1]));
+        return item
+          ? jsonResponse(staffDetailResponse(item))
+          : jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+      }
+      const qualificationMatch = url.pathname.match(/^\/api\/v1\/staff\/(\d+)\/service-qualifications$/);
+      if (qualificationMatch && method === 'GET') {
+        const item = staffItems.find((candidate) => candidate.id === Number(qualificationMatch[1]));
+        if (!item) return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+        return item.id === staffUnqualified.id
+          ? jsonResponse({ items: [] })
+          : jsonResponse(qualificationResponse(item.id, item.current_employment.id));
+      }
+      if (url.pathname.endsWith('/care-assignments') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<RecipientCareAssignmentPanel recipientId={1} />);
+    await waitFor(() => expect(screen.getByTestId('care-assignment-staff-select')).toBeInTheDocument());
+
+    expect(screen.getByRole('option', { name: /김요양/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /기간부족 요양/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /자격없는 요양/ })).not.toBeInTheDocument();
+  });
+
+  test('bounds staff detail fan-out before building the selector', async () => {
+    const manyStaff = Array.from({ length: 8 }, (_, index) => {
+      const staffId = 100 + index;
+      const employmentId = 200 + index;
+      return {
+        ...staff,
+        id: staffId,
+        name: `요양${index}`,
+        current_employment: {
+          ...staff.current_employment,
+          id: employmentId,
+          staff_id: staffId,
+        },
+        current_positions: [
+          {
+            ...staff.current_positions[0],
+            id: 300 + index,
+            staff_id: staffId,
+            employment_id: employmentId,
+          },
+        ],
+      };
+    });
+    let activeDetailRequests = 0;
+    let maxDetailRequests = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients/1/contracts' && method === 'GET') {
+        return jsonResponse({ items: [contract] });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return jsonResponse({ items: manyStaff, total: manyStaff.length, page: 1, page_size: 200 });
+      }
+      const detailMatch = url.pathname.match(/^\/api\/v1\/staff\/(\d+)$/);
+      if (detailMatch && method === 'GET') {
+        const item = manyStaff.find((candidate) => candidate.id === Number(detailMatch[1]));
+        if (!item) return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+        activeDetailRequests += 1;
+        maxDetailRequests = Math.max(maxDetailRequests, activeDetailRequests);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        activeDetailRequests -= 1;
+        return jsonResponse(staffDetailResponse(item));
+      }
+      const qualificationMatch = url.pathname.match(/^\/api\/v1\/staff\/(\d+)\/service-qualifications$/);
+      if (qualificationMatch && method === 'GET') {
+        const item = manyStaff.find((candidate) => candidate.id === Number(qualificationMatch[1]));
+        return item
+          ? jsonResponse(qualificationResponse(item.id, item.current_employment.id))
+          : jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+      }
+      if (url.pathname.endsWith('/care-assignments') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<RecipientCareAssignmentPanel recipientId={1} />);
+    await waitFor(() => expect(screen.getByRole('option', { name: /요양0/ })).toBeInTheDocument());
+    expect(maxDetailRequests).toBeLessThanOrEqual(6);
   });
 });

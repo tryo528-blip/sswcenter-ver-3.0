@@ -13,7 +13,9 @@ import {
 import {
   fetchAllStaff,
   fetchStaffDetail,
+  fetchStaffServiceQualifications,
   type StaffDetailResponse,
+  type StaffServiceQualificationResponse,
   type StaffResponse,
 } from '../../services/staffApi';
 import {
@@ -64,14 +66,25 @@ function draftFromAssignment(assignment: CareAssignment): Draft {
   };
 }
 
-function periodOverlaps(
-  periodStart: string,
-  periodEnd: string | null | undefined,
+function nextDate(value: string): string {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+}
+
+function periodsCoverWindow(
+  periods: Array<{ start_date: string; end_date: string | null }>,
   windowStart: string,
   windowEnd: string,
 ): boolean {
-  const effectiveEnd = periodEnd ?? '9999-12-31';
-  return periodStart <= windowEnd && effectiveEnd >= windowStart;
+  let cursor = windowStart;
+  const ordered = [...periods].sort((left, right) => left.start_date.localeCompare(right.start_date));
+  for (const period of ordered) {
+    const effectiveEnd = period.end_date ?? '9999-12-31';
+    if (period.start_date > cursor || effectiveEnd < cursor) continue;
+    if (effectiveEnd >= windowEnd) return true;
+    cursor = nextDate(effectiveEnd);
+  }
+  return false;
 }
 
 function staffHistoryCanCover(
@@ -83,15 +96,69 @@ function staffHistoryCanCover(
 ): boolean {
   const employment = (details?.employments ?? []).find((item) => item.id === employmentId)
     ?? (staff.current_employment?.id === employmentId ? staff.current_employment : null);
-  if (!employment || !periodOverlaps(employment.start_date, employment.end_date, windowStart, windowEnd)) {
+  if (
+    !employment ||
+    !periodsCoverWindow([employment], windowStart, windowEnd)
+  ) {
     return false;
   }
   const positions = details?.positions?.filter((item) => item.employment_id === employmentId)
     ?? (staff.current_employment?.id === employmentId ? staff.current_positions ?? [] : []);
-  return positions.some(
-    (position) =>
-      position.position_code === 'CARE_WORKER'
-      && periodOverlaps(position.start_date, position.end_date, windowStart, windowEnd),
+  return periodsCoverWindow(
+    positions
+      .filter((position) => position.position_code === 'CARE_WORKER')
+      .map((position) => ({ start_date: position.start_date, end_date: position.end_date })),
+    windowStart,
+    windowEnd,
+  );
+}
+
+const STAFF_DETAIL_CONCURRENCY = 6;
+type StaffContext = {
+  detail: StaffDetailResponse;
+  qualifications: StaffServiceQualificationResponse[];
+};
+
+async function mapStaffContexts(
+  staffItems: StaffResponse[],
+): Promise<ReadonlyMap<number, StaffContext>> {
+  const entries: Array<readonly [number, StaffContext] | null> = new Array(staffItems.length).fill(null);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= staffItems.length) return;
+      const item = staffItems[index];
+      try {
+        const detail = await fetchStaffDetail(item.id);
+        let qualifications: StaffServiceQualificationResponse[] = [];
+        try {
+          qualifications = (await fetchStaffServiceQualifications(item.id)).items ?? [];
+        } catch {
+          // GENERAL choices fail closed without qualification evidence; FAMILY
+          // choices can still use employment/position history.
+        }
+        entries[index] = [item.id, {
+          detail,
+          qualifications,
+        }];
+      } catch {
+        entries[index] = null;
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(STAFF_DETAIL_CONCURRENCY, staffItems.length) },
+      () => worker(),
+    ),
+  );
+  return new Map(
+    entries.filter(
+      (entry): entry is readonly [number, StaffContext] => entry !== null,
+    ),
   );
 }
 
@@ -99,6 +166,9 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
   const [contracts, setContracts] = useState<ContractResponse[]>([]);
   const [staff, setStaff] = useState<StaffResponse[]>([]);
   const [staffDetails, setStaffDetails] = useState<Record<number, StaffDetailResponse>>({});
+  const [staffQualifications, setStaffQualifications] = useState<
+    Record<number, StaffServiceQualificationResponse[]>
+  >({});
   const [contractId, setContractId] = useState<string>('');
   const [assignments, setAssignments] = useState<CareAssignment[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -122,6 +192,7 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     const windowStart = draft.startDate || selectedContract?.start_date || '';
     const windowEnd = draft.endDate || selectedContract?.end_date || '9999-12-31';
     if (!windowStart) return [];
+    const serviceTypeCode = selectedContract?.service_type_code;
     const choices = new Map<string, { staff: StaffResponse; employmentId: number }>();
     for (const item of staff) {
       const details = staffDetails[item.id];
@@ -129,6 +200,21 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
         ?? (item.current_employment ? [item.current_employment] : []);
       for (const employment of employments) {
         if (!staffHistoryCanCover(item, details, employment.id, windowStart, windowEnd)) continue;
+        if (
+          draft.assignmentKind === 'GENERAL' &&
+          (!serviceTypeCode || !periodsCoverWindow(
+            (staffQualifications[item.id] ?? []).filter(
+              (qualification) =>
+                qualification.employment_id === employment.id &&
+                qualification.service_type_code === serviceTypeCode &&
+                qualification.invalidated_at_utc === null,
+            ),
+            windowStart,
+            windowEnd,
+          ))
+        ) {
+          continue;
+        }
         choices.set(assignmentKey(item.id, employment.id), {
           staff: item,
           employmentId: employment.id,
@@ -149,7 +235,17 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     return [...choices.values()].sort((left, right) =>
       staffLabel(left.staff).localeCompare(staffLabel(right.staff), 'ko'),
     );
-  }, [assignments, draft.endDate, draft.startDate, editingId, selectedContract, staff, staffDetails]);
+  }, [
+    assignments,
+    draft.assignmentKind,
+    draft.endDate,
+    draft.startDate,
+    editingId,
+    selectedContract,
+    staff,
+    staffDetails,
+    staffQualifications,
+  ]);
 
   const loadAssignments = useCallback(
     async (nextContractId: string, generation: number) => {
@@ -172,6 +268,7 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
     setContracts([]);
     setStaff([]);
     setStaffDetails({});
+    setStaffQualifications({});
     try {
       const contractResponse = await listContracts(recipientId);
       if (generation !== generationRef.current) return;
@@ -188,18 +285,17 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
         const staffResponse = await fetchAllStaff();
         if (generation !== generationRef.current) return;
         setStaff(staffResponse.items);
-        const detailEntries = await Promise.all(
-          staffResponse.items.map(async (item) => {
-            try {
-              return [item.id, await fetchStaffDetail(item.id)] as const;
-            } catch {
-              return null;
-            }
-          }),
-        );
+        const contextEntries = await mapStaffContexts(staffResponse.items);
         if (generation !== generationRef.current) return;
         setStaffDetails(
-          Object.fromEntries(detailEntries.filter((entry): entry is readonly [number, StaffDetailResponse] => entry !== null)),
+          Object.fromEntries(
+            [...contextEntries.entries()].map(([staffId, context]) => [staffId, context.detail]),
+          ),
+        );
+        setStaffQualifications(
+          Object.fromEntries(
+            [...contextEntries.entries()].map(([staffId, context]) => [staffId, context.qualifications]),
+          ),
         );
       } catch (staffError) {
         if (generation === generationRef.current && !(staffError instanceof ApiError && staffError.status === 403)) {
