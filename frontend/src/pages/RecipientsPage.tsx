@@ -389,8 +389,8 @@ function recipientChangedFieldsPayload(
     if (field === 'name') payload.name = next.name;
     else if (field === 'birth_date') payload.birth_date = next.birth_date;
     else if (field === 'sex_code') {
-      if (next.sex_code === 'MALE' || next.sex_code === 'FEMALE') {
-        payload.sex_code = next.sex_code;
+      if (next.sex_code === 'MALE' || next.sex_code === 'FEMALE' || next.sex_code === null) {
+        payload.sex_code = next.sex_code as RecipientInputSexCode | null;
       }
     }
     else if (field === 'recipient_status') {
