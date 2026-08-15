@@ -143,6 +143,7 @@ export const LoginForm: React.FC = () => {
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nextPin = e.target.value;
     setPin(nextPin);
+    clearError();
     if (nextPin.length === LOGIN_PIN_LENGTH) {
       void submitPin(nextPin);
     }

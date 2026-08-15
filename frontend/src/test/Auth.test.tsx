@@ -260,6 +260,10 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-describedby', 'login-error');
 
+    fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '99999' } });
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('login-pin-input')).not.toHaveAttribute('aria-describedby');
+
     // Ensure PIN was not logged to console
     const loggedStr = consoleSpy.mock.calls.flat().join(' ');
     expect(loggedStr).not.toContain('999999');
