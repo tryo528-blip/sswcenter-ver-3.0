@@ -29,6 +29,7 @@ from app.domains.recipient.service import RecipientService
 from app.domains.w1c.schemas import (
     BenefitCode,
     BenefitPeriodCreateRequest,
+    BenefitPeriodReplacementRequest,
     CertificationIdentityCreateRequest,
     CertificationPeriodCreateRequest,
     GradeCode,
@@ -387,9 +388,22 @@ def _create_seed_recipient(
             ),
             current_account,
         )
-    w1c_service.create_benefit_period(
+    # RecipientService creates the initial GENERAL benefit atomically with
+    # the recipient. Replace that row instead of inserting a second active
+    # benefit, which would violate the one-active-benefit constraint.
+    initial_benefits = w1c_service.list_benefit_periods(recipient.id).items
+    if len(initial_benefits) != 1:
+        raise RuntimeError("SEED_RECIPIENT_INITIAL_BENEFIT_SHAPE_INVALID")
+    initial_benefit = initial_benefits[0]
+    desired_benefit = _build_benefit_request(index, today=today)
+    w1c_service.replace_benefit_period(
         recipient.id,
-        _build_benefit_request(index, today=today),
+        initial_benefit.id,
+        BenefitPeriodReplacementRequest(
+            expected_row_version=initial_benefit.row_version,
+            benefit_code=desired_benefit.benefit_code,
+            start_text=desired_benefit.start_text,
+        ),
         current_account,
     )
     _attach_certification_and_grade(
