@@ -130,8 +130,14 @@ class DailySizeCompressedFileHandler(logging.handlers.BaseRotatingHandler):
             modified = datetime.fromtimestamp(archive.stat().st_mtime, UTC)
             if modified < cutoff:
                 archive.unlink()
+        base_name = Path(self.baseFilename).name
         capped_files = sorted(
-            (path for path in log_directory.iterdir() if path.is_file()),
+            (
+                path
+                for path in log_directory.iterdir()
+                if path.is_file()
+                and (path.name == base_name or path.name.startswith(f"{base_name}."))
+            ),
             key=lambda path: path.stat().st_mtime,
         )
         total_size = sum(path.stat().st_size for path in capped_files)

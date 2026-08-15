@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import logging
+import os
 
 from app.core.logging import DailySizeCompressedFileHandler, SensitiveDataFilter
 from app.domains.staff.policies import normalize_sensitive_text
@@ -157,3 +158,37 @@ def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object
     assert "123456" not in combined
     assert "top-secret" not in combined
     assert "[REDACTED]" in combined
+
+
+def test_log_handler_total_cap_only_prunes_its_log_family(tmp_path: object) -> None:
+    from pathlib import Path
+
+    log_directory = Path(str(tmp_path))
+    log_path = log_directory / "app.log"
+    sibling_logs = {
+        name: log_directory / name
+        for name in ("error.log", "access.log", "install-update.log")
+    }
+    for path in sibling_logs.values():
+        path.write_bytes(b"sibling-log")
+
+    archive = log_directory / "app.log.20260815T00000000000000Z.gz"
+    log_path.write_bytes(b"active")
+    archive.write_bytes(b"archive")
+
+    now = 1_800_000_000
+    for offset, path in enumerate((*sibling_logs.values(), archive, log_path)):
+        os.utime(path, (now + offset, now + offset))
+
+    handler = DailySizeCompressedFileHandler(
+        log_path,
+        retention_days=30,
+        total_cap_bytes=log_path.stat().st_size,
+    )
+    try:
+        handler._prune_archives()
+    finally:
+        handler.close()
+
+    assert all(path.exists() for path in sibling_logs.values())
+    assert not archive.exists()
