@@ -3,13 +3,18 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u13-professional-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `771afb6` (`feat(w1e): add professional assignment workspace`)
+> 구현 후보: `8e32083` (`fix(u13): harden professional assignment loading`)
 
 ## 범위
 
 - 기존 W2 전문직 담당 API를 generated-client 소비 경로로 연결했다.
 - 수급자·서비스월 단위로 현재 담당과 변경 이력을 조회한다.
 - 사회복지사·간호사 중 현재 재직·현 직위가 유효한 직원만 선택지로 노출한다.
+- staff 권한이 없는 계정에서도 recipient-month history 조회가 중단되지 않도록
+  recipient/staff 로딩을 분리했다.
+- 수급자·직원 전체 페이지를 순회하고, employment·position history가 선택 기간과
+  겹치는 경우만 담당자로 노출한다. selection/month generation guard로 stale 응답을
+  폐기한다.
 - 담당 추가와 기존 담당 정정(행 무효화·replacement history)은 기존 API 계약의
   날짜·row-version payload를 사용한다.
 - Social Workers 화면에 토글형 전문직 담당 workspace를 추가했다.
@@ -30,8 +35,8 @@ PUT  /api/v1/professional-assignments/{recipient_id}/{service_month}/{assignment
 
 | 검사 | 결과 |
 |---|---|
-| U-13 frontend focused | `1 file / 2 passed` |
-| frontend supported suite | `26 files / 231 passed` |
+| U-13 frontend focused | `1 file / 5 passed` |
+| frontend supported suite | `26 files / 234 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
 | changed frontend oxlint | exit `0` |
 | diff check | exit `0` |
