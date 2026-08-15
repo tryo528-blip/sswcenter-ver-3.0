@@ -3,7 +3,7 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u12-care-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `aef30e4` (`fix(u12): require full-period caregiver eligibility`)
+> 구현 후보: `3eb7ac8` (`fix(u12): cancel stale context loads and map employment FK`)
 
 ## 범위
 
@@ -23,6 +23,10 @@
   service-qualification 증거가 있을 때만 노출한다.
 - staff detail·qualification fan-out은 worker 6개로 제한해 대규모 staff directory가
   mount 시 무제한 동시 요청을 만들지 않게 했다.
+- staff detail·qualification 요청은 AbortSignal을 공유하고 recipient 전환/unmount 시
+  취소하며, sibling 계약 mutation revision이 바뀌면 assignment panel을 다시 mount한다.
+- `fk_care_assignment_employment` 무결성 오류는 409 `CARE_ASSIGNMENT_STAFF_INELIGIBLE`로
+  안정 매핑한다.
 - OpenAPI 생성 타입을 갱신했다.
 
 ## API surface
@@ -42,9 +46,9 @@ PUT  /api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments/
 
 | 검사 | 결과 |
 |---|---|
-| U-12 backend focused | `28 passed` |
+| U-12 backend focused | `8 passed` |
 | backend full | `397 passed, 139 skipped`; 기존 fixed-hash 1건만 실패 (`B37B...` 기대 vs 현재 `B0CC...`) |
-| U-12 frontend | `6 passed` |
+| U-12 frontend | `6 passed`; related recipient suite `51 passed` |
 | frontend supported suite | `26 files / 235 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
 | OpenAPI generation | `OPENAPI_TYPES_UP_TO_DATE` |
