@@ -120,6 +120,10 @@ def _probe_log_append(logs_root: Path) -> bool:
             if not path.exists():
                 continue
             try:
+                # Rollover reads the active file before creating its archive;
+                # append permission alone is not enough for that path.
+                with path.open("rb"):
+                    pass
                 with path.open("a", encoding="utf-8"):
                     pass
             except OSError:

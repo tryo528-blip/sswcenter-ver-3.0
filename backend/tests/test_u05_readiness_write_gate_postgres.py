@@ -42,6 +42,7 @@ def test_current_head_readiness_and_write_refusal_are_postgres_backed() -> None:
         app.dependency_overrides.clear()
 
     engine = create_engine(database_url)
+    stale_revision_applied = False
     try:
         with engine.begin() as connection:
             current_revision = connection.scalar(
@@ -52,6 +53,7 @@ def test_current_head_readiness_and_write_refusal_are_postgres_backed() -> None:
                 text("UPDATE erp.alembic_version SET version_num = :revision"),
                 {"revision": STALE_REVISION},
             )
+            stale_revision_applied = True
 
         stale = client.get("/health/ready")
         assert stale.status_code == 503
@@ -66,9 +68,10 @@ def test_current_head_readiness_and_write_refusal_are_postgres_backed() -> None:
             "reason": "migration_out_of_date",
         }
     finally:
-        with engine.begin() as connection:
-            connection.execute(
-                text("UPDATE erp.alembic_version SET version_num = :revision"),
-                {"revision": CURRENT_REVISION},
-            )
+        if stale_revision_applied:
+            with engine.begin() as connection:
+                connection.execute(
+                    text("UPDATE erp.alembic_version SET version_num = :revision"),
+                    {"revision": CURRENT_REVISION},
+                )
         engine.dispose()
