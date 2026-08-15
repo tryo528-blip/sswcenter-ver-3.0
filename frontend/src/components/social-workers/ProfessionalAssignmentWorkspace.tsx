@@ -209,6 +209,13 @@ export default function ProfessionalAssignmentWorkspace() {
     );
   }, [assignments, editingId, endDate, month, staff, startDate]);
 
+  useEffect(() => {
+    if (staffKey && !eligibleStaff.some(({ staff: item, employmentId }) =>
+      assignmentKey(item.id, employmentId) === staffKey)) {
+      setStaffKey('');
+    }
+  }, [eligibleStaff, staffKey]);
+
   const loadAssignments = useCallback(
     async (nextRecipientId: string, nextMonth: string, generation: number) => {
       if (!nextRecipientId) {
@@ -296,7 +303,6 @@ export default function ProfessionalAssignmentWorkspace() {
       end_date: endDate,
     };
     const current = editingId ? assignments.find((item) => item.id === editingId) : null;
-    const generation = generationRef.current;
     setSaving(true);
     setError(null);
     const request = current
@@ -317,7 +323,13 @@ export default function ProfessionalAssignmentWorkspace() {
         await loadAssignments(recipientId, month, generationRef.current);
       })
       .catch((requestError: unknown) => {
-        if (generation === generationRef.current) setError(errorMessage(requestError));
+        const currentContext = contextRef.current;
+        if (
+          String(currentContext.recipientId) === String(recipientId)
+          && currentContext.month === month
+        ) {
+          setError(errorMessage(requestError));
+        }
       })
       .finally(() => {
         const currentContext = contextRef.current;

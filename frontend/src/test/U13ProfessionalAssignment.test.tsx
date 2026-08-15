@@ -523,4 +523,91 @@ describe('U13 professional assignment client and workspace', () => {
     expect(screen.getByRole('button', { name: '담당 추가' })).toBeEnabled();
     resolvePost?.(jsonResponse({ items: [] }));
   });
+
+  test('clears a selected staff member when the edited dates leave its coverage', async () => {
+    const partialStaffOption = {
+      ...professionalStaffOption,
+      id: 40,
+      name: '기간 한정 직원',
+      employments: [{ ...professionalStaffOption.employments[0], id: 41, staff_id: 40, start_date: '2026-08-15' }],
+      positions: [{
+        ...professionalStaffOption.positions[0],
+        id: 42,
+        staff_id: 40,
+        employment_id: 41,
+        start_date: '2026-08-15',
+      }],
+    };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
+        return jsonResponse({ items: [partialStaffOption], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    fireEvent.change(await screen.findByTestId('professional-assignment-recipient-select'), {
+      target: { value: '1' },
+    });
+    const startInput = await screen.findByDisplayValue('2026-08-01');
+    fireEvent.change(startInput, { target: { value: '2026-08-15' } });
+    const staffSelect = await screen.findByTestId('professional-assignment-staff-select');
+    await waitFor(() => expect(staffSelect.querySelector('option[value="40:41"]')).toBeInTheDocument());
+    fireEvent.change(staffSelect, { target: { value: '40:41' } });
+    expect(staffSelect).toHaveValue('40:41');
+
+    fireEvent.change(startInput, { target: { value: '2026-08-01' } });
+    await waitFor(() => expect(staffSelect).toHaveValue(''));
+  });
+
+  test('reports a failed save after returning to the same recipient context', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/session-capabilities' && method === 'GET') {
+        return jsonResponse(recipientCapabilities);
+      }
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient, recipient2], total: 2, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
+        return jsonResponse({ items: [professionalStaffOption], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname.endsWith('/professional-assignments/1') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      if (url.pathname.endsWith('/professional-assignments/2') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1/2026-08-01' && method === 'POST') {
+        throw new Error('save failed');
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    await waitFor(() => expect(screen.getByText(/수급자2/)).toBeInTheDocument());
+    const recipientSelect = screen.getByTestId('professional-assignment-recipient-select');
+    fireEvent.change(recipientSelect, { target: { value: '1' } });
+    const staffSelect = await screen.findByTestId('professional-assignment-staff-select');
+    fireEvent.change(staffSelect, { target: { value: '20:21' } });
+    fireEvent.click(screen.getByRole('button', { name: '담당 추가' }));
+    fireEvent.change(recipientSelect, { target: { value: '2' } });
+    fireEvent.change(recipientSelect, { target: { value: '1' } });
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('save failed'));
+  });
 });
