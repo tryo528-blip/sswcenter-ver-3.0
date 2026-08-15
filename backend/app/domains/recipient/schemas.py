@@ -12,6 +12,11 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
+class RecipientInputSexCode(StrEnum):
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+
+
 class RecipientSexCode(StrEnum):
     MALE = "MALE"
     FEMALE = "FEMALE"
@@ -36,7 +41,7 @@ PositiveVersion = Annotated[int, Field(gt=0)]
 class RecipientCreateRequest(StrictModel):
     name: str | None = Field(default=None, max_length=200)
     birth_date: date | None = None
-    sex_code: RecipientSexCode | None = None
+    sex_code: RecipientInputSexCode | None = None
     postal_code: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=1000)
     mobile_phone: str = Field(min_length=1, max_length=100)
@@ -47,7 +52,7 @@ class RecipientUpdateRequest(StrictModel):
     expected_row_version: PositiveVersion
     name: str | None = Field(default=None, max_length=200)
     birth_date: date | None = None
-    sex_code: RecipientSexCode | None = None
+    sex_code: RecipientInputSexCode | None = None
     # Optional by omission; explicit JSON null is rejected (not nullable).
     recipient_status: RecipientStatus | SkipJsonSchema[None] = Field(default=None)
     postal_code: str | None = Field(default=None, max_length=50)
