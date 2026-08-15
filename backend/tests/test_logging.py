@@ -295,6 +295,27 @@ def test_rrn_prefixed_secret_suffix_is_redacted_as_one_value() -> None:
     assert "password=[REDACTED]" in message
 
 
+def test_rrn_prefixed_quoted_and_bearer_secrets_are_redacted_as_one_value() -> None:
+    for raw, leaked, expected in (
+        ('{"password":"900101-1234567hunter2"}', "hunter2", '"password":"[REDACTED]"'),
+        ("Bearer 900101-1234567hunter2", "hunter2", "Bearer [REDACTED]"),
+    ):
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg=raw,
+            args=(),
+            exc_info=None,
+        )
+
+        assert SensitiveDataFilter().filter(record)
+        message = record.getMessage()
+        assert leaked not in message
+        assert expected in message
+
+
 def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object) -> None:
     from pathlib import Path
 

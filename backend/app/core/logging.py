@@ -32,6 +32,15 @@ class SensitiveDataFilter(logging.Filter):
         r"(?P<separator>\s*[=:]\s*)"
         r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\s,;}\]]*"
     )
+    _rrn_marker_quoted_secret_pattern = re.compile(
+        r"(?ix)(?P<prefix>[\"'](?:pin|password|session(?:_token)?|csrf(?:_token)?)"
+        r"[\"']\s*:\s*[\"'])"
+        r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\"']*(?P<quote>[\"'])"
+    )
+    _rrn_marker_bearer_pattern = re.compile(
+        r"(?i)(?P<prefix>\bbearer\s+)"
+        r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\s,;}\]]*"
+    )
     _patterns = (
         (
             re.compile(
@@ -114,6 +123,14 @@ class SensitiveDataFilter(logging.Filter):
             # splitting the protected marker so the suffix cannot survive.
             text = cls._rrn_marker_secret_pattern.sub(
                 lambda match: f"{match.group('label')}{match.group('separator')}[REDACTED]",
+                text,
+            )
+            text = cls._rrn_marker_quoted_secret_pattern.sub(
+                lambda match: f"{match.group('prefix')}[REDACTED]{match.group('quote')}",
+                text,
+            )
+            text = cls._rrn_marker_bearer_pattern.sub(
+                lambda match: f"{match.group('prefix')}[REDACTED]",
                 text,
             )
             # Apply the other secret patterns around the protected marker.
