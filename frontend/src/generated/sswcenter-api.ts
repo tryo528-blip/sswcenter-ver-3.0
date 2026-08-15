@@ -1729,11 +1729,6 @@ export interface components {
             /** Relationship Text */
             relationship_text?: string | null;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
         /** HistoryInvalidateRequest */
         HistoryInvalidateRequest: {
             /** Expected Row Version */
@@ -3274,19 +3269,6 @@ export interface components {
          * @enum {string}
          */
         TrainingCycleType: "ON_HIRE" | "HALF_YEAR" | "ANNUAL" | "BIENNIAL";
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
     };
     responses: never;
     parameters: never;
@@ -3386,13 +3368,13 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
+            /** @description Validation errors use the redacted error envelope. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -3421,13 +3403,13 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
+            /** @description Validation errors use the redacted error envelope. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

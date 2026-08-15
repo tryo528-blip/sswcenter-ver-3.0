@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.api.auth import BootstrapRequest, LoginRequest
 from app.api.w1a_errors import install_w1a_error_contract
+from app.main import app as production_app
 
 
 def _validation_app() -> FastAPI:
@@ -81,3 +82,13 @@ def test_non_auth_validation_keeps_its_existing_default_handler_scope() -> None:
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["input"] == "123"
+
+
+def test_auth_validation_openapi_declares_redacted_error_envelope() -> None:
+    schema_ref = "#/components/schemas/ErrorEnvelope"
+    paths = production_app.openapi()["paths"]
+
+    for path in ("/api/auth/login", "/api/bootstrap"):
+        response = paths[path]["post"]["responses"]["422"]
+        assert response["content"]["application/json"]["schema"]["$ref"] == schema_ref
+        assert "HTTPValidationError" not in str(response)
