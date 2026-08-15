@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { EditorialCard, EditorialPage } from '../components/common/EditorialPage';
+import ProfessionalAssignmentWorkspace from '../components/social-workers/ProfessionalAssignmentWorkspace';
 import {
   SCHEDULE_TYPES,
   openSchedulePopup,
@@ -15,6 +16,7 @@ function currentMonthKey(): string {
 export const SocialWorkersPage = () => {
   const { user } = useAuthSafe();
   const [month, setMonth] = useState(currentMonthKey);
+  const [showProfessionalWorkspace, setShowProfessionalWorkspace] = useState(false);
 
   const openCalendar = (kind: ScheduleKind) => {
     openSchedulePopup(kind, month, kind === 'social-worker' ? user?.id : undefined);
@@ -53,6 +55,20 @@ export const SocialWorkersPage = () => {
             개인 할 일은 본인의 사회복지사 일정표 안에서만 관리합니다.
           </p>
         </div>
+      </EditorialCard>
+      <EditorialCard title="전문직 담당">
+        <p>
+          사회복지사와 간호사는 같은 담당 역할에서 수급자·서비스월별로 한 명만
+          담당합니다. 월중 변경 이력과 담당 공백을 함께 확인할 수 있습니다.
+        </p>
+        <button
+          type="button"
+          data-testid="professional-assignment-toggle"
+          onClick={() => setShowProfessionalWorkspace((current) => !current)}
+        >
+          {showProfessionalWorkspace ? '전문직 담당 닫기' : '전문직 담당 열기'}
+        </button>
+        {showProfessionalWorkspace ? <ProfessionalAssignmentWorkspace /> : null}
       </EditorialCard>
     </EditorialPage>
   );
