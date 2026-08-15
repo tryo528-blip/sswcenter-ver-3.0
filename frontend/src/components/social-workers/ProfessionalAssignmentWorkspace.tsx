@@ -163,6 +163,7 @@ export default function ProfessionalAssignmentWorkspace() {
   const [canManage, setCanManage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generationRef = useRef(0);
+  const mutationRef = useRef(0);
   const contextRef = useRef({ recipientId, month });
   contextRef.current = { recipientId, month };
 
@@ -249,21 +250,23 @@ export default function ProfessionalAssignmentWorkspace() {
         if (active) setError(errorMessage(requestError));
       });
 
-    void (async () => {
-      try {
-        const response = await fetchAllProfessionalAssignmentStaffOptions(controller.signal);
-        if (!active) return;
-        setStaff(response.items);
-      } catch (requestError: unknown) {
-        if (active && !(requestError instanceof ApiError && requestError.status === 403)) {
-          setError(errorMessage(requestError));
-        }
-      }
-    })();
-
     void fetchSessionCapabilities(controller.signal)
-      .then((capabilities) => {
-        if (active) setCanManage(capabilities['recipient.manage'] === true);
+      .then(async (capabilities) => {
+        if (!active) return;
+        const manage = capabilities['recipient.manage'] === true;
+        setCanManage(manage);
+        if (!manage) {
+          setStaff([]);
+          return;
+        }
+        try {
+          const response = await fetchAllProfessionalAssignmentStaffOptions(controller.signal);
+          if (active) setStaff(response.items);
+        } catch (requestError: unknown) {
+          if (active && !(requestError instanceof ApiError && requestError.status === 403)) {
+            setError(errorMessage(requestError));
+          }
+        }
       })
       .catch(() => {
         if (active) setCanManage(false);
@@ -303,6 +306,7 @@ export default function ProfessionalAssignmentWorkspace() {
       end_date: endDate,
     };
     const current = editingId ? assignments.find((item) => item.id === editingId) : null;
+    const mutationToken = ++mutationRef.current;
     setSaving(true);
     setError(null);
     const request = current
@@ -315,14 +319,18 @@ export default function ProfessionalAssignmentWorkspace() {
       .then(async () => {
         const currentContext = contextRef.current;
         if (
+          mutationToken !== mutationRef.current
+          ||
           String(currentContext.recipientId) !== String(recipientId)
           || currentContext.month !== month
         ) return;
         setEditingId(null);
         setStaffKey('');
         await loadAssignments(recipientId, month, generationRef.current);
+        if (mutationToken !== mutationRef.current) return;
       })
       .catch((requestError: unknown) => {
+        if (mutationToken !== mutationRef.current) return;
         const currentContext = contextRef.current;
         if (
           String(currentContext.recipientId) === String(recipientId)
@@ -334,6 +342,8 @@ export default function ProfessionalAssignmentWorkspace() {
       .finally(() => {
         const currentContext = contextRef.current;
         if (
+          mutationToken === mutationRef.current
+          &&
           String(currentContext.recipientId) === String(recipientId)
           && currentContext.month === month
         ) {
@@ -451,7 +461,10 @@ export default function ProfessionalAssignmentWorkspace() {
             {assignments.map((assignment) => (
               <article key={assignment.id} data-testid={`professional-assignment-row-${assignment.id}`}>
                 <strong>
-                  직원 #{assignment.staff_id} · {assignment.start_date} ~ {assignment.end_date}
+                  {staff.find((item) => item.id === assignment.staff_id)?.display_name
+                    || staff.find((item) => item.id === assignment.staff_id)?.name
+                    || '직원'}
+                  {' '}#{assignment.staff_id} · {assignment.start_date} ~ {assignment.end_date}
                 </strong>
                 {assignment.invalidated_at_utc ? (
                   <span>정정됨{assignment.replacement_assignment_id ? ` → #${assignment.replacement_assignment_id}` : ''}</span>
