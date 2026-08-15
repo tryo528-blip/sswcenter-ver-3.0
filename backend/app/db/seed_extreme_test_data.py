@@ -28,6 +28,7 @@ ACTIVE_START = date(2026, 1, 1)
 ENDED_START = date(2020, 1, 1)
 ENDED_DATE = date(2025, 12, 31)
 ACTIVE_CERTIFICATION_END = date(2099, 12, 31)
+GRADE_CODES = ("1", "2", "3", "4", "5")
 
 FAMILY_NAMES = (
     "김",
@@ -281,6 +282,7 @@ def _add_recipient(
     database_session.add(
         RecipientCertificationPeriod(
             recipient_id=recipient.id,
+            grade_code=GRADE_CODES[(sequence - 1) % len(GRADE_CODES)],
             start_date=start_date,
             end_date=end_date if ended else ACTIVE_CERTIFICATION_END,
             created_by_account_id=account_id,

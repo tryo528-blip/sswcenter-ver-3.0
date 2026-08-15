@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from app.core.auth import CurrentAccount
 from app.db import seed_dev_recipients, seed_extreme_test_data
-from app.db.models import Recipient, RecipientContract
+from app.db.models import Recipient, RecipientCertificationPeriod, RecipientContract
 from app.domains.w1c.schemas import CertificationPeriodCreateRequest
 
 
@@ -49,10 +49,14 @@ def test_extreme_seed_matches_current_recipient_contract_shapes() -> None:
     saved_contract = next(
         value for value in session.objects if isinstance(value, RecipientContract)
     )
+    saved_certification = next(
+        value for value in session.objects if isinstance(value, RecipientCertificationPeriod)
+    )
     assert saved_recipient is recipient
     assert saved_recipient.mobile_phone == "010-9000-0501"
     assert not hasattr(saved_recipient, "home_phone")
     assert saved_contract.service_start_date == date(2026, 1, 1)
+    assert saved_certification.grade_code == "1"
     assert not hasattr(saved_contract, "signer_name")
     assert not hasattr(saved_contract, "signer_relationship_text")
     assert not hasattr(saved_contract, "signer_phone")
