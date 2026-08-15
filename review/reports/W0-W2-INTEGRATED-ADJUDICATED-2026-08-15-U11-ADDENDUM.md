@@ -1,8 +1,8 @@
 # SSWCenter 3.0 W0~W2 통합 재판정 — U-11 seed contract 부록
 
-> 부록일: 2026-08-15 KST  
-> 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)  
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `c2c3256`  
+> 부록일: 2026-08-15 KST
+> 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `ed13829`
 > 지위: U-11 한 슬라이스의 구현·검증 후보 기록. W1 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -17,7 +17,7 @@
 
 - `backend/app/db/seed_dev_recipients.py`
   - 제거된 `GradePeriodCreateRequest`와 별도 grade 호출을 없애고, grade를 `CertificationPeriodCreateRequest`에 포함한다.
-  - `RecipientBasicCreateBatchRequest`에는 basic recipient/guardian만 전달하고 benefit은 현재 W1C service 호출로 별도 생성한다.
+  - `RecipientService`가 만드는 초기 `GENERAL` benefit을 조회·replace해 seed별 opaque benefit 값을 반영하며, active benefit 중복 삽입을 하지 않는다.
   - `BenefitPeriodCreateRequest.start_text`에 opaque display text를 전달하며 제거된 `home_phone`·날짜형 benefit 필드는 사용하지 않는다.
 - `backend/app/db/seed_extreme_test_data.py`
   - 현재 recipient schema에 없는 `home_phone`과 recipient contract의 퇴역 signer 필드를 제거한다.
@@ -28,7 +28,7 @@
 ## 검증 증거
 
 - review 전 focused pytest: `3 passed`, exit `0`.
-- review 후 수정 candidate의 focused pytest는 `3 passed`, exit `0`이며 `ruff`, `py_compile`, `git diff --check`도 exit `0`이다.
+- review 후 수정 candidate(`ed13829`)의 focused pytest는 `3 passed`, exit `0`이며 `ruff`, `py_compile`, `git diff --check`도 exit `0`이다.
 - 전체 backend pytest의 기존 baseline은 `393 passed, 139 skipped`; `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
 - scoped mypy (`--follow-imports=skip`)는 의존성 환경 부재로 이번 재검증에서 수행하지 않았다.
 - 일반 strict mypy는 기존 `app/domains/recipient/service.py` 오류 3건 때문에 저장소 baseline에서 실패하며, 이번 candidate 변경과 무관하다.
