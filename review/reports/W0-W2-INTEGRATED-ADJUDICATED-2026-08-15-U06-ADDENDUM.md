@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `f887408`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `74dac9d`
 > 지위: U-06 한 슬라이스의 구현·검증 후보 기록. W0 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -23,6 +23,7 @@
   - RRN이 PIN 라벨과 값 사이에 놓인 exception traceback에서도 RRN 분류를 보존하면서 PIN을 마스킹한다.
   - 일반 로그 메시지에서도 RRN이 PIN 라벨과 값 사이에 놓인 경우 PIN을 마스킹한다.
   - RRN marker를 보존하는 exception 경로에서도 PIN 패턴을 건너뛰지 않으며, 보호 토큰은 호출별 UUID로 충돌을 방지한다.
+  - Unicode 화살표(`→`, `➜`, `➔`) 구분자와 RRN 접두 credential suffix도 전체 값을 마스킹한다.
 - `backend/tests/test_logging.py`
   - 공백·화살표·구분자와 5/7자리 numeric PIN 후보를 mutation-sensitive하게 검증한다.
   - `PIN rejected by policy`처럼 numeric value가 없는 자연어는 그대로 보존하는 과잉 마스킹 방지 테스트를 둔다.
@@ -34,7 +35,7 @@
 
 ## 검증 증거
 
-- latest focused pytest: `27 passed`, exit `0`.
+- latest focused pytest: `28 passed`, exit `0`.
 - latest `ruff` exit `0`, changed-source `mypy` exit `0`, `py_compile` exit `0`, `git diff --check` exit `0`.
 - 전체 backend pytest의 기존 baseline은 `400 passed, 139 skipped`; 기존 `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
 - review 지적사항 반영 후에도 변경 logging source `mypy` exit `0`을 재확인했다.
@@ -42,5 +43,5 @@
 ## 남은 경계
 
 - 실제 production 로그 수집기·운영 권한·외부 sink에서의 redaction 증거는 이 candidate에서 다루지 않았다.
-- U-06 ordinary `/review`는 `f887408` 기준으로 재요청했으며, 최종 보안검수는 형님 수동 절차로 남긴다.
+- U-06 ordinary `/review`는 `74dac9d` 기준으로 재요청했으며, 최종 보안검수는 형님 수동 절차로 남긴다.
 - U-06 candidate 보안 스캔은 최종 다중 슬라이스 후보에서 한 번만 수행한다.
