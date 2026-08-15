@@ -239,6 +239,46 @@ describe('U12 caregiver assignment panel', () => {
     });
   });
 
+  test('requires an end date before posting against a bounded contract', async () => {
+    let postCount = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients/1/contracts' && method === 'GET') {
+        return jsonResponse({ items: [{ ...contract, end_date: '2026-08-31' }] });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return jsonResponse({ items: [staff], total: 1, page: 1, page_size: 200 });
+      }
+      const staffContext = staffContextResponse(url.pathname);
+      if (staffContext && method === 'GET') return staffContext;
+      if (url.pathname.endsWith('/care-assignments') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      if (url.pathname.endsWith('/care-assignments') && method === 'POST') {
+        postCount += 1;
+        return jsonResponse({});
+      }
+      return jsonResponse({ error: { code: 'UNEXPECTED', message: 'unexpected' } }, 500);
+    });
+
+    render(<RecipientCareAssignmentPanel recipientId={1} />);
+    await waitFor(() => expect(screen.getByTestId('care-assignment-form')).toBeInTheDocument());
+    fireEvent.change(screen.getByTestId('care-assignment-staff-select'), {
+      target: { value: '20:21' },
+    });
+    fireEvent.change(screen.getByTestId('care-assignment-start-date-input'), {
+      target: { value: '2026-08-01' },
+    });
+    fireEvent.submit(screen.getByTestId('care-assignment-form'));
+
+    expect(await screen.findByTestId('care-assignment-error')).toHaveTextContent(
+      '종료된 계약에는 배정 종료일을 입력해야 합니다.',
+    );
+    expect(postCount).toBe(0);
+  });
+
   test('requires a relationship snapshot for FAMILY before posting', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const rawUrl = typeof input === 'string' ? input : (input as Request).url;

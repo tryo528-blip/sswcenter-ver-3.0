@@ -353,6 +353,10 @@ export default function RecipientCareAssignmentPanel({ recipientId }: Props) {
       setError('계약과 요양보호사를 선택하세요.');
       return;
     }
+    if (selectedContract?.end_date && !draft.endDate) {
+      setError('종료된 계약에는 배정 종료일을 입력해야 합니다.');
+      return;
+    }
     const [staffIdText, employmentIdText] = draft.staffKey.split(':');
     const base = {
       staff_id: Number(staffIdText),
