@@ -3,18 +3,24 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u13-professional-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `8e32083` (`fix(u13): harden professional assignment loading`)
+> 구현 후보: `740fe9e` (`fix(u13): load assignment staff through recipient boundary`)
 
 ## 범위
 
 - 기존 W2 전문직 담당 API를 generated-client 소비 경로로 연결했다.
 - 수급자·서비스월 단위로 현재 담당과 변경 이력을 조회한다.
-- 사회복지사·간호사 중 현재 재직·현 직위가 유효한 직원만 선택지로 노출한다.
+- 사회복지사·간호사 중 담당 기간 전체를 덮는 재직·전문직 직위 이력이 있는
+  직원만 선택지로 노출한다.
 - staff 권한이 없는 계정에서도 recipient-month history 조회가 중단되지 않도록
   recipient/staff 로딩을 분리했다.
 - 수급자·직원 전체 페이지를 순회하고, employment·position history가 선택 기간과
-  겹치는 경우만 담당자로 노출한다. selection/month generation guard로 stale 응답을
-  폐기한다.
+  전체를 덮는 경우만 담당자로 노출한다. 연속된 position period는 이어 붙여
+  검증하며, selection/month generation guard로 stale 응답을 폐기한다.
+- `GET /api/v1/professional-assignments/staff-options`의 최소 직원·기간 투영을
+  `RECIPIENT_VIEW` 경계로 조회해 `STAFF_VIEW` 없이도 선택지를 구성한다. 전화·주소·
+  주민번호·메모 등 직원 상세 필드는 이 투영에 포함하지 않는다.
+- recipient/month 컨텍스트가 저장 중 바뀌어도 새 컨텍스트의 saving 잠금이 남지
+  않도록 저장 상태를 독립적으로 해제한다.
 - 담당 추가와 기존 담당 정정(행 무효화·replacement history)은 기존 API 계약의
   날짜·row-version payload를 사용한다.
 - Social Workers 화면에 토글형 전문직 담당 workspace를 추가했다.
@@ -23,24 +29,29 @@
 
 ```text
 GET  /api/v1/professional-assignments/{recipient_id}?service_month=YYYY-MM-01
+GET  /api/v1/professional-assignments/staff-options?page=1&page_size=200
 POST /api/v1/professional-assignments/{recipient_id}/{service_month}
 PUT  /api/v1/professional-assignments/{recipient_id}/{service_month}/{assignment_id}
 ```
 
-이 후보는 backend route/domain/schema/migration을 변경하지 않았다. 기존 W2 API의
-권한·검증·원장 semantics를 프론트엔드가 그대로 호출하며, backend DB live 증거를
-새로 주장하지 않는다.
+staff-options는 담당자 선택에 필요한 직원명·재직·직위 기간만 반환하는 W2 read
+projection이다. 담당 추가·정정 mutation은 기존 `RECIPIENT_MANAGE` API와
+backend의 전체기간 검증을 그대로 사용한다. 새 migration은 없으며, backend DB
+live 증거를 새로 주장하지 않는다.
 
 ## 검증 증거
 
 | 검사 | 결과 |
 |---|---|
-| U-13 frontend focused | `1 file / 5 passed` |
-| frontend supported suite | `26 files / 234 passed` |
+| U-13 frontend focused | `1 file / 7 passed` |
+| frontend supported suite | `26 files / 236 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
+| W2 backend contract | `11 passed` |
+| OpenAPI generation | `OPENAPI_TYPES_UP_TO_DATE` |
 | changed frontend oxlint | exit `0` |
+| changed backend Ruff/py_compile | exit `0` |
 | diff check | exit `0` |
-| backend source/test execution | 이 후보에서 backend 파일을 바꾸지 않았고, 현재 worktree의 시스템 Python에는 SQLAlchemy가 없어(`ModuleNotFoundError`) 별도 실행 증거를 만들지 않음 |
+| backend live PostgreSQL | 이 후보에서 새로 실행하지 않음; 기존 W2 PG evidence 범위로 남김 |
 
 ## 남은 경계
 
@@ -48,5 +59,6 @@ PUT  /api/v1/professional-assignments/{recipient_id}/{service_month}/{assignment
   표현하지 않는다. 상세 공백 시각화는 후속 UI 범위다.
 - 실제 PostgreSQL 권한·exclusion·replacement trigger 검증은 기존 W2 backend
   contract/PG evidence의 범위이며 이 후보의 새 live 증거가 아니다.
-- `/review` 결과와 지적사항 수정 후 최종 SHA를 다시 고정해야 한다. 이 부록은
+- 현재 후보 `740fe9e`에 대해 `/review`를 다시 요청하고, 지적사항 수정 후 최종 SHA를
+  다시 고정해야 한다. 이 부록은
   W1F PASS·release 승인·최종 보안검사를 의미하지 않는다.
