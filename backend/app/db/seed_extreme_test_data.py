@@ -250,7 +250,6 @@ def _add_recipient(
         memo=SEED_MARKER,
         postal_code="00000",
         address="합성 테스트 주소",
-        home_phone=_phone(500 + sequence),
         mobile_phone=_phone(500 + sequence),
         created_by_account_id=account_id,
         updated_by_account_id=account_id,
@@ -266,9 +265,6 @@ def _add_recipient(
             end_date=end_date,
             service_start_date=start_date,
             end_reason_text="합성 테스트 종료" if ended else None,
-            signer_name="홍길동",
-            signer_relationship_text="센터장",
-            signer_phone="010-9000-0000",
             created_by_account_id=account_id,
             updated_by_account_id=account_id,
         )
