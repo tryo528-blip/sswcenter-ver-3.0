@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `6c9512e`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `6dffc20`
 > 지위: U-05 한 슬라이스의 구현·검증 후보 기록. W0 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -22,7 +22,9 @@
 - `backend/app/api/health.py`
   - `/health/ready`가 migration/runtime path 실패를 `503 not_ready`로 반환한다.
 - `backend/app/api/dependencies.py`
-  - `POST`, `PUT`, `PATCH`, `DELETE` 요청에서 `get_db_session` 전에 readiness를 확인한다.
+  - 모든 database-backed dependency 경로에서 `get_db_session` 전에 readiness를 확인한다.
+  - 인증된 GET도 session `last_seen_at_utc`/idle expiry를 commit할 수 있으므로 stale
+    schema에 heartbeat를 쓰지 않도록 fail closed 한다.
   - 실패 시 `503 service_not_ready`와 비밀 없는 reason code를 반환한다.
 - `backend/tests/test_u05_readiness_write_gate.py`
   - stale·missing/multiple head, runtime path, write refusal, safe liveness를 mutation-sensitive하게 검증한다.
@@ -33,13 +35,10 @@
 
 ## 검증 증거
 
-- focused pytest: `70 passed, 1 skipped`, exit `0`.
-- 격리 PostgreSQL 17 probe: `U05_EPHEMERAL_POSTGRES_GREEN`, integration `1 passed`; current head `/health/ready=200`, runtime path write `503`, stale 0024 health/write `503`.
-- Ruff: changed Python files exit `0`.
-- PowerShell AST: `0` errors.
-- `git diff --check`: exit `0`.
-- 전체 non-PostgreSQL 회귀: `387 passed, 7 skipped`; 기존 `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
-- 임시 cluster, port `55433` listener, test residue: 모두 `0`.
+- review 전 focused pytest: `70 passed, 1 skipped`, exit `0`; review 후 database-backed GET 회귀 1건을 추가했다.
+- review 전 격리 PostgreSQL 17 probe는 `U05_EPHEMERAL_POSTGRES_GREEN`으로 기록돼 있다. GET gate 변경 후에는 현재 시스템 Python에 FastAPI가 없어 pytest/PG probe를 재실행하지 못했다.
+- review 후 Ruff exit `0`, Python compile exit `0`, `git diff --check` exit `0`.
+- 전체 non-PostgreSQL baseline은 `387 passed, 7 skipped`; 기존 fixed-hash 1건은 candidate와 무관한 drift로 남았다.
 
 ## 남은 경계
 
