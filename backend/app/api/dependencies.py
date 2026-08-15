@@ -28,17 +28,18 @@ from app.domains.w1c.service import W1CService
 from app.domains.w1d.service import W1DService
 
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
-_WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
-
-
 def require_application_readiness(
     request: Request,
     settings: SettingsDependency,
 ) -> None:
-    """Fail closed before any mutating route can open a database session."""
+    """Fail closed before any database-backed route can open a session.
 
-    if request.method not in _WRITE_METHODS:
-        return
+    Authentication refreshes ``last_seen_at_utc`` and idle expiry even for
+    otherwise read-only routes.  Checking readiness for every database-backed
+    dependency therefore prevents an authenticated GET from writing into a
+    stale or partially configured schema.
+    """
+
     ready, reason = application_is_ready(settings)
     if not ready:
         raise HTTPException(

@@ -170,3 +170,28 @@ def test_safe_health_request_is_not_blocked_by_write_gate(monkeypatch: Any) -> N
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_database_backed_get_is_refused_when_application_is_not_ready(
+    monkeypatch: Any,
+) -> None:
+    from app.api import dependencies
+
+    monkeypatch.setattr(
+        dependencies,
+        "application_is_ready",
+        lambda _settings: (False, "migration_out_of_date"),
+    )
+    app.dependency_overrides[get_settings] = lambda: Settings(database_url=None)
+    try:
+        response = TestClient(app).get("/api/auth/me")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": {
+            "code": "service_not_ready",
+            "reason": "migration_out_of_date",
+        }
+    }
