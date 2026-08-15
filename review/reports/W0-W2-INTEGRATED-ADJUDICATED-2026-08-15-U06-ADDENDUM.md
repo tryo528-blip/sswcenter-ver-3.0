@@ -24,8 +24,8 @@
 
 ## 검증 증거
 
-- focused pytest: `17 passed`, exit `0`.
-- 전체 backend pytest: `399 passed, 139 skipped`; 기존 `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
+- focused pytest: `18 passed`, exit `0`.
+- 전체 backend pytest: `400 passed, 139 skipped`; 기존 `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
 - Ruff: 변경 Python 파일 exit `0`.
 - mypy: 변경 logging source exit `0`.
 - `git diff --check`: exit `0`.

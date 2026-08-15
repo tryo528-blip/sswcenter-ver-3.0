@@ -18,6 +18,7 @@ TOTAL_LOG_CAP_BYTES = 2 * 1024 * 1024 * 1024
 
 
 class SensitiveDataFilter(logging.Filter):
+    _rrn_marker_placeholder = "__SSWCENTER_REDACTED_RRN__"
     _patterns = (
         (
             re.compile(
@@ -70,19 +71,30 @@ class SensitiveDataFilter(logging.Filter):
         ),
     )
 
+    @classmethod
+    def _redact(cls, text: str, *, preserve_rrn_marker: bool = False) -> str:
+        if preserve_rrn_marker:
+            text = normalize_sensitive_text(text).replace(
+                "[REDACTED-RRN]", cls._rrn_marker_placeholder
+            )
+        for index, (pattern, replacement) in enumerate(cls._patterns):
+            if preserve_rrn_marker and index in {0, 2}:
+                continue
+            text = pattern.sub(replacement, text)
+        if preserve_rrn_marker:
+            return text.replace(cls._rrn_marker_placeholder, "[REDACTED-RRN]")
+        return normalize_sensitive_text(text)
+
     def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
-        for pattern, replacement in self._patterns:
-            message = pattern.sub(replacement, message)
-        record.msg = normalize_sensitive_text(message)
+        record.msg = self._redact(record.getMessage())
         record.args = ()
         if record.exc_info:
             exception_text = "".join(traceback.format_exception(*record.exc_info))
             record.exc_info = None
-            record.msg = f"{record.msg}\n{normalize_sensitive_text(exception_text)}"
+            record.msg = f"{record.msg}\n{self._redact(exception_text, preserve_rrn_marker=True)}"
             record.exc_text = None
         if record.stack_info:
-            record.stack_info = normalize_sensitive_text(record.stack_info)
+            record.stack_info = self._redact(record.stack_info)
         return True
 
 

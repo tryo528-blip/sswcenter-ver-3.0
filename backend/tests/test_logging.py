@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import logging
+import sys
 
 import pytest
 
@@ -171,6 +172,26 @@ def test_exception_traceback_is_redacted_before_file_formatting() -> None:
     assert record.exc_info is None
     assert candidate not in record.getMessage()
     assert "[REDACTED-RRN]" in record.getMessage()
+
+
+def test_exception_traceback_pin_is_redacted_before_file_formatting() -> None:
+    try:
+        raise ValueError("PIN -> 123456")
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    assert record.exc_info is None
+    assert "123456" not in record.getMessage()
+    assert "[REDACTED]" in record.getMessage()
 
 
 def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object) -> None:
