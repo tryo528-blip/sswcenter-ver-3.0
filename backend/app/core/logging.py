@@ -131,14 +131,22 @@ class DailySizeCompressedFileHandler(logging.handlers.BaseRotatingHandler):
             if modified < cutoff:
                 archive.unlink()
         capped_files = sorted(
-            (path for path in log_directory.iterdir() if path.is_file()),
+            (
+                path
+                for path in log_directory.iterdir()
+                if path.is_file()
+                and (
+                    path.name.endswith(".log")
+                    or (path.name.endswith(".gz") and ".log." in path.name)
+                )
+            ),
             key=lambda path: path.stat().st_mtime,
         )
         total_size = sum(path.stat().st_size for path in capped_files)
         for old_file in capped_files:
             if total_size <= self.total_cap_bytes:
                 break
-            if old_file.resolve() == Path(self.baseFilename).resolve():
+            if old_file.suffix != ".gz":
                 continue
             file_size = old_file.stat().st_size
             old_file.unlink()
