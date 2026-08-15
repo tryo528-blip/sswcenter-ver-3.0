@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
   const operationRef = useRef(0);
   const logoutOperationRef = useRef<number | null>(null);
 
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const operation = ++operationRef.current;
     setIsLoading(true);
     setError(null);
+    setPinError(null);
 
     if (devLoginBypassEnabled) {
       setBootstrapRequired(false);
@@ -96,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsInitialized(true);
         setIsLoading(false);
         setError(null);
+        setPinError(null);
         return;
       }
       setUser(null);
@@ -110,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const operation = ++operationRef.current;
     setIsLoading(true);
     setError(null);
+    setPinError(null);
     try {
       await postBootstrap(payload);
       if (operationRef.current !== operation) return false;
@@ -133,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const operation = ++operationRef.current;
     setIsLoading(true);
     setError(null);
+    setPinError(null);
     try {
       const response = await postLogin(pin);
       if (operationRef.current !== operation) return false;
@@ -144,16 +149,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       if (requestError instanceof ApiError) {
         if (requestError.status === 401) {
-          setError('PIN 번호가 올바르지 않습니다.');
+          const message = 'PIN 번호가 올바르지 않습니다.';
+          setError(message);
+          setPinError(message);
         } else if (requestError.status === 423) {
-          setError('로그인 실패가 누적되어 계정이 잠겼습니다. 잠시 후 다시 시도해주세요.');
+          const message = '로그인 실패가 누적되어 계정이 잠겼습니다. 잠시 후 다시 시도해주세요.';
+          setError(message);
+          setPinError(message);
         } else if (requestError.status === 429) {
-          setError('로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.');
+          const message = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.';
+          setError(message);
+          setPinError(message);
         } else {
           setError(requestError.message);
+          setPinError(null);
         }
       } else {
         setError('로그인 처리에 실패했습니다.');
+        setPinError(null);
       }
       return false;
     } finally {
@@ -167,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logoutOperationRef.current = operation;
     setIsLoading(true);
     setError(null);
+    setPinError(null);
     try {
       await postLogout();
       if (operationRef.current !== operation) return;
@@ -188,7 +202,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const clearError = () => setError(null);
+  const clearError = () => {
+    setError(null);
+    setPinError(null);
+  };
 
   return (
     <AuthContext.Provider
@@ -198,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         isInitialized,
         error,
+        pinError,
         checkAuthStatus,
         submitBootstrap,
         login,

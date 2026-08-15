@@ -101,6 +101,7 @@ function hasRecipientRowWithExactName(name: string): boolean {
 
 function installRecipientListFetch(
   resolveList: (query: ListQuery) => RecipientListResponse,
+  detailOverrides: Partial<RecipientListItem> = {},
 ): { requests: ListQuery[] } {
   const requests: ListQuery[] = [];
 
@@ -118,7 +119,7 @@ function installRecipientListFetch(
 
     if (url.pathname.startsWith('/api/v1/recipients/') && method === 'GET') {
       const id = Number(url.pathname.split('/').pop());
-      const item = listItem({ id: Number.isFinite(id) ? id : 1 });
+      const item = listItem({ id: Number.isFinite(id) ? id : 1, ...detailOverrides });
       if (url.pathname.endsWith('/guardians')) return jsonResponse({ items: [] });
       return jsonResponse({
         id: item.id,
@@ -244,6 +245,21 @@ describe('REC-LIST frontend contract', () => {
     expect(within(row).queryByText('이용중')).toBeNull();
     expect(within(row).queryByText('계약종료')).toBeNull();
     expect(within(row).queryByText('대기중')).toBeNull();
+  });
+
+  test('TEST sentinel detail response is accepted but the sex control stays read-only', async () => {
+    installRecipientListFetch(
+      () => listResponse([listItem({ id: 15, name: '합성 수급자', sex_code: 'TEST' })]),
+      { sex_code: 'TEST' },
+    );
+
+    render(<RecipientsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: /합성 수급자/ }));
+
+    const sexSelect = await screen.findByTestId('recipient-detail-sex-code-select');
+    await waitFor(() => expect(sexSelect).toHaveValue('TEST'));
+    expect(sexSelect).toBeDisabled();
+    expect(screen.getByRole('option', { name: /합성\(TEST · 읽기 전용\)/ })).toBeDisabled();
   });
 
   test('detail name save goes through basic-batch and shows success/error', async () => {

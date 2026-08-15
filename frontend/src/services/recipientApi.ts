@@ -7,6 +7,7 @@ export type RecipientStatus = Schemas['RecipientStatus'];
 export type RecipientListStatusFilter = Schemas['RecipientListStatusFilter'];
 export type RecipientListServiceGroupItem = Schemas['RecipientListServiceGroupItem'];
 export type RecipientListServiceTypeItem = Schemas['RecipientListServiceTypeItem'];
+export type RecipientInputSexCode = Schemas['RecipientInputSexCode'];
 export type RecipientSexCode = Schemas['RecipientSexCode'];
 
 // These recipient contracts intentionally mirror the current backend schema.
@@ -15,7 +16,7 @@ export type RecipientSexCode = Schemas['RecipientSexCode'];
 export interface RecipientCreateRequest {
   name?: string | null;
   birth_date?: string | null;
-  sex_code?: RecipientSexCode | null;
+  sex_code?: RecipientInputSexCode | null;
   postal_code?: string | null;
   address?: string | null;
   mobile_phone: string;
@@ -26,7 +27,7 @@ export interface RecipientUpdateRequest {
   expected_row_version: number;
   name?: string | null;
   birth_date?: string | null;
-  sex_code?: RecipientSexCode | null;
+  sex_code?: RecipientInputSexCode | null;
   recipient_status?: RecipientStatus;
   postal_code?: string | null;
   address?: string | null;
@@ -164,6 +165,29 @@ export async function listRecipients(
     method: 'GET',
     signal: options.signal,
   });
+}
+
+export async function fetchAllRecipients(
+  signal?: AbortSignal,
+): Promise<{ items: RecipientListItem[]; total: number }> {
+  const pageSize = 200;
+  const maxPages = 1_000;
+  const first = await listRecipients({ page: 1, pageSize, signal });
+  const uniqueItems = new Map<number, RecipientListItem>();
+  for (const item of first.items) {
+    if (!uniqueItems.has(item.id)) uniqueItems.set(item.id, item);
+  }
+  const total = first.total;
+  let page = 2;
+  while (uniqueItems.size < total && page <= maxPages) {
+    const nextPage = await listRecipients({ page, pageSize, signal });
+    if (nextPage.items.length === 0) break;
+    for (const item of nextPage.items) {
+      if (!uniqueItems.has(item.id)) uniqueItems.set(item.id, item);
+    }
+    page += 1;
+  }
+  return { items: [...uniqueItems.values()], total };
 }
 
 export function getRecipient(

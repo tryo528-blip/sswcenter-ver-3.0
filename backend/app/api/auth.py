@@ -23,6 +23,7 @@ from app.core.auth import (
     revoke_current_session,
 )
 from app.core.settings import Environment
+from app.domains.staff.schemas import ErrorEnvelope
 
 router = APIRouter(prefix="/api", tags=["authentication"])
 
@@ -44,6 +45,14 @@ class BootstrapRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     pin: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
+
+
+AUTH_VALIDATION_RESPONSES = {
+    422: {
+        "model": ErrorEnvelope,
+        "description": "Validation errors use the redacted error envelope.",
+    }
+}
 
 
 def _raise_auth_failure(
@@ -105,7 +114,11 @@ def get_bootstrap_status(database_session: DatabaseSession) -> dict[str, bool]:
     return {"bootstrap_required": bootstrap_required(database_session)}
 
 
-@router.post("/bootstrap", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/bootstrap",
+    status_code=status.HTTP_201_CREATED,
+    responses=AUTH_VALIDATION_RESPONSES,
+)
 def post_bootstrap(
     payload: BootstrapRequest,
     request: Request,
@@ -155,7 +168,7 @@ def post_bootstrap(
     }
 
 
-@router.post("/auth/login")
+@router.post("/auth/login", responses=AUTH_VALIDATION_RESPONSES)
 def post_login(
     payload: LoginRequest,
     request: Request,

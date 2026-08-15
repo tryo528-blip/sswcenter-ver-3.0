@@ -3,6 +3,11 @@ from __future__ import annotations
 import gzip
 import json
 import logging
+import os
+import sys
+import time
+
+import pytest
 
 from app.core.logging import DailySizeCompressedFileHandler, SensitiveDataFilter
 from app.domains.staff.policies import normalize_sensitive_text
@@ -50,6 +55,73 @@ def test_structured_sensitive_values_are_redacted() -> None:
     assert "session-secret" not in message
     assert "csrf-secret" not in message
     assert message.count("[REDACTED]") == 3
+
+
+def test_structured_numeric_pin_values_are_redacted() -> None:
+    for message in ("{'pin': 123456}", '{"current_pin": 654321}'):
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg=message,
+            args=(),
+            exc_info=None,
+        )
+
+        assert SensitiveDataFilter().filter(record)
+        redacted = record.getMessage()
+        assert "123456" not in redacted
+        assert "654321" not in redacted
+        assert "[REDACTED]" in redacted
+
+
+@pytest.mark.parametrize(
+    ("message", "secret"),
+    (
+        ("PIN 123456", "123456"),
+        ("PIN -> 123456", "123456"),
+        ('PIN -> "123456"', "123456"),
+        ("PIN => 123456", "123456"),
+        ("PIN: 123456", "123456"),
+        ("PIN|123456", "123456"),
+        ("current_pin 654321", "654321"),
+        ("current_pin '654321'", "654321"),
+        ("PIN __SSWCENTER_REDACTED_RRN__123456", "123456"),
+        ("PIN 12345", "12345"),
+        ("PIN 1234567", "1234567"),
+    ),
+)
+def test_unstructured_pin_separators_are_redacted(message: str, secret: str) -> None:
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg=message,
+        args=(),
+        exc_info=None,
+    )
+
+    assert SensitiveDataFilter().filter(record)
+    redacted = record.getMessage()
+    assert secret not in redacted
+    assert "[REDACTED]" in redacted
+
+
+def test_pin_word_without_a_numeric_value_is_not_over_redacted() -> None:
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="PIN rejected by policy",
+        args=(),
+        exc_info=None,
+    )
+
+    assert SensitiveDataFilter().filter(record)
+    assert record.getMessage() == "PIN rejected by policy"
 
 
 def test_staff_identity_and_current_pin_are_redacted() -> None:
@@ -126,6 +198,67 @@ def test_exception_traceback_is_redacted_before_file_formatting() -> None:
     assert "[REDACTED-RRN]" in record.getMessage()
 
 
+def test_exception_traceback_pin_is_redacted_before_file_formatting() -> None:
+    try:
+        raise ValueError("PIN -> 123456")
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    assert record.exc_info is None
+    assert "123456" not in record.getMessage()
+    assert "[REDACTED]" in record.getMessage()
+
+
+def test_exception_traceback_quoted_pin_values_are_redacted() -> None:
+    try:
+        raise ValueError('{"current_pin":"654321", "pin": 123456}')
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    assert "654321" not in message
+    assert "123456" not in message
+    assert message.count("[REDACTED]") >= 2
+
+
+def test_exception_traceback_marker_looking_text_cannot_bypass_pin_redaction() -> None:
+    try:
+        raise ValueError("PIN __SSWCENTER_REDACTED_RRN__123456")
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    assert "123456" not in message
+    assert "[REDACTED]" in message
+
+
 def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object) -> None:
     from pathlib import Path
 
@@ -157,3 +290,41 @@ def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object
     assert "123456" not in combined
     assert "top-secret" not in combined
     assert "[REDACTED]" in combined
+
+
+def test_log_handler_total_cap_only_prunes_its_log_family(tmp_path: object) -> None:
+    from pathlib import Path
+
+    log_directory = Path(str(tmp_path))
+    log_path = log_directory / "app.log"
+    sibling_logs = {
+        name: log_directory / name
+        for name in ("error.log", "access.log", "install-update.log")
+    }
+    for path in sibling_logs.values():
+        path.write_bytes(b"sibling-log")
+
+    archives = {
+        "app": log_directory / "app.log.20260815T00000000000000Z.gz",
+        "error": log_directory / "error.log.20260815T00000000000000Z.gz",
+    }
+    log_path.write_bytes(b"active")
+    for archive in archives.values():
+        archive.write_bytes(b"archive")
+
+    now = time.time()
+    for offset, path in enumerate((*sibling_logs.values(), *archives.values(), log_path)):
+        os.utime(path, (now + offset, now + offset))
+
+    handler = DailySizeCompressedFileHandler(
+        log_path,
+        retention_days=30,
+        total_cap_bytes=sum(path.stat().st_size for path in (*sibling_logs.values(), log_path)),
+    )
+    try:
+        handler._prune_archives()
+    finally:
+        handler.close()
+
+    assert all(path.exists() for path in sibling_logs.values())
+    assert all(not path.exists() for path in archives.values())

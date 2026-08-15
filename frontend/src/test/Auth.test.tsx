@@ -215,7 +215,7 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     expect(fetchCredentials).toBe('include');
   });
 
-  it('handles 401 on login silently without leaking sensitive logs', async () => {
+  it('renders the 401 login error without leaking sensitive logs', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
@@ -254,16 +254,77 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
         vi.mocked(globalThis.fetch).mock.calls.some(([url]) => String(url).includes('/api/auth/login')),
       ).toBe(true);
     });
-    expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('login-error')).toHaveTextContent('PIN 번호가 올바르지 않습니다.');
     expect(screen.getByTestId('login-pin-input')).toHaveValue('999999');
     expect(screen.getByTestId('login-pin-input')).not.toHaveClass('auth-login-input-error');
-    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-describedby', 'login-error');
 
     // Ensure PIN was not logged to console
     const loggedStr = consoleSpy.mock.calls.flat().join(' ');
     expect(loggedStr).not.toContain('999999');
 
     consoleSpy.mockRestore();
+  });
+
+  it.each([
+    [423, '로그인 실패가 누적되어 계정이 잠겼습니다. 잠시 후 다시 시도해주세요.'],
+    [429, '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.'],
+  ] as const)('renders the %s login error', async (status, message) => {
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/bootstrap/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ bootstrap_required: false }),
+        } as Response);
+      }
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) } as Response);
+      }
+      if (url.includes('/api/auth/login')) {
+        return Promise.resolve({
+          ok: false,
+          status,
+          json: () => Promise.resolve({ detail: { code: 'authentication_failed' } }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
+    });
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId('login-form')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '999999' } });
+
+    await waitFor(() => expect(screen.getByTestId('login-error')).toHaveTextContent(message));
+  });
+
+  it('finishes the initial loading transition when bootstrap status returns 401', async () => {
+    const unauthorized = vi.fn();
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, unauthorized);
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/bootstrap/status')) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ detail: { code: 'SESSION_REQUIRED' } }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByTestId('login-form')).toBeInTheDocument());
+    expect(screen.queryByTestId('auth-loading')).not.toBeInTheDocument();
+    expect(screen.getByTestId('login-error')).toHaveTextContent(
+      '시스템 인증 상태를 확인하는 중 오류가 발생했습니다.',
+    );
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('login-pin-input')).not.toHaveAttribute('aria-describedby');
+    expect(unauthorized).not.toHaveBeenCalled();
+    window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, unauthorized);
   });
 
   it('has no form or Enter submit path and submits only on the sixth digit', async () => {

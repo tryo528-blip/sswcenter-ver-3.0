@@ -7,6 +7,8 @@ export interface AuthContextType {
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
+  /** Present only when the visible error belongs to the PIN submission. */
+  pinError?: string | null;
   checkAuthStatus: () => Promise<void>;
   submitBootstrap: (payload: BootstrapPayload) => Promise<boolean>;
   login: (pin: string) => Promise<boolean>;
