@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST  
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)  
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `8553867`  
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `55a1c4a`  
 > 지위: U-11 한 슬라이스의 구현·검증 후보 기록. W1 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -21,15 +21,16 @@
   - `BenefitPeriodCreateRequest.start_text`에 opaque display text를 전달하며 제거된 `home_phone`·날짜형 benefit 필드는 사용하지 않는다.
 - `backend/app/db/seed_extreme_test_data.py`
   - 현재 recipient schema에 없는 `home_phone`과 recipient contract의 퇴역 signer 필드를 제거한다.
+  - 현재 certification period의 non-null `grade_code`를 유효한 1~5 값으로 채운다.
 - `backend/tests/test_u11_seed_contract.py`
-  - 두 seed의 현재 model shape와 grade 이동을 DB 없이 직접 검증한다.
+  - 두 seed의 현재 model shape와 grade 이동을 DB 없이 직접 검증하고 extreme seed의 grade도 확인한다.
 
 ## 검증 증거
 
-- focused pytest: `3 passed`, exit `0`.
-- 전체 backend pytest: `393 passed, 139 skipped`; 기존 `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
-- Ruff: 변경 Python 파일 exit `0`.
-- scoped mypy (`--follow-imports=skip`): seed source 2개 exit `0`.
+- review 전 focused pytest: `3 passed`, exit `0`.
+- review 후 수정은 `ruff` exit `0`, `py_compile` exit `0`, `git diff --check` exit `0`으로 확인했다. 현재 시스템 Python 환경에는 FastAPI/SQLAlchemy가 없어 수정 후 pytest는 재실행하지 못했다.
+- 전체 backend pytest의 기존 baseline은 `393 passed, 139 skipped`; `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
+- scoped mypy (`--follow-imports=skip`)는 의존성 환경 부재로 이번 재검증에서 수행하지 않았다.
 - 일반 strict mypy는 기존 `app/domains/recipient/service.py` 오류 3건 때문에 저장소 baseline에서 실패하며, 이번 candidate 변경과 무관하다.
 - `git diff --check`: exit `0`.
 
