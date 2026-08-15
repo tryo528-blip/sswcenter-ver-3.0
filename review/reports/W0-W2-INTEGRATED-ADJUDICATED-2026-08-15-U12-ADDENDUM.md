@@ -3,7 +3,7 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u12-care-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 구현 후보: `467253e` (`fix(u12): decouple assignment history from staff access`)
+> 구현 후보: `aef30e4` (`fix(u12): require full-period caregiver eligibility`)
 
 ## 범위
 
@@ -17,6 +17,12 @@
 - staff 권한이 없는 계정에서도 계약·배정 history 조회가 중단되지 않도록 staff
   선택 로딩을 분리하고, staff 전체 페이지·기간별 employment/position history를
   사용해 선택지를 구성한다. 계약 전환마다 stale 응답 generation도 폐기한다.
+- employment와 CARE_WORKER position은 draft 전체 기간을 덮어야 하며, 여러 position
+  period가 빈틈없이 이어지는 경우도 포함한다.
+- GENERAL은 선택 계약의 `service_type_code`와 draft 전체 기간을 덮는 비무효화
+  service-qualification 증거가 있을 때만 노출한다.
+- staff detail·qualification fan-out은 worker 6개로 제한해 대규모 staff directory가
+  mount 시 무제한 동시 요청을 만들지 않게 했다.
 - OpenAPI 생성 타입을 갱신했다.
 
 ## API surface
@@ -38,8 +44,8 @@ PUT  /api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments/
 |---|---|
 | U-12 backend focused | `28 passed` |
 | backend full | `397 passed, 139 skipped`; 기존 fixed-hash 1건만 실패 (`B37B...` 기대 vs 현재 `B0CC...`) |
-| U-12 frontend | `4 passed` |
-| frontend supported suite | `26 files / 233 passed` |
+| U-12 frontend | `6 passed` |
+| frontend supported suite | `26 files / 235 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
 | OpenAPI generation | `OPENAPI_TYPES_UP_TO_DATE` |
 | changed backend Ruff | exit `0` |
@@ -53,5 +59,5 @@ PUT  /api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments/
 - 기존 W1E migration/PG contract 테스트의 live PostgreSQL gate는 이 후보에서
   재실행하지 않았으며, `SSWCENTER_W1E_REAL_PG=1` 증거가 없는 상태다.
 - 전체 backend의 fixed-hash 실패는 U-12 변경과 무관한 기존 원장 drift로 남겨 둔다.
-- `/review` 결과와 지적사항 수정 후 최종 SHA를 다시 고정해야 한다. 이 부록은
+- `aef30e4` 이후 `/review` 결과와 지적사항 수정 후 최종 SHA를 다시 고정해야 한다. 이 부록은
   W1F PASS·release 승인·보안 최종검사를 의미하지 않는다.
