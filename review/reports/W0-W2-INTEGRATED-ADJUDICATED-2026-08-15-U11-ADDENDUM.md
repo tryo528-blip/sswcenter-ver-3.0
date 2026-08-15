@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST  
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)  
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `55a1c4a`  
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `c2c3256`  
 > 지위: U-11 한 슬라이스의 구현·검증 후보 기록. W1 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -28,7 +28,7 @@
 ## 검증 증거
 
 - review 전 focused pytest: `3 passed`, exit `0`.
-- review 후 수정은 `ruff` exit `0`, `py_compile` exit `0`, `git diff --check` exit `0`으로 확인했다. 현재 시스템 Python 환경에는 FastAPI/SQLAlchemy가 없어 수정 후 pytest는 재실행하지 못했다.
+- review 후 수정 candidate의 focused pytest는 `3 passed`, exit `0`이며 `ruff`, `py_compile`, `git diff --check`도 exit `0`이다.
 - 전체 backend pytest의 기존 baseline은 `393 passed, 139 skipped`; `test_r0_w2_read_only_contract_02_file_hashes_are_expected` 1건은 candidate와 무관한 고정 hash 불일치(`expected B37B...`, current `B0CC...`)로 남았다.
 - scoped mypy (`--follow-imports=skip`)는 의존성 환경 부재로 이번 재검증에서 수행하지 않았다.
 - 일반 strict mypy는 기존 `app/domains/recipient/service.py` 오류 3건 때문에 저장소 baseline에서 실패하며, 이번 candidate 변경과 무관하다.
