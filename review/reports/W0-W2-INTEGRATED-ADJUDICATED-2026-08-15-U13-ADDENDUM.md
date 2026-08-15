@@ -3,7 +3,7 @@
 > 상태: `IMPLEMENTED_REVIEW_PENDING`
 > 기준 브랜치: `codex/u13-professional-assignment`
 > 기준 base: `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf`
-> 최종 후보: `HEAD` (latest DTO, capability, timeline, and context-race fixes)
+> 최종 후보: `6132b81` (latest DTO, capability, timeline, context-race, and selection-error fixes)
 > 정기 `/review`: 최신 후보 재요청 대기
 > Codex Security: 현재 후보에는 실행하지 않음. 최종 수동 보안검수는 형님이 수행한다.
 
@@ -28,6 +28,8 @@
   선택 기간 시작일에 적용되는 professional position을 label에 사용한다.
 - recipient/month 컨텍스트가 저장 중 바뀌어도 새 컨텍스트의 saving 잠금이 남지
   않도록 저장 상태를 독립적으로 해제한다.
+- 날짜 범위가 선택 직원의 전체기간 자격을 벗어나면 stale staff 선택을 지우고,
+  저장 중 다른 recipient를 거쳐 돌아온 동일 컨텍스트의 실패도 alert로 표시한다.
 - 담당 추가와 기존 담당 정정(행 무효화·replacement history)은 기존 API 계약의
   날짜·row-version payload를 사용한다.
 - Social Workers 화면에 토글형 전문직 담당 workspace를 추가했다.
@@ -50,7 +52,7 @@ live 증거를 새로 주장하지 않는다.
 
 | 검사 | 결과 |
 |---|---|
-| U-13 frontend focused (리뷰 후 재실행) | `1 file / 8 passed` |
+| U-13 frontend focused (리뷰 후 재실행) | `1 file / 10 passed` |
 | frontend supported suite | `26 files / 236 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
 | W2/W1A backend contract (리뷰 후 재실행) | `16 passed` |
