@@ -55,6 +55,25 @@ def test_structured_sensitive_values_are_redacted() -> None:
     assert message.count("[REDACTED]") == 3
 
 
+def test_structured_numeric_pin_values_are_redacted() -> None:
+    for message in ("{'pin': 123456}", '{"current_pin": 654321}'):
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg=message,
+            args=(),
+            exc_info=None,
+        )
+
+        assert SensitiveDataFilter().filter(record)
+        redacted = record.getMessage()
+        assert "123456" not in redacted
+        assert "654321" not in redacted
+        assert "[REDACTED]" in redacted
+
+
 @pytest.mark.parametrize(
     ("message", "secret"),
     (

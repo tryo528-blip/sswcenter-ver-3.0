@@ -34,6 +34,15 @@ class SensitiveDataFilter(logging.Filter):
         ),
         (
             re.compile(
+                r'''(?ix)
+                (["'](?:pin|current_pin)["']\s*:\s*)
+                ([0-9][^\s,;}\]]*)
+                '''
+            ),
+            r"\1[REDACTED]",
+        ),
+        (
+            re.compile(
                 r"(?ix)\b(pin|current_pin)\b"
                 r"(\s*(?:->|=>|[-–—=:|/])\s*|\s+)"
                 r"([0-9][^\s,;]*)"
