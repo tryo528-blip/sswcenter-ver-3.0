@@ -79,10 +79,13 @@ def test_structured_numeric_pin_values_are_redacted() -> None:
     (
         ("PIN 123456", "123456"),
         ("PIN -> 123456", "123456"),
+        ('PIN -> "123456"', "123456"),
         ("PIN => 123456", "123456"),
         ("PIN: 123456", "123456"),
         ("PIN|123456", "123456"),
         ("current_pin 654321", "654321"),
+        ("current_pin '654321'", "654321"),
+        ("PIN __SSWCENTER_REDACTED_RRN__123456", "123456"),
         ("PIN 12345", "12345"),
         ("PIN 1234567", "1234567"),
     ),
@@ -232,6 +235,26 @@ def test_exception_traceback_quoted_pin_values_are_redacted() -> None:
     assert "654321" not in message
     assert "123456" not in message
     assert message.count("[REDACTED]") >= 2
+
+
+def test_exception_traceback_marker_looking_text_cannot_bypass_pin_redaction() -> None:
+    try:
+        raise ValueError("PIN __SSWCENTER_REDACTED_RRN__123456")
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    assert "123456" not in message
+    assert "[REDACTED]" in message
 
 
 def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object) -> None:
