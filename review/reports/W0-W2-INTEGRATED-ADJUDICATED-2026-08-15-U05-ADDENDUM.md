@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `8e5c924`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `6a368e3`
 > 지위: U-05 한 슬라이스의 구현·검증 후보 기록. W0 전체 acceptance·운영 수용·release 승인과 동일하지 않다.
 
 ## 판정
@@ -37,15 +37,16 @@
 - `scripts/test-u05-readiness-write-gate.ps1`
   - loopback 임시 PostgreSQL 17 cluster의 upgrade/probe/cleanup harness다. 운영 DB를 사용하지 않는다.
   - `TEMP` 계열뿐 아니라 기존 `PGCLIENTENCODING`·`SSWCENTER_*` process 환경값도 저장 후 복원한다.
+  - 환경변경과 임시 data directory 생성까지 보호된 `try/finally` 안에서 수행해 초기 생성 실패에도 호출자 환경을 복원한다.
 
 ## 검증 증거
 
 - 직전 candidate `910233f`의 focused pytest는 `70 passed, 1 skipped`, exit `0`이었다. append-access 보정 후 현재 공유 backend venv에서 U-05 focused pytest는 `12 passed`, exit `0`이었다.
 - 직전 candidate의 격리 PostgreSQL 17 probe는 `U05_EPHEMERAL_POSTGRES_GREEN`으로 기록돼 있다. 이번 bounded-pool/probe/harness 수정 후에는 같은 의존성 부재로 PG probe를 재실행하지 못했다.
-- 현재 candidate(`8e5c924`) Ruff exit `0`, Python compile exit `0`, PowerShell parse exit `0`, `git diff --check` exit `0`.
+- 현재 candidate(`6a368e3`) Ruff exit `0`, Python compile exit `0`, PowerShell parse exit `0`, `git diff --check` exit `0`.
 
 ## 남은 경계
 
 - 실제 production DB·운영 runtime root·Linux `LINUX_ACTIVE` cutover evidence는 이 candidate에서 다루지 않았다.
-- `U-05` ordinary `/review`는 `8e5c924` 이후 다시 요청하며, 결과가 오면 지적사항을 재판정한다. candidate 보안 diff review는 최종 다중 슬라이스 후보에서 한 번만 수행한다.
+- `U-05` ordinary `/review`는 `6a368e3` 이후 다시 요청하며, 결과가 오면 지적사항을 재판정한다. candidate 보안 diff review는 최종 다중 슬라이스 후보에서 한 번만 수행한다.
 - 다음 구현 후보는 기존 순서대로 U-02/U-03/U-04/U-06이며, 이 부록은 W1E/W2 제품 공백이나 전체 release 승인으로 범위를 넓히지 않는다.
