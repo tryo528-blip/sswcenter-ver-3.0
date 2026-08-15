@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError } from '../../services/api';
-import { listRecipients, type RecipientListItem } from '../../services/recipientApi';
+import { fetchAllRecipients, type RecipientListItem } from '../../services/recipientApi';
 import {
   createProfessionalAssignment,
   listProfessionalAssignments,
@@ -9,7 +9,20 @@ import {
   type ProfessionalAssignment,
   type ProfessionalAssignmentInput,
 } from '../../services/professionalAssignmentApi';
-import { fetchStaffPage, type StaffResponse } from '../../services/staffApi';
+import {
+  fetchAllStaff,
+  fetchStaffDetail,
+  type StaffDetailResponse,
+  type StaffResponse,
+} from '../../services/staffApi';
+
+type ProfessionalPosition = 'SOCIAL_WORKER' | 'NURSE';
+
+type StaffChoice = {
+  staff: StaffResponse;
+  employmentId: number;
+  positionCode: ProfessionalPosition;
+};
 
 function monthStart(month: string): string {
   return `${month}-01`;
@@ -31,11 +44,22 @@ function errorMessage(error: unknown): string {
   return '전문직 담당 요청을 처리하지 못했습니다.';
 }
 
-function staffLabel(staff: StaffResponse): string {
-  const position = (staff.current_positions ?? []).find(
-    (item) => item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE',
-  );
-  const positionLabel = position?.position_code === 'NURSE' ? '간호사' : '사회복지사';
+function periodOverlaps(
+  periodStart: string,
+  periodEnd: string | null | undefined,
+  windowStart: string,
+  windowEnd: string,
+): boolean {
+  const effectiveEnd = periodEnd ?? '9999-12-31';
+  return periodStart <= windowEnd && effectiveEnd >= windowStart;
+}
+
+function assignmentKey(staffId: number, employmentId: number): string {
+  return `${staffId}:${employmentId}`;
+}
+
+function staffLabel(staff: StaffResponse, positionCode: ProfessionalPosition): string {
+  const positionLabel = positionCode === 'NURSE' ? '간호사' : '사회복지사';
   return `${staff.display_name || staff.name} · ${positionLabel} (#${staff.id})`;
 }
 
@@ -43,10 +67,35 @@ function recipientLabel(recipient: RecipientListItem): string {
   return `${recipient.name?.trim() || '미입력'} (#${recipient.id})`;
 }
 
+function staffHistoryCanCover(
+  staff: StaffResponse,
+  details: StaffDetailResponse | undefined,
+  employmentId: number,
+  windowStart: string,
+  windowEnd: string,
+): ProfessionalPosition | null {
+  const employment = (details?.employments ?? []).find((item) => item.id === employmentId)
+    ?? (staff.current_employment?.id === employmentId ? staff.current_employment : null);
+  if (!employment || !periodOverlaps(employment.start_date, employment.end_date, windowStart, windowEnd)) {
+    return null;
+  }
+  const positions = details?.positions?.filter((item) => item.employment_id === employmentId)
+    ?? (staff.current_employment?.id === employmentId ? staff.current_positions ?? [] : []);
+  const position = positions.find(
+    (item) =>
+      (item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE')
+      && periodOverlaps(item.start_date, item.end_date, windowStart, windowEnd),
+  );
+  return position?.position_code === 'SOCIAL_WORKER' || position?.position_code === 'NURSE'
+    ? position.position_code
+    : null;
+}
+
 export default function ProfessionalAssignmentWorkspace() {
   const [month, setMonth] = useState(currentMonth);
   const [recipients, setRecipients] = useState<RecipientListItem[]>([]);
   const [staff, setStaff] = useState<StaffResponse[]>([]);
+  const [staffDetails, setStaffDetails] = useState<Record<number, StaffDetailResponse>>({});
   const [recipientId, setRecipientId] = useState('');
   const [assignments, setAssignments] = useState<ProfessionalAssignment[]>([]);
   const [staffKey, setStaffKey] = useState('');
@@ -56,62 +105,129 @@ export default function ProfessionalAssignmentWorkspace() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const generationRef = useRef(0);
 
-  const eligibleStaff = useMemo(
-    () =>
-      staff.filter(
-        (item) =>
-          item.current_employment &&
-          (item.current_positions ?? []).some(
-            (position) =>
-              position.position_code === 'SOCIAL_WORKER' || position.position_code === 'NURSE',
-          ),
+  const eligibleStaff = useMemo(() => {
+    const windowStart = startDate || monthStart(month);
+    const windowEnd = endDate || monthEnd(month);
+    const choices = new Map<string, StaffChoice>();
+    for (const item of staff) {
+      const details = staffDetails[item.id];
+      const employments = details?.employments
+        ?? (item.current_employment ? [item.current_employment] : []);
+      for (const employment of employments) {
+        const positionCode = staffHistoryCanCover(
+          item,
+          details,
+          employment.id,
+          windowStart,
+          windowEnd,
+        );
+        if (!positionCode) continue;
+        choices.set(assignmentKey(item.id, employment.id), {
+          staff: item,
+          employmentId: employment.id,
+          positionCode,
+        });
+      }
+    }
+
+    const editingAssignment = editingId
+      ? assignments.find((assignment) => assignment.id === editingId)
+      : null;
+    if (editingAssignment) {
+      const editingStaff = staff.find((item) => item.id === editingAssignment.staff_id);
+      const key = assignmentKey(editingAssignment.staff_id, editingAssignment.employment_id);
+      if (editingStaff && !choices.has(key)) {
+        choices.set(key, {
+          staff: editingStaff,
+          employmentId: editingAssignment.employment_id,
+          positionCode: 'SOCIAL_WORKER',
+        });
+      }
+    }
+    return [...choices.values()].sort((left, right) =>
+      staffLabel(left.staff, left.positionCode).localeCompare(
+        staffLabel(right.staff, right.positionCode),
+        'ko',
       ),
-    [staff],
-  );
+    );
+  }, [assignments, editingId, endDate, month, staff, staffDetails, startDate]);
 
-  const loadAssignments = useCallback(async () => {
-    if (!recipientId) {
-      setAssignments([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await listProfessionalAssignments(recipientId, monthStart(month));
-      setAssignments(response.items ?? []);
-    } catch (requestError) {
-      setError(errorMessage(requestError));
-    } finally {
-      setLoading(false);
-    }
-  }, [month, recipientId]);
+  const loadAssignments = useCallback(
+    async (nextRecipientId: string, nextMonth: string, generation: number) => {
+      if (!nextRecipientId) {
+        if (generation === generationRef.current) setAssignments([]);
+        return;
+      }
+      try {
+        const response = await listProfessionalAssignments(
+          nextRecipientId,
+          monthStart(nextMonth),
+        );
+        if (generation !== generationRef.current) return;
+        setAssignments(response.items ?? []);
+      } catch (requestError) {
+        if (generation === generationRef.current) setError(errorMessage(requestError));
+      } finally {
+        if (generation === generationRef.current) setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      listRecipients({ page: 1, pageSize: 200 }),
-      fetchStaffPage({ page: 1, pageSize: 200 }),
-    ])
-      .then(([recipientResponse, staffResponse]) => {
-        if (!active) return;
-        setRecipients(recipientResponse.items ?? []);
-        setStaff(staffResponse.items ?? []);
+    void fetchAllRecipients()
+      .then((response) => {
+        if (active) setRecipients(response.items);
       })
       .catch((requestError: unknown) => {
         if (active) setError(errorMessage(requestError));
       });
+
+    void (async () => {
+      try {
+        const response = await fetchAllStaff();
+        if (!active) return;
+        setStaff(response.items);
+        const detailEntries = await Promise.all(
+          response.items.map(async (item) => {
+            try {
+              return [item.id, await fetchStaffDetail(item.id)] as const;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        if (!active) return;
+        setStaffDetails(
+          Object.fromEntries(detailEntries.filter((entry): entry is readonly [number, StaffDetailResponse] => entry !== null)),
+        );
+      } catch (requestError: unknown) {
+        if (active && !(requestError instanceof ApiError && requestError.status === 403)) {
+          setError(errorMessage(requestError));
+        }
+      }
+    })();
+
     return () => {
       active = false;
+      generationRef.current += 1;
     };
   }, []);
 
   useEffect(() => {
+    const generation = ++generationRef.current;
     setStartDate(monthStart(month));
     setEndDate(monthEnd(month));
     setEditingId(null);
-    void loadAssignments();
-  }, [loadAssignments, month]);
+    setStaffKey('');
+    setAssignments([]);
+    setLoading(Boolean(recipientId));
+    setError(null);
+    void loadAssignments(recipientId, month, generation);
+  }, [loadAssignments, month, recipientId]);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -127,6 +243,7 @@ export default function ProfessionalAssignmentWorkspace() {
       end_date: endDate,
     };
     const current = editingId ? assignments.find((item) => item.id === editingId) : null;
+    const generation = generationRef.current;
     setSaving(true);
     setError(null);
     const request = current
@@ -137,12 +254,17 @@ export default function ProfessionalAssignmentWorkspace() {
       : createProfessionalAssignment(recipientId, monthStart(month), payload);
     void request
       .then(async () => {
+        if (generation !== generationRef.current) return;
         setEditingId(null);
         setStaffKey('');
-        await loadAssignments();
+        await loadAssignments(recipientId, month, generation);
       })
-      .catch((requestError: unknown) => setError(errorMessage(requestError)))
-      .finally(() => setSaving(false));
+      .catch((requestError: unknown) => {
+        if (generation === generationRef.current) setError(errorMessage(requestError));
+      })
+      .finally(() => {
+        if (generation === generationRef.current) setSaving(false);
+      });
   };
 
   return (
@@ -154,11 +276,7 @@ export default function ProfessionalAssignmentWorkspace() {
             aria-label="전문직 담당 수급자"
             data-testid="professional-assignment-recipient-select"
             value={recipientId}
-            onChange={(event) => {
-              setRecipientId(event.target.value);
-              setEditingId(null);
-              setAssignments([]);
-            }}
+            onChange={(event) => setRecipientId(event.target.value)}
           >
             <option value="">선택하세요</option>
             {recipients.map((recipient) => (
@@ -197,12 +315,12 @@ export default function ProfessionalAssignmentWorkspace() {
                 disabled={saving}
               >
                 <option value="">선택하세요</option>
-                {eligibleStaff.map((item) => (
+                {eligibleStaff.map(({ staff: item, employmentId, positionCode }) => (
                   <option
-                    key={item.id}
-                    value={`${item.id}:${item.current_employment!.id}`}
+                    key={assignmentKey(item.id, employmentId)}
+                    value={assignmentKey(item.id, employmentId)}
                   >
-                    {staffLabel(item)}
+                    {staffLabel(item, positionCode)}
                   </option>
                 ))}
               </select>
@@ -260,7 +378,7 @@ export default function ProfessionalAssignmentWorkspace() {
                     type="button"
                     onClick={() => {
                       setEditingId(assignment.id);
-                      setStaffKey(`${assignment.staff_id}:${assignment.employment_id}`);
+                      setStaffKey(assignmentKey(assignment.staff_id, assignment.employment_id));
                       setStartDate(assignment.start_date);
                       setEndDate(assignment.end_date);
                     }}

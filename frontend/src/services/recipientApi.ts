@@ -166,6 +166,29 @@ export async function listRecipients(
   });
 }
 
+export async function fetchAllRecipients(
+  signal?: AbortSignal,
+): Promise<{ items: RecipientListItem[]; total: number }> {
+  const pageSize = 200;
+  const maxPages = 1_000;
+  const first = await listRecipients({ page: 1, pageSize, signal });
+  const uniqueItems = new Map<number, RecipientListItem>();
+  for (const item of first.items) {
+    if (!uniqueItems.has(item.id)) uniqueItems.set(item.id, item);
+  }
+  const total = first.total;
+  let page = 2;
+  while (uniqueItems.size < total && page <= maxPages) {
+    const nextPage = await listRecipients({ page, pageSize, signal });
+    if (nextPage.items.length === 0) break;
+    for (const item of nextPage.items) {
+      if (!uniqueItems.has(item.id)) uniqueItems.set(item.id, item);
+    }
+    page += 1;
+  }
+  return { items: [...uniqueItems.values()], total };
+}
+
 export function getRecipient(
   recipientId: RecipientId,
   signal?: AbortSignal,

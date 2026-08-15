@@ -68,6 +68,23 @@ const professionalStaff = {
   current_operational_roles: [],
 };
 
+const recipient2 = { ...recipient, id: 2, name: '수급자2', recipient_no: '000002' };
+const professionalStaff2 = {
+  ...professionalStaff,
+  id: 30,
+  name: '간호사1',
+  current_employment: { ...professionalStaff.current_employment, id: 31, staff_id: 30 },
+  current_positions: [
+    {
+      ...professionalStaff.current_positions[0],
+      id: 32,
+      staff_id: 30,
+      employment_id: 31,
+      position_code: 'NURSE',
+    },
+  ],
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -203,5 +220,109 @@ describe('U13 professional assignment client and workspace', () => {
         },
       ]);
     });
+  });
+
+  test('keeps assignment history available when staff permission is denied', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return jsonResponse({ detail: { code: 'permission_required' } }, 403);
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    await waitFor(() => {
+      expect(screen.getByTestId('professional-assignment-recipient-select')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId('professional-assignment-recipient-select'), {
+      target: { value: '1' },
+    });
+    await waitFor(() => expect(screen.getByText('담당 없음')).toBeInTheDocument());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('loads recipient and staff pages beyond the first page', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return url.searchParams.get('page') === '2'
+          ? jsonResponse({ items: [recipient2], total: 2, page: 2, page_size: 200 })
+          : jsonResponse({ items: [recipient], total: 2, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return url.searchParams.get('page') === '2'
+          ? jsonResponse({ items: [professionalStaff2], total: 2, page: 2, page_size: 200 })
+          : jsonResponse({ items: [professionalStaff], total: 2, page: 1, page_size: 200 });
+      }
+      if (url.pathname.startsWith('/api/v1/staff/') && method === 'GET') {
+        return jsonResponse({ error: { code: 'NOT_FOUND', message: 'detail unavailable' } }, 404);
+      }
+      if (url.pathname.endsWith('/professional-assignments/1') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    await waitFor(() => expect(screen.getByText(/수급자2/)).toBeInTheDocument());
+    expect(screen.getByTestId('professional-assignment-recipient-select')).toHaveValue('');
+  });
+
+  test('ignores a slower assignment response after recipient selection changes', async () => {
+    let resolveFirst: ((response: Response) => void) | undefined;
+    const assignment = (recipientId: number, staffId: number) => ({
+      id: recipientId,
+      recipient_id: recipientId,
+      service_month: '2026-08-01',
+      staff_id: staffId,
+      employment_id: 21,
+      start_date: '2026-08-01',
+      end_date: '2026-08-31',
+      invalidated_at_utc: null,
+      replacement_assignment_id: null,
+      row_version: 1,
+    });
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient, recipient2], total: 2, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+        return jsonResponse({ detail: { code: 'permission_required' } }, 403);
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
+        return new Promise<Response>((resolve) => {
+          resolveFirst = resolve;
+        });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/2' && method === 'GET') {
+        return jsonResponse({ items: [assignment(2, 30)] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    await waitFor(() => expect(screen.getByText(/수급자2/)).toBeInTheDocument());
+    const recipientSelect = screen.getByTestId('professional-assignment-recipient-select');
+    fireEvent.change(recipientSelect, { target: { value: '1' } });
+    await waitFor(() => expect(resolveFirst).toBeDefined());
+    fireEvent.change(recipientSelect, { target: { value: '2' } });
+    await waitFor(() => expect(screen.getByTestId('professional-assignment-row-2')).toBeInTheDocument());
+    resolveFirst?.(jsonResponse({ items: [assignment(1, 20)] }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId('professional-assignment-row-1')).not.toBeInTheDocument();
   });
 });
