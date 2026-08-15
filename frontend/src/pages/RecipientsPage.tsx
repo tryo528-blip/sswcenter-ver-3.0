@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, UIEvent } from 'react';
 import RecipientW1cPanel from '../components/recipients/RecipientW1cPanel';
 import RecipientContractPanel from '../components/recipients/RecipientContractPanel';
+import RecipientCareAssignmentPanel from '../components/recipients/RecipientCareAssignmentPanel';
 import RecipientServicePlanNoticePanel from '../components/recipients/RecipientServicePlanNoticePanel';
 import {
   createRecipientBasicBatch,
@@ -2633,6 +2634,12 @@ export const RecipientsPage = () => {
                     setListReload((current) => current + 1);
                     setWorkspaceReload((current) => current + 1);
                   }}
+                />
+              ) : null}
+              {activeId ? (
+                <RecipientCareAssignmentPanel
+                  key={`care-assignment-${activeId}-${detailBatchRevision}`}
+                  recipientId={activeId}
                 />
               ) : null}
             </div>

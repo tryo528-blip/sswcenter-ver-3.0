@@ -22,6 +22,7 @@ from app.domains.recipient.service import RecipientService
 from app.domains.staff.service import StaffService
 from app.domains.w1c.service import W1CService
 from app.domains.w1d.service import W1DService
+from app.domains.w1e.service import W1EService
 
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
 
@@ -330,4 +331,21 @@ def get_w1d_service(
 W1DServiceDependency = Annotated[
     W1DService,
     Depends(get_w1d_service),
+]
+
+
+def get_w1e_service(
+    request: Request,
+    database_session: DatabaseSession,
+) -> W1EService:
+    request_id = getattr(request.state, "request_id", None)
+    return W1EService(
+        database_session,
+        request_id=request_id if isinstance(request_id, UUID) else None,
+    )
+
+
+W1EServiceDependency = Annotated[
+    W1EService,
+    Depends(get_w1e_service),
 ]
