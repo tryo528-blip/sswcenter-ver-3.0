@@ -4,6 +4,7 @@ import gzip
 import json
 import logging
 import os
+import time
 
 from app.core.logging import DailySizeCompressedFileHandler, SensitiveDataFilter
 from app.domains.staff.policies import normalize_sensitive_text
@@ -172,18 +173,22 @@ def test_log_handler_total_cap_only_prunes_its_log_family(tmp_path: object) -> N
     for path in sibling_logs.values():
         path.write_bytes(b"sibling-log")
 
-    archive = log_directory / "app.log.20260815T00000000000000Z.gz"
+    archives = {
+        "app": log_directory / "app.log.20260815T00000000000000Z.gz",
+        "error": log_directory / "error.log.20260815T00000000000000Z.gz",
+    }
     log_path.write_bytes(b"active")
-    archive.write_bytes(b"archive")
+    for archive in archives.values():
+        archive.write_bytes(b"archive")
 
-    now = 1_800_000_000
-    for offset, path in enumerate((*sibling_logs.values(), archive, log_path)):
+    now = time.time()
+    for offset, path in enumerate((*sibling_logs.values(), *archives.values(), log_path)):
         os.utime(path, (now + offset, now + offset))
 
     handler = DailySizeCompressedFileHandler(
         log_path,
         retention_days=30,
-        total_cap_bytes=log_path.stat().st_size,
+        total_cap_bytes=sum(path.stat().st_size for path in (*sibling_logs.values(), log_path)),
     )
     try:
         handler._prune_archives()
@@ -191,4 +196,4 @@ def test_log_handler_total_cap_only_prunes_its_log_family(tmp_path: object) -> N
         handler.close()
 
     assert all(path.exists() for path in sibling_logs.values())
-    assert not archive.exists()
+    assert all(not path.exists() for path in archives.values())
