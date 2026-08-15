@@ -36,7 +36,7 @@ PUT  /api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments/
 | U-12 backend focused | `28 passed` |
 | backend full | `397 passed, 139 skipped`; 기존 fixed-hash 1건만 실패 (`B37B...` 기대 vs 현재 `B0CC...`) |
 | U-12 frontend | `2 passed` |
-| frontend supported suite | 이전 current baseline `25 files / 229 passed`; U-12 추가 focused suite는 위에 별도 기록 |
+| frontend supported suite | `26 files / 231 passed` |
 | frontend build | `tsc -b` + Vite exit `0` |
 | OpenAPI generation | `OPENAPI_TYPES_UP_TO_DATE` |
 | changed backend Ruff | exit `0` |
