@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `7a962ba`
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `7a962ba` (후속 검증 보정 `f432ea4`, `HEAD` `fix(u03)`)
 > 지위: U-03 한 슬라이스의 구현·검증 후보 기록. PR 병합·보안 review·W0 전체 acceptance와 동일하지 않다.
 
 ## 판정
@@ -28,6 +28,8 @@
   - 로그인 401/423/429의 사용자-visible 메시지를 각각 검증한다.
   - bootstrap status 401에서 login form 전환·loading 종료·unauthorized event 부재를 검증한다.
   - bootstrap status 401에서는 PIN input이 invalid/description 상태가 아님도 검증한다.
+- `frontend/src/context/AuthProvider.tsx` / `frontend/src/test/Auth.test.tsx`
+  - 423 잠금 및 429 rate-limit 응답은 전역 오류만 표시하고 PIN 입력을 invalid로 표시하지 않도록 보정했다.
 
 ## 검증 증거
 
@@ -37,6 +39,7 @@
 - TypeScript project build (`tsc -b`): exit `0`.
 - 변경 파일 oxlint: exit `0`.
 - `git diff --check`: exit `0`.
+- 보정 후 423/429의 `aria-invalid=false` 및 `aria-describedby` 부재 회귀 단언을 추가했다.
 
 ## 남은 경계
 

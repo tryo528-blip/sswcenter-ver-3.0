@@ -155,11 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (requestError.status === 423) {
           const message = '로그인 실패가 누적되어 계정이 잠겼습니다. 잠시 후 다시 시도해주세요.';
           setError(message);
-          setPinError(message);
+          setPinError(null);
         } else if (requestError.status === 429) {
           const message = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.';
           setError(message);
-          setPinError(message);
+          setPinError(null);
         } else {
           setError(requestError.message);
           setPinError(null);

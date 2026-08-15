@@ -298,6 +298,8 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '999999' } });
 
     await waitFor(() => expect(screen.getByTestId('login-error')).toHaveTextContent(message));
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('login-pin-input')).not.toHaveAttribute('aria-describedby');
   });
 
   it('finishes the initial loading transition when bootstrap status returns 401', async () => {
