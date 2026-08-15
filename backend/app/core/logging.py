@@ -9,6 +9,7 @@ import shutil
 import traceback
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 from app.core.settings import Settings
 from app.domains.staff.policies import normalize_sensitive_text
@@ -18,6 +19,28 @@ TOTAL_LOG_CAP_BYTES = 2 * 1024 * 1024 * 1024
 
 
 class SensitiveDataFilter(logging.Filter):
+    _rrn_marker_pin_pattern = re.compile(
+        r"(?ix)\b(?P<label>pin|current_pin)\b"
+        r"(?P<middle>(?:(?:\s|__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__|->|=>|→|➜|➔|[-–—=:|/])+))"
+        r"(?:"
+        r"(?P<quote>[\"'])(?:[0-9][^\s,;]*?)(?P=quote)"
+        r"|[0-9][^\s,;]*"
+        r")"
+    )
+    _rrn_marker_secret_pattern = re.compile(
+        r"(?ix)\b(?P<label>pin|password|session(?:_token)?|csrf(?:_token)?)\b"
+        r"(?P<separator>\s*[=:]\s*)"
+        r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\s,;}\]]*"
+    )
+    _rrn_marker_quoted_secret_pattern = re.compile(
+        r"(?ix)(?P<prefix>[\"'](?:pin|password|session(?:_token)?|csrf(?:_token)?)"
+        r"[\"']\s*:\s*[\"'])"
+        r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\"']*(?P<quote>[\"'])"
+    )
+    _rrn_marker_bearer_pattern = re.compile(
+        r"(?i)(?P<prefix>\bbearer\s+)"
+        r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\s,;}\]]*"
+    )
     _patterns = (
         (
             re.compile(
@@ -30,6 +53,24 @@ class SensitiveDataFilter(logging.Filter):
                 """
             ),
             r"\1\2[REDACTED]\2",
+        ),
+        (
+            re.compile(
+                r'''(?ix)
+                (["'](?:pin|current_pin)["']\s*:\s*)
+                ([0-9][^\s,;}\]]*)
+                '''
+            ),
+            r"\1[REDACTED]",
+        ),
+        (
+            re.compile(
+                r"(?ix)\b(pin|current_pin)\b"
+                r"(\s*(?:->|=>|→|➜|➔|[-–—=:|/])\s*|\s+)"
+                r"(?:__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__\s*)?"
+                r"(?:([\"'])([0-9][^\s,;]*?)\3|([0-9][^\s,;]*))"
+            ),
+            r"\1\2[REDACTED]",
         ),
         (
             re.compile(
@@ -62,19 +103,69 @@ class SensitiveDataFilter(logging.Filter):
         ),
     )
 
+    @classmethod
+    def _redact(cls, text: str, *, preserve_rrn_marker: bool = False) -> str:
+        if preserve_rrn_marker:
+            text = normalize_sensitive_text(text)
+            placeholder = f"__SSWCENTER_REDACTED_RRN_{uuid4().hex}__"
+            while placeholder in text:
+                placeholder = f"__SSWCENTER_REDACTED_RRN_{uuid4().hex}__"
+            text = text.replace("[REDACTED-RRN]", placeholder)
+            # A normalized RRN can sit between a PIN label and its value. Apply
+            # the PIN rule once across the protected marker before splitting it
+            # into per-part strings for the remaining rules.
+            text = cls._rrn_marker_pin_pattern.sub(
+                lambda match: f"{match.group('label')}{match.group('middle')}[REDACTED]",
+                text,
+            )
+            # A credential can begin with a resident-number-looking prefix
+            # and continue with a suffix. Redact the complete value before
+            # splitting the protected marker so the suffix cannot survive.
+            text = cls._rrn_marker_secret_pattern.sub(
+                lambda match: f"{match.group('label')}{match.group('separator')}[REDACTED]",
+                text,
+            )
+            text = cls._rrn_marker_quoted_secret_pattern.sub(
+                lambda match: f"{match.group('prefix')}[REDACTED]{match.group('quote')}",
+                text,
+            )
+            text = cls._rrn_marker_bearer_pattern.sub(
+                lambda match: f"{match.group('prefix')}[REDACTED]",
+                text,
+            )
+            # Apply the other secret patterns around the protected marker.
+            # Running them over the marker itself would match the surrounding
+            # ``resident_number=`` label and downgrade the RRN classification
+            # to the generic ``[REDACTED]`` token.
+            parts = text.split(placeholder)
+            text = placeholder.join(
+                cls._apply_patterns(part) for part in parts
+            )
+        else:
+            text = cls._apply_patterns(text)
+        if preserve_rrn_marker:
+            return text.replace(placeholder, "[REDACTED-RRN]")
+        return normalize_sensitive_text(text)
+
+    @classmethod
+    def _apply_patterns(cls, text: str) -> str:
+        for pattern, replacement in cls._patterns:
+            text = pattern.sub(replacement, text)
+        return text
+
     def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
-        for pattern, replacement in self._patterns:
-            message = pattern.sub(replacement, message)
-        record.msg = normalize_sensitive_text(message)
+        # Use the marker-preserving pipeline for ordinary messages too.  A
+        # normalized RRN may otherwise be mistaken for the PIN value and leave
+        # a later separated PIN token untouched.
+        record.msg = self._redact(record.getMessage(), preserve_rrn_marker=True)
         record.args = ()
         if record.exc_info:
             exception_text = "".join(traceback.format_exception(*record.exc_info))
             record.exc_info = None
-            record.msg = f"{record.msg}\n{normalize_sensitive_text(exception_text)}"
+            record.msg = f"{record.msg}\n{self._redact(exception_text, preserve_rrn_marker=True)}"
             record.exc_text = None
         if record.stack_info:
-            record.stack_info = normalize_sensitive_text(record.stack_info)
+            record.stack_info = self._redact(record.stack_info, preserve_rrn_marker=True)
         return True
 
 
