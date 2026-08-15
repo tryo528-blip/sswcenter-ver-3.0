@@ -21,11 +21,16 @@ TOTAL_LOG_CAP_BYTES = 2 * 1024 * 1024 * 1024
 class SensitiveDataFilter(logging.Filter):
     _rrn_marker_pin_pattern = re.compile(
         r"(?ix)\b(?P<label>pin|current_pin)\b"
-        r"(?P<middle>(?:(?:\s|__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__|->|=>|[-–—=:|/])+))"
+        r"(?P<middle>(?:(?:\s|__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__|->|=>|→|➜|➔|[-–—=:|/])+))"
         r"(?:"
         r"(?P<quote>[\"'])(?:[0-9][^\s,;]*?)(?P=quote)"
         r"|[0-9][^\s,;]*"
         r")"
+    )
+    _rrn_marker_secret_pattern = re.compile(
+        r"(?ix)\b(?P<label>pin|password|session(?:_token)?|csrf(?:_token)?)\b"
+        r"(?P<separator>\s*[=:]\s*)"
+        r"__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__[^\s,;}\]]*"
     )
     _patterns = (
         (
@@ -52,7 +57,7 @@ class SensitiveDataFilter(logging.Filter):
         (
             re.compile(
                 r"(?ix)\b(pin|current_pin)\b"
-                r"(\s*(?:->|=>|[-–—=:|/])\s*|\s+)"
+                r"(\s*(?:->|=>|→|➜|➔|[-–—=:|/])\s*|\s+)"
                 r"(?:__SSWCENTER_REDACTED_RRN(?:_[0-9a-f]{32})?__\s*)?"
                 r"(?:([\"'])([0-9][^\s,;]*?)\3|([0-9][^\s,;]*))"
             ),
@@ -102,6 +107,13 @@ class SensitiveDataFilter(logging.Filter):
             # into per-part strings for the remaining rules.
             text = cls._rrn_marker_pin_pattern.sub(
                 lambda match: f"{match.group('label')}{match.group('middle')}[REDACTED]",
+                text,
+            )
+            # A credential can begin with a resident-number-looking prefix
+            # and continue with a suffix. Redact the complete value before
+            # splitting the protected marker so the suffix cannot survive.
+            text = cls._rrn_marker_secret_pattern.sub(
+                lambda match: f"{match.group('label')}{match.group('separator')}[REDACTED]",
                 text,
             )
             # Apply the other secret patterns around the protected marker.
