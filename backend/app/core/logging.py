@@ -51,8 +51,16 @@ class SensitiveDataFilter(logging.Filter):
         ),
         (
             re.compile(
+                r"(?i)\b((?:current_)?pin)\b"
+                r"(\s*(?:=|:|->|=>|→)\s*|\s+)"
+                r"([0-9]{6})\b"
+            ),
+            r"\1\2[REDACTED]",
+        ),
+        (
+            re.compile(
                 r"(?i)\b(pin|password|session(?:_token)?|csrf(?:_token)?)\b"
-                r"(\s*[=:]\s*)([^\s,;]+)"
+                r"(\s*(?:=|:|->|=>|→)\s*)([^\s,;]+)"
             ),
             r"\1\2[REDACTED]",
         ),
@@ -62,19 +70,21 @@ class SensitiveDataFilter(logging.Filter):
         ),
     )
 
-    def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
+    def _redact(self, value: str) -> str:
         for pattern, replacement in self._patterns:
-            message = pattern.sub(replacement, message)
-        record.msg = normalize_sensitive_text(message)
+            value = pattern.sub(replacement, value)
+        return normalize_sensitive_text(value)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = self._redact(record.getMessage())
         record.args = ()
         if record.exc_info:
             exception_text = "".join(traceback.format_exception(*record.exc_info))
             record.exc_info = None
-            record.msg = f"{record.msg}\n{normalize_sensitive_text(exception_text)}"
+            record.msg = f"{record.msg}\n{self._redact(exception_text)}"
             record.exc_text = None
         if record.stack_info:
-            record.stack_info = normalize_sensitive_text(record.stack_info)
+            record.stack_info = self._redact(record.stack_info)
         return True
 
 
@@ -93,6 +103,20 @@ class DailySizeCompressedFileHandler(logging.handlers.BaseRotatingHandler):
         self.max_bytes = max_bytes
         self.total_cap_bytes = total_cap_bytes
         self._opened_date = date.today()
+
+    def _owned_log_files(self) -> list[Path]:
+        source = Path(self.baseFilename)
+        prefix = source.name
+        if not source.parent.exists():
+            return []
+        return sorted(
+            (
+                path
+                for path in source.parent.iterdir()
+                if path.is_file() and (path.name == prefix or path.name.startswith(f"{prefix}."))
+            ),
+            key=lambda path: path.stat().st_mtime,
+        )
 
     def shouldRollover(self, record: logging.LogRecord) -> bool:  # noqa: N802
         if date.today() != self._opened_date:
@@ -120,25 +144,24 @@ class DailySizeCompressedFileHandler(logging.handlers.BaseRotatingHandler):
         self._prune_archives()
 
     def _prune_archives(self) -> None:
-        log_directory = Path(self.baseFilename).parent
-        archives = sorted(
-            log_directory.glob(f"{Path(self.baseFilename).name}.*.gz"),
-            key=lambda path: path.stat().st_mtime,
-        )
+        owned_files = self._owned_log_files()
+        archives = [
+            path
+            for path in owned_files
+            if path.name.startswith(f"{Path(self.baseFilename).name}.") and path.suffix == ".gz"
+        ]
         cutoff = datetime.now(UTC) - timedelta(days=self.retention_days)
         for archive in archives:
             modified = datetime.fromtimestamp(archive.stat().st_mtime, UTC)
             if modified < cutoff:
                 archive.unlink()
-        capped_files = sorted(
-            (path for path in log_directory.iterdir() if path.is_file()),
-            key=lambda path: path.stat().st_mtime,
-        )
+        capped_files = self._owned_log_files()
         total_size = sum(path.stat().st_size for path in capped_files)
+        active = Path(self.baseFilename).resolve()
         for old_file in capped_files:
             if total_size <= self.total_cap_bytes:
                 break
-            if old_file.resolve() == Path(self.baseFilename).resolve():
+            if old_file.resolve() == active:
                 continue
             file_size = old_file.stat().st_size
             old_file.unlink()

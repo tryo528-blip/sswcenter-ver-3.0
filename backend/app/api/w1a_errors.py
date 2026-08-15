@@ -22,6 +22,30 @@ from app.domains.staff.schemas import ErrorBody, ErrorEnvelope, ErrorField
 logger = logging.getLogger(__name__)
 
 
+def _is_auth_api_path(path: str) -> bool:
+    return path.startswith("/api/auth") or path.startswith("/api/bootstrap")
+
+
+def _safe_validation_fields(exc: RequestValidationError) -> list[dict[str, str]]:
+    fields = []
+    for item in exc.errors():
+        error_type = item.get("type")
+        raw_location = tuple(item.get("loc", ()))
+        if error_type == "extra_forbidden" and raw_location:
+            raw_location = raw_location[:-1]
+        location = [str(part) for part in raw_location if part not in {"body"}]
+        field = ".".join(location)
+        if error_type == "extra_forbidden" and not field:
+            field = "body"
+        fields.append(
+            {
+                "field": field,
+                "message": "입력값을 확인하세요.",
+            }
+        )
+    return fields
+
+
 def _request_id(request: Request) -> UUID:
     value = getattr(request.state, "request_id", None)
     return value if isinstance(value, UUID) else uuid4()
@@ -106,30 +130,22 @@ def install_w1a_error_contract(application: FastAPI) -> None:
         request: Request,
         exc: RequestValidationError,
     ) -> Response:
+        if _is_auth_api_path(request.url.path):
+            return _error_response(
+                request,
+                status_code=422,
+                code="VALIDATION_ERROR",
+                message="입력값을 확인하세요.",
+                field_errors=_safe_validation_fields(exc),
+            )
         if not request.url.path.startswith("/api/v1/"):
             return await request_validation_exception_handler(request, exc)
-        fields = []
-        for item in exc.errors():
-            error_type = item.get("type")
-            raw_location = tuple(item.get("loc", ()))
-            if error_type == "extra_forbidden" and raw_location:
-                raw_location = raw_location[:-1]
-            location = [str(part) for part in raw_location if part not in {"body"}]
-            field = ".".join(location)
-            if error_type == "extra_forbidden" and not field:
-                field = "body"
-            fields.append(
-                {
-                    "field": field,
-                    "message": "입력값을 확인하세요.",
-                }
-            )
         return _error_response(
             request,
             status_code=422,
             code="VALIDATION_ERROR",
             message="입력값을 확인하세요.",
-            field_errors=fields,
+            field_errors=_safe_validation_fields(exc),
         )
 
     @application.exception_handler(HTTPException)

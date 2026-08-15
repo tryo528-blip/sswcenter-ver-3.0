@@ -181,6 +181,7 @@ export async function apiRequest<T>(
       response.status === 401 &&
       url !== '/api/auth/login' &&
       url !== '/api/auth/me' &&
+      url !== '/api/bootstrap/status' &&
       requestGeneration === authGeneration &&
       typeof window !== 'undefined'
     ) {

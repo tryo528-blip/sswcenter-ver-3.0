@@ -1,0 +1,30 @@
+[cli]
+auto_update = false
+
+[features]
+telemetry = false
+feedback = false
+
+[session]
+load_envrc = false
+
+[shell_environment_policy]
+inherit = "core"
+ignore_default_excludes = false
+include_only = ["PATH", "HOME", "LANG", "LC_ALL", "TERM", "COLORTERM", "VIRTUAL_ENV"]
+
+[permission]
+deny = [
+  "Read(/home/codexctl/.grok/**)",
+  "Edit(/home/codexctl/.grok/**)",
+  "Bash(*.grok*)",
+  "Bash(git commit *)",
+  "Bash(git push *)",
+  "Bash(git reset *)",
+  "Bash(git clean *)",
+  "Bash(git checkout *)",
+  "Bash(git switch *)",
+  "Bash(git rebase *)",
+  "Bash(git cherry-pick *)",
+  "Bash(git merge *)",
+]

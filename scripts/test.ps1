@@ -1,5 +1,6 @@
 param(
     [switch]$RequirePostgres,
+    [switch]$FoundationOnly,
     [switch]$IncludeHistoricalContracts,
     [string]$PythonExecutable = "",
     [string]$NpmExecutable = ""
@@ -15,7 +16,26 @@ $PythonExe = if ($IsWindowsHost) {
 } else {
     Join-Path $WorkspaceRoot "backend/.venv/bin/python"
 }
-$NpmExe = if ($IsWindowsHost) { "C:\Program Files\nodejs\npm.cmd" } else { "/usr/bin/npm" }
+$NpmExe = if ($IsWindowsHost) {
+    "C:\Program Files\nodejs\npm.cmd"
+} else {
+    (Get-Command npm -CommandType Application -ErrorAction Stop).Source
+}
+$PowerShellExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+
+if (-not $IsWindowsHost) {
+    $UserProfilePath = [Environment]::GetFolderPath(
+        [Environment+SpecialFolder]::UserProfile
+    )
+    $LocalPlaywrightLibraryPath = Join-Path $UserProfilePath ".local/share/sswcenter-playwright-libs/ubuntu-24.04/usr/lib/x86_64-linux-gnu"
+    if (Test-Path -LiteralPath $LocalPlaywrightLibraryPath -PathType Container) {
+        $env:LD_LIBRARY_PATH = if ([string]::IsNullOrWhiteSpace($env:LD_LIBRARY_PATH)) {
+            $LocalPlaywrightLibraryPath
+        } else {
+            "$LocalPlaywrightLibraryPath$([System.IO.Path]::PathSeparator)$env:LD_LIBRARY_PATH"
+        }
+    }
+}
 
 if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
     if (-not [System.IO.Path]::IsPathRooted($PythonExecutable)) {
@@ -50,24 +70,98 @@ try {
         }
     }
 
-    & $PythonExe -m ruff check app tests alembic
-    if ($LASTEXITCODE -ne 0) { throw "Ruff failed" }
-    & $PythonExe -m mypy app
-    if ($LASTEXITCODE -ne 0) { throw "mypy failed" }
+    & $PythonExe -B -m pytest -q tests/test_w0_release_gate.py
+    if ($LASTEXITCODE -ne 0) { throw "W0 release-gate contract failed" }
 
-    $PytestArguments = @("-m", "pytest", "-q")
-    if (-not $RequirePostgres) {
-        $PytestArguments += "--ignore=tests/test_w1a_vs6_postgres.py"
+    $OpenApiScript = Join-Path $WorkspaceRoot "scripts\generate-openapi-types.ps1"
+    & $PowerShellExe -NoProfile -File $OpenApiScript -Check -PythonExecutable $PythonExe -NpmExecutable $NpmExe
+    if ($LASTEXITCODE -ne 0) { throw "OpenAPI drift check failed" }
+
+    $PackageLockPath = Join-Path $WorkspaceRoot "frontend\package-lock.json"
+    $RequirementsPath = Join-Path $WorkspaceRoot "backend\requirements.txt"
+    $RequirementsLockPath = Join-Path $WorkspaceRoot "backend\requirements.lock"
+    if (-not (Test-Path -LiteralPath $PackageLockPath -PathType Leaf)) {
+        throw "frontend package-lock.json is missing"
     }
-    if (-not $IncludeHistoricalContracts) {
-        $PytestArguments += "--ignore=tests/test_w1b_red.py"
-        $PytestArguments += "--ignore=tests/test_w1d_contract.py"
-        $PytestArguments += "--ignore=tests/test_w1e_contract.py"
+    if (-not (Test-Path -LiteralPath $RequirementsPath -PathType Leaf)) {
+        throw "backend requirements.txt is missing"
     }
+    if (-not (Test-Path -LiteralPath $RequirementsLockPath -PathType Leaf)) {
+        throw "backend requirements.lock is missing"
+    }
+    if ($FoundationOnly) {
+        $RuffTargets = @(
+            "app/api/dependencies.py",
+            "app/api/health.py",
+            "app/api/w1a_errors.py",
+            "app/core/logging.py",
+            "app/core/readiness.py",
+            "app/db/session.py",
+            "tests/test_health.py",
+            "tests/test_logging.py",
+            "tests/test_security.py",
+            "tests/test_settings.py",
+            "tests/test_w0_auth_validation_safety.py",
+            "tests/test_w0_postgres_live.py",
+            "tests/test_w0_readiness_write_gate.py",
+            "tests/test_w0_release_gate.py"
+        )
+        & $PythonExe -m ruff check @RuffTargets
+        if ($LASTEXITCODE -ne 0) { throw "W0 Ruff failed" }
+
+        $MypyTargets = @(
+            "app/api/dependencies.py",
+            "app/api/health.py",
+            "app/api/w1a_errors.py",
+            "app/core/logging.py",
+            "app/core/readiness.py",
+            "app/db/session.py"
+        )
+        & $PythonExe -m mypy --follow-imports=silent @MypyTargets
+        if ($LASTEXITCODE -ne 0) { throw "W0 mypy failed" }
+
+        $PytestArguments = @(
+            "-B", "-m", "pytest", "-q",
+            "tests/test_foundation_0025_contract.py",
+            "tests/test_health.py",
+            "tests/test_logging.py",
+            "tests/test_schema_contract.py",
+            "tests/test_security.py",
+            "tests/test_settings.py",
+            "tests/test_w0_auth_validation_safety.py",
+            "tests/test_w0_postgres_live.py",
+            "tests/test_w0_readiness_write_gate.py",
+            "tests/test_w0_release_gate.py",
+            "tests/test_wave0_postcheck_catalog.py"
+        )
+        $BackendProfile = "foundation"
+    } else {
+        & $PythonExe -m ruff check app tests alembic
+        if ($LASTEXITCODE -ne 0) { throw "Ruff failed" }
+        & $PythonExe -m mypy app
+        if ($LASTEXITCODE -ne 0) { throw "mypy failed" }
+
+        $PytestArguments = @("-B", "-m", "pytest", "-q")
+        if (-not $RequirePostgres) {
+            $PytestArguments += "--ignore=tests/test_w1a_vs6_postgres.py"
+        }
+        if (-not $IncludeHistoricalContracts) {
+            $PytestArguments += "--ignore=tests/test_w1b_red.py"
+            $PytestArguments += "--ignore=tests/test_w1d_contract.py"
+            $PytestArguments += "--ignore=tests/test_w1e_contract.py"
+        }
+        $BackendProfile = if ($IncludeHistoricalContracts) {
+            "supported+historical"
+        } else {
+            "supported"
+        }
+    }
+    $E2eProfile = if ($FoundationOnly) { "w0" } else { "smoke" }
     Write-Output (
-        "SSWCENTER_TEST_PROFILE backend={0} frontend={1} e2e=smoke postgres={2} historical={3}" -f
+        "SSWCENTER_TEST_PROFILE backend={0} frontend={1} e2e={2} postgres={3} historical={4}" -f
+        $BackendProfile,
         $(if ($IncludeHistoricalContracts) { "supported+historical" } else { "supported" }),
-        $(if ($IncludeHistoricalContracts) { "supported+historical" } else { "supported" }),
+        $E2eProfile,
         [int][bool]$RequirePostgres,
         [int][bool]$IncludeHistoricalContracts
     )
@@ -97,7 +191,11 @@ try {
     }
     & $NpmExe run build
     if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
-    & $NpmExe run test:e2e:smoke
+    if ($FoundationOnly) {
+        & $NpmExe run test:e2e:w0
+    } else {
+        & $NpmExe run test:e2e:smoke
+    }
     if ($LASTEXITCODE -ne 0) { throw "Frontend Playwright smoke tests failed" }
 }
 finally {

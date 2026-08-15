@@ -1,0 +1,9 @@
+[profiles.sswcenter_work]
+extends = "strict"
+restrict_network = false
+read_only = ["/home/codexctl/workspace/sswcenter-3-0/.git"]
+
+[profiles.sswcenter_review]
+extends = "strict"
+restrict_network = false
+read_only = ["/home/codexctl/workspace/sswcenter-3-0"]

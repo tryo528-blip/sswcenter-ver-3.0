@@ -215,7 +215,7 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     expect(fetchCredentials).toBe('include');
   });
 
-  it('handles 401 on login silently without leaking sensitive logs', async () => {
+  it('shows a 401 login error without leaking the PIN', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
@@ -250,20 +250,78 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '999999' } });
 
     await waitFor(() => {
-      expect(
-        vi.mocked(globalThis.fetch).mock.calls.some(([url]) => String(url).includes('/api/auth/login')),
-      ).toBe(true);
+      expect(screen.getByTestId('login-error')).toHaveTextContent('PIN 번호가 올바르지 않습니다.');
     });
-    expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
     expect(screen.getByTestId('login-pin-input')).toHaveValue('999999');
-    expect(screen.getByTestId('login-pin-input')).not.toHaveClass('auth-login-input-error');
-    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('login-pin-input')).toHaveClass('auth-login-input-error');
+    expect(screen.getByTestId('login-pin-input')).toHaveAttribute('aria-invalid', 'true');
 
-    // Ensure PIN was not logged to console
     const loggedStr = consoleSpy.mock.calls.flat().join(' ');
     expect(loggedStr).not.toContain('999999');
 
     consoleSpy.mockRestore();
+  });
+
+  it('shows distinct 423 and 429 login errors', async () => {
+    let loginStatus = 423;
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/bootstrap/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ bootstrap_required: false }),
+        } as Response);
+      }
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) } as Response);
+      }
+      if (url.includes('/api/auth/login')) {
+        return Promise.resolve({
+          ok: false,
+          status: loginStatus,
+          json: () => Promise.resolve({ detail: { code: 'locked_or_limited' } }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
+    });
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId('login-form')).toBeInTheDocument());
+    fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '111111' } });
+    await waitFor(() => {
+      expect(screen.getByTestId('login-error')).toHaveTextContent(
+        '로그인 실패가 누적되어 계정이 잠겼습니다. 잠시 후 다시 시도해주세요.',
+      );
+    });
+
+    loginStatus = 429;
+    fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '222222' } });
+    await waitFor(() => {
+      expect(screen.getByTestId('login-error')).toHaveTextContent(
+        '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
+      );
+    });
+  });
+
+  it('stops bootstrap loading after a 401 and shows the login screen', async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/bootstrap/status')) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ error: { code: 'SESSION_REQUIRED' } }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('login-form')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('auth-loading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('bootstrap-container')).not.toBeInTheDocument();
   });
 
   it('has no form or Enter submit path and submits only on the sixth digit', async () => {
@@ -381,6 +439,57 @@ describe('Auth Gate & Bootstrap / Login / Logout Flow', () => {
     });
     expect(screen.queryByTestId('app-shell')).not.toBeInTheDocument();
     expect(screen.queryByText('stale-account')).not.toBeInTheDocument();
+  });
+
+  it('does not let a stale login 401 overwrite a newer authenticated state', async () => {
+    let resolveFirstLogin: ((response: Response) => void) | undefined;
+    let loginCalls = 0;
+
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/bootstrap/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ bootstrap_required: false }),
+        } as Response);
+      }
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) } as Response);
+      }
+      if (url.includes('/api/auth/login')) {
+        loginCalls += 1;
+        if (loginCalls === 1) {
+          return new Promise<Response>((resolve) => {
+            resolveFirstLogin = resolve;
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              account: { id: 1, display_name: '최신 계정', role_code: 'ADMIN' },
+            }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
+    });
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId('login-form')).toBeInTheDocument());
+    fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '111111' } });
+    await waitFor(() => expect(resolveFirstLogin).toBeDefined());
+    fireEvent.change(screen.getByTestId('login-pin-input'), { target: { value: '222222' } });
+    await waitFor(() => expect(screen.getByTestId('app-shell')).toBeInTheDocument());
+    expect(screen.getByTestId('header-user-name')).toHaveTextContent('최신 계정');
+
+    resolveFirstLogin?.(
+      new Response(JSON.stringify({ detail: { code: 'authentication_failed' } }), { status: 401 }),
+    );
+
+    await waitFor(() => expect(screen.getByTestId('app-shell')).toBeInTheDocument());
+    expect(screen.queryByTestId('login-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('header-user-name')).toHaveTextContent('최신 계정');
   });
 
   it('performs full login and logout sequence', async () => {

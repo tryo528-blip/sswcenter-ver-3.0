@@ -298,6 +298,17 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--auth-theme) 24%, transparent);
 }
 
+.auth-login-input-error,
+.auth-login-input-error:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-danger) 18%, transparent);
+}
+
+.auth-login-form .auth-error-banner {
+  margin-top: 12px;
+  text-align: center;
+}
+
 .auth-login-whale {
   position: absolute;
   z-index: 1;

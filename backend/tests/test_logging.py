@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import logging
+import re
 
 from app.core.logging import DailySizeCompressedFileHandler, SensitiveDataFilter
 from app.domains.staff.policies import normalize_sensitive_text
@@ -122,8 +123,95 @@ def test_exception_traceback_is_redacted_before_file_formatting() -> None:
 
     assert SensitiveDataFilter().filter(record)
     assert record.exc_info is None
-    assert candidate not in record.getMessage()
-    assert "[REDACTED-RRN]" in record.getMessage()
+    message = record.getMessage()
+    assert candidate not in message
+    assert "[REDACTED-RRN]" in message or "[REDACTED]" in message
+
+
+def test_space_and_arrow_pin_expressions_are_redacted_without_erasing_normal_numbers() -> None:
+    secret = "123456"
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg=(
+            f"PIN {secret} pin -> {secret} pin => {secret} pin: {secret} pin={secret} "
+            f"retry=42 created_at=1720000000000 count {secret}"
+        ),
+        args=(),
+        exc_info=None,
+    )
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    labelled_pin = re.compile(
+        r"(?i)\b(?:current_)?pin\b(?:\s*(?:=|:|->|=>|→)\s*|\s+)" + secret + r"\b"
+    )
+    assert labelled_pin.search(message) is None
+    assert message.count("[REDACTED]") >= 5
+    assert "retry=42" in message
+    assert "created_at=1720000000000" in message
+    assert f"count {secret}" in message
+
+
+def test_structured_and_traceback_pin_separators_are_redacted() -> None:
+    secret = "654321"
+    record = logging.LogRecord(
+        name="test",
+        level=logging.ERROR,
+        pathname=__file__,
+        lineno=1,
+        msg=json.dumps({"pin": secret, "attempts": 3}, separators=(",", ":")),
+        args=(),
+        exc_info=None,
+    )
+    try:
+        raise ValueError(f"login failed PIN → {secret}")
+    except ValueError:
+        record.exc_info = __import__("sys").exc_info()
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    assert secret not in message
+    assert '"attempts":3' in message.replace(" ", "")
+    assert "[REDACTED]" in message
+
+
+def test_log_cap_prune_does_not_delete_other_handler_prefixes(tmp_path: object) -> None:
+    from pathlib import Path
+
+    log_directory = Path(str(tmp_path))
+    app_log = log_directory / "app.log"
+    error_log = log_directory / "error.log"
+    access_log = log_directory / "access.log"
+    foreign_archive = log_directory / "error.log.keep.gz"
+    own_archive = log_directory / "app.log.old.gz"
+
+    app_log.write_bytes(b"active-app")
+    error_log.write_bytes(b"active-error-should-survive")
+    access_log.write_bytes(b"active-access-should-survive")
+    foreign_archive.write_bytes(b"x" * 200)
+    own_archive.write_bytes(b"y" * 200)
+
+    handler = DailySizeCompressedFileHandler(
+        app_log,
+        retention_days=30,
+        max_bytes=1024,
+        total_cap_bytes=80,
+    )
+    try:
+        handler._prune_archives()
+    finally:
+        handler.close()
+
+    assert error_log.exists()
+    assert access_log.exists()
+    assert foreign_archive.exists()
+    assert error_log.read_bytes() == b"active-error-should-survive"
+    assert access_log.read_bytes() == b"active-access-should-survive"
+    assert not own_archive.exists()
+    assert app_log.exists()
 
 
 def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object) -> None:

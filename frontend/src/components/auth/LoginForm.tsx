@@ -115,7 +115,7 @@ function getViewportSize() {
 }
 
 export const LoginForm: React.FC = () => {
-  const { login, isLoading, clearError } = useAuth();
+  const { login, isLoading, error, clearError } = useAuth();
   const [pin, setPin] = useState('');
   const [whaleAsset] = useState(() => pickRandom(LOGIN_WHALE_IMAGES));
   const [whaleAspectRatio, setWhaleAspectRatio] = useState(whaleAsset.aspectRatio);
@@ -148,6 +148,7 @@ export const LoginForm: React.FC = () => {
     }
   };
 
+  const hasError = Boolean(error);
   const currentMonth = getLoginMonth();
   const authTheme = getMonthlyColorToken(currentMonth);
   const loginGradient = getLoginGradient(currentMonth);
@@ -234,10 +235,11 @@ export const LoginForm: React.FC = () => {
               type="password"
               inputMode="numeric"
               autoComplete="off"
-              className="auth-input auth-login-input"
+              className={`auth-input auth-login-input${hasError ? ' auth-login-input-error' : ''}`}
               data-testid="login-pin-input"
               aria-label="PIN 번호"
-              aria-invalid="false"
+              aria-invalid={hasError ? 'true' : 'false'}
+              aria-describedby={hasError ? 'login-error' : undefined}
               maxLength={LOGIN_PIN_LENGTH}
               value={pin}
               onChange={handlePinChange}
@@ -245,6 +247,16 @@ export const LoginForm: React.FC = () => {
               disabled={isLoading}
             />
           </div>
+          {error ? (
+            <div
+              id="login-error"
+              className="auth-error-banner"
+              role="alert"
+              data-testid="login-error"
+            >
+              {error}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

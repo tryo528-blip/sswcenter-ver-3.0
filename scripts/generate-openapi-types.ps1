@@ -15,7 +15,11 @@ $BackendRoot = Join-Path $WorkspaceRoot "backend"
 $FrontendRoot = Join-Path $WorkspaceRoot "frontend"
 $IsWindowsHost = [System.IO.Path]::DirectorySeparatorChar -eq '\'
 $PythonExe = if ($IsWindowsHost) { Join-Path $BackendRoot ".venv\Scripts\python.exe" } else { Join-Path $BackendRoot ".venv/bin/python" }
-$NpmExe = if ($IsWindowsHost) { "C:\Program Files\nodejs\npm.cmd" } else { "/usr/bin/npm" }
+$NpmExe = if ($IsWindowsHost) {
+    "C:\Program Files\nodejs\npm.cmd"
+} else {
+    (Get-Command npm -CommandType Application -ErrorAction Stop).Source
+}
 $GeneratedFile = Join-Path $FrontendRoot "src\generated\sswcenter-api.ts"
 
 if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {

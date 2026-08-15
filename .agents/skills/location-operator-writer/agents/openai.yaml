@@ -1,4 +1,0 @@
-interface:
-  display_name: "SSWCenter 3.0 라우팅"
-  short_description: "장소·오퍼레이터·라이터와 안전한 실행 경계를 확정"
-  default_prompt: "Use $location-operator-writer with 사무실-코덱스-그록! to select the route and enforce the SSWCenter 3.0 execution boundaries."

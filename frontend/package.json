@@ -12,6 +12,7 @@
     "test:red:w1b": "vitest run src/test/W1BRecipientsRed.test.tsx --environment jsdom --maxWorkers=1",
     "test:historical": "npm run test:red:w1b",
     "test:e2e": "npm run test:e2e:full",
+    "test:e2e:w0": "playwright test e2e/wave0-shell.spec.ts --config=playwright.config.ts",
     "test:e2e:smoke": "playwright test --config=playwright.smoke.config.ts",
     "test:e2e:full": "playwright test --config=playwright.config.ts",
     "preview": "vite preview"

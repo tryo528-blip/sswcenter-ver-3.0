@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import Engine, create_engine, event, text
+from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 
@@ -36,21 +36,9 @@ def create_postgres_engine(database_url: str) -> Engine:
 
 
 def database_is_ready(database_url: str) -> tuple[bool, str | None]:
-    try:
-        engine = create_postgres_engine(database_url)
-        try:
-            with engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-                schema_exists = connection.execute(
-                    text("SELECT to_regnamespace('erp') IS NOT NULL")
-                ).scalar_one()
-                if not schema_exists:
-                    return False, "erp_schema_missing"
-        finally:
-            engine.dispose()
-    except Exception as exc:
-        return False, type(exc).__name__
-    return True, None
+    from app.core.readiness import database_catalog_is_ready
+
+    return database_catalog_is_ready(database_url, require_postcheck=True)
 
 
 def build_session_factory(engine: Engine) -> sessionmaker[Session]:

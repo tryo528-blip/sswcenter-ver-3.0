@@ -1,5 +1,7 @@
 import base64
 import hashlib
+import os
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -26,6 +28,11 @@ _VALID_B64_32_B: str = base64.b64encode(
 ).decode()
 
 _VALID_DB_PASSWORD: str = strong_secret("sswcenter:database-password")
+_PRODUCTION_DATA_ROOT = (
+    Path("C:/ProgramData/SSWCenter/data")
+    if os.name == "nt"
+    else Path("/var/lib/sswcenter/data")
+)
 
 
 def _prod_kwargs(**overrides: object) -> dict[str, object]:
@@ -33,7 +40,7 @@ def _prod_kwargs(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
         "environment": Environment.PRODUCTION,
         "database_url": f"postgresql+psycopg://app:{_VALID_DB_PASSWORD}@127.0.0.1/sswcenter",
-        "data_root": "C:/ProgramData/SSWCenter/data",
+        "data_root": _PRODUCTION_DATA_ROOT,
         "cookie_secure": True,
         "pin_pepper": strong_secret("sswcenter:pin-pepper"),
         "pin_lookup_key": strong_secret("sswcenter:pin-lookup-key"),
@@ -82,7 +89,7 @@ def test_production_refuses_development_login_bypass() -> None:
         Settings(
             environment=Environment.PRODUCTION,
             database_url="postgresql+psycopg://app:secret@127.0.0.1/sswcenter",
-            data_root="C:/ProgramData/SSWCenter/data",
+            data_root=_PRODUCTION_DATA_ROOT,
             dev_login_bypass=True,
             cookie_secure=True,
             pin_pepper="pepper",

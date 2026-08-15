@@ -66,16 +66,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (requestError: unknown) {
         if (operationRef.current !== operation || isAbortError(requestError)) return;
         setUser(null);
-        if (requestError instanceof ApiError && requestError.status === 401) {
-          beginAuthTransition();
-        } else {
+        if (!(requestError instanceof ApiError && requestError.status === 401)) {
           setError('로그인 상태를 확인할 수 없습니다. 서버 연결을 확인해주세요.');
         }
       }
     } catch (requestError: unknown) {
       if (operationRef.current !== operation || isAbortError(requestError)) return;
       setUser(null);
-      setError('시스템 인증 상태를 확인하는 중 오류가 발생했습니다.');
+      if (requestError instanceof ApiError && requestError.status === 401) {
+        setBootstrapRequired(false);
+      } else {
+        setError('시스템 인증 상태를 확인하는 중 오류가 발생했습니다.');
+      }
     } finally {
       if (operationRef.current === operation) {
         setIsLoading(false);
@@ -99,6 +101,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       setUser(null);
+      setBootstrapRequired(false);
+      setIsInitialized(true);
+      setIsLoading(false);
     };
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     void checkAuthStatus();

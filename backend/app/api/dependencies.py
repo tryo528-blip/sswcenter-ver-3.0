@@ -15,6 +15,7 @@ from app.core.auth import (
     is_loopback_request,
     verify_request_csrf,
 )
+from app.core.readiness import evaluate_readiness
 from app.core.settings import Environment, Settings, get_settings
 from app.db.models import AccountPermission, UserAccount
 from app.db.session import build_session_factory, create_postgres_engine
@@ -24,6 +25,7 @@ from app.domains.w1c.service import W1CService
 from app.domains.w1d.service import W1DService
 
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
+_READ_ONLY_HTTP_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 @lru_cache(maxsize=8)
@@ -32,11 +34,20 @@ def _database_runtime(database_url: str) -> tuple[Engine, sessionmaker[Session]]
     return engine, build_session_factory(engine)
 
 
-def get_db_session(settings: SettingsDependency) -> Iterator[Session]:
+def get_db_session(request: Request, settings: SettingsDependency) -> Iterator[Session]:
     if settings.database_url is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "database_not_configured"},
+        )
+    ready, reason = evaluate_readiness(
+        settings,
+        require_postcheck=request.method.upper() not in _READ_ONLY_HTTP_METHODS,
+    )
+    if not ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "NOT_READY", "reason": reason or "database_unavailable"},
         )
     _, factory = _database_runtime(settings.database_url)
     database_session = factory()
