@@ -80,29 +80,35 @@ class W2Repository:
                 .limit(limit)
             ).all()
         )
-        options = []
-        for staff in staff_items:
-            employments = list(
-                self.session.scalars(
-                    select(StaffEmployment)
-                    .where(
-                        StaffEmployment.staff_id == staff.id,
-                        StaffEmployment.invalidated_at_utc.is_(None),
-                    )
-                    .order_by(StaffEmployment.start_date.desc(), StaffEmployment.id.desc())
-                ).all()
+        staff_ids = [staff.id for staff in staff_items]
+        employment_by_staff: dict[int, list[StaffEmployment]] = {}
+        for employment in self.session.scalars(
+            select(StaffEmployment)
+            .where(
+                StaffEmployment.staff_id.in_(staff_ids),
+                StaffEmployment.invalidated_at_utc.is_(None),
             )
-            positions = list(
-                self.session.scalars(
-                    select(StaffPositionPeriod)
-                    .where(
-                        StaffPositionPeriod.staff_id == staff.id,
-                        StaffPositionPeriod.invalidated_at_utc.is_(None),
-                    )
-                    .order_by(StaffPositionPeriod.start_date.desc(), StaffPositionPeriod.id.desc())
-                ).all()
+            .order_by(StaffEmployment.start_date.desc(), StaffEmployment.id.desc())
+        ).all():
+            employment_by_staff.setdefault(employment.staff_id, []).append(employment)
+        position_by_staff: dict[int, list[StaffPositionPeriod]] = {}
+        for position in self.session.scalars(
+            select(StaffPositionPeriod)
+            .where(
+                StaffPositionPeriod.staff_id.in_(staff_ids),
+                StaffPositionPeriod.invalidated_at_utc.is_(None),
             )
-            options.append((staff, employments, positions))
+            .order_by(StaffPositionPeriod.start_date.desc(), StaffPositionPeriod.id.desc())
+        ).all():
+            position_by_staff.setdefault(position.staff_id, []).append(position)
+        options = [
+            (
+                staff,
+                employment_by_staff.get(staff.id, []),
+                position_by_staff.get(staff.id, []),
+            )
+            for staff in staff_items
+        ]
         return options, total
 
     def service_type(self, service_type_id: int) -> ServiceType | None:
