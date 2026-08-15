@@ -85,6 +85,22 @@ const professionalStaff2 = {
   ],
 };
 
+const professionalStaffOption = {
+  id: professionalStaff.id,
+  name: professionalStaff.name,
+  display_name: professionalStaff.display_name,
+  employments: [professionalStaff.current_employment],
+  positions: professionalStaff.current_positions,
+};
+
+const professionalStaffOption2 = {
+  id: professionalStaff2.id,
+  name: professionalStaff2.name,
+  display_name: professionalStaff2.display_name,
+  employments: [professionalStaff2.current_employment],
+  positions: professionalStaff2.current_positions,
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -170,8 +186,8 @@ describe('U13 professional assignment client and workspace', () => {
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
       }
-      if (url.pathname === '/api/v1/staff' && method === 'GET') {
-        return jsonResponse({ items: [professionalStaff], total: 1, page: 1, page_size: 200 });
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
+        return jsonResponse({ items: [professionalStaffOption], total: 1, page: 1, page_size: 200 });
       }
       if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
         return jsonResponse({ items: [] });
@@ -230,7 +246,7 @@ describe('U13 professional assignment client and workspace', () => {
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
       }
-      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
         return jsonResponse({ detail: { code: 'permission_required' } }, 403);
       }
       if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
@@ -260,13 +276,10 @@ describe('U13 professional assignment client and workspace', () => {
           ? jsonResponse({ items: [recipient2], total: 2, page: 2, page_size: 200 })
           : jsonResponse({ items: [recipient], total: 2, page: 1, page_size: 200 });
       }
-      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
         return url.searchParams.get('page') === '2'
-          ? jsonResponse({ items: [professionalStaff2], total: 2, page: 2, page_size: 200 })
-          : jsonResponse({ items: [professionalStaff], total: 2, page: 1, page_size: 200 });
-      }
-      if (url.pathname.startsWith('/api/v1/staff/') && method === 'GET') {
-        return jsonResponse({ error: { code: 'NOT_FOUND', message: 'detail unavailable' } }, 404);
+          ? jsonResponse({ items: [professionalStaffOption2], total: 2, page: 2, page_size: 200 })
+          : jsonResponse({ items: [professionalStaffOption], total: 2, page: 1, page_size: 200 });
       }
       if (url.pathname.endsWith('/professional-assignments/1') && method === 'GET') {
         return jsonResponse({ items: [] });
@@ -300,7 +313,7 @@ describe('U13 professional assignment client and workspace', () => {
       if (url.pathname === '/api/v1/recipients' && method === 'GET') {
         return jsonResponse({ items: [recipient, recipient2], total: 2, page: 1, page_size: 200 });
       }
-      if (url.pathname === '/api/v1/staff' && method === 'GET') {
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
         return jsonResponse({ detail: { code: 'permission_required' } }, 403);
       }
       if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
@@ -324,5 +337,117 @@ describe('U13 professional assignment client and workspace', () => {
     resolveFirst?.(jsonResponse({ items: [assignment(1, 20)] }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(screen.queryByTestId('professional-assignment-row-1')).not.toBeInTheDocument();
+  });
+
+  test('only exposes staff whose employment and professional position cover the full range', async () => {
+    const partialStaffOption = {
+      ...professionalStaffOption,
+      id: 40,
+      name: '부분 기간 직원',
+      employments: [{ ...professionalStaffOption.employments[0], id: 41, staff_id: 40 }],
+      positions: [{
+        ...professionalStaffOption.positions[0],
+        id: 42,
+        staff_id: 40,
+        employment_id: 41,
+        start_date: '2026-08-15',
+      }],
+    };
+    const stitchedStaffOption = {
+      ...professionalStaffOption,
+      id: 50,
+      name: '연속 기간 직원',
+      employments: [{ ...professionalStaffOption.employments[0], id: 51, staff_id: 50 }],
+      positions: [
+        {
+          ...professionalStaffOption.positions[0],
+          id: 52,
+          staff_id: 50,
+          employment_id: 51,
+          start_date: '2026-08-01',
+          end_date: '2026-08-14',
+        },
+        {
+          ...professionalStaffOption.positions[0],
+          id: 53,
+          staff_id: 50,
+          employment_id: 51,
+          start_date: '2026-08-15',
+          end_date: '2026-08-31',
+        },
+      ],
+    };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
+        return jsonResponse({
+          items: [partialStaffOption, stitchedStaffOption],
+          total: 2,
+          page: 1,
+          page_size: 200,
+        });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1' && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    await waitFor(() => expect(screen.getByTestId('professional-assignment-recipient-select')).toBeInTheDocument());
+    fireEvent.change(screen.getByTestId('professional-assignment-recipient-select'), {
+      target: { value: '1' },
+    });
+    const staffSelect = await screen.findByTestId('professional-assignment-staff-select');
+    await waitFor(() => expect(staffSelect.querySelectorAll('option')).toHaveLength(2));
+    expect(staffSelect).toHaveValue('');
+    expect(staffSelect.querySelector('option[value="50:51"]')).toBeInTheDocument();
+    expect(staffSelect.querySelector('option[value="40:41"]')).not.toBeInTheDocument();
+  });
+
+  test('clears saving when the recipient context changes during a pending mutation', async () => {
+    let resolvePost: ((response: Response) => void) | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const rawUrl = typeof input === 'string' ? input : (input as Request).url;
+      const url = new URL(rawUrl, 'http://localhost');
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.pathname === '/api/v1/recipients' && method === 'GET') {
+        return jsonResponse({ items: [recipient, recipient2], total: 2, page: 1, page_size: 200 });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/staff-options' && method === 'GET') {
+        return jsonResponse({ items: [professionalStaffOption], total: 1, page: 1, page_size: 200 });
+      }
+      if (url.pathname.endsWith('/professional-assignments/1') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      if (url.pathname.endsWith('/professional-assignments/2') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      if (url.pathname === '/api/v1/professional-assignments/1/2026-08-01' && method === 'POST') {
+        return new Promise<Response>((resolve) => {
+          resolvePost = resolve;
+        });
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404);
+    });
+
+    render(<ProfessionalAssignmentWorkspace />);
+    await waitFor(() => expect(screen.getByText(/수급자2/)).toBeInTheDocument());
+    const recipientSelect = screen.getByTestId('professional-assignment-recipient-select');
+    fireEvent.change(recipientSelect, { target: { value: '1' } });
+    const staffSelect = await screen.findByTestId('professional-assignment-staff-select');
+    fireEvent.change(staffSelect, { target: { value: '20:21' } });
+    fireEvent.click(screen.getByRole('button', { name: '담당 추가' }));
+    await waitFor(() => expect(resolvePost).toBeDefined());
+
+    fireEvent.change(recipientSelect, { target: { value: '2' } });
+    expect(screen.getByTestId('professional-assignment-staff-select')).toBeEnabled();
+    expect(screen.getByRole('button', { name: '담당 추가' })).toBeEnabled();
+    resolvePost?.(jsonResponse({ items: [] }));
   });
 });

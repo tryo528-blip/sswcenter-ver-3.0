@@ -295,6 +295,7 @@ def test_router_has_period_assignment_and_no_unapproved_schedule_commands() -> N
     for route in router.routes:
         methods_by_path.setdefault(route.path, set()).update(route.methods or set())
 
+    assert methods_by_path["/api/v1/professional-assignments/staff-options"] == {"GET"}
     assert methods_by_path["/api/v1/professional-assignments/{recipient_id}"] == {"GET"}
     assert methods_by_path[
         "/api/v1/professional-assignments/{recipient_id}/{service_month}"

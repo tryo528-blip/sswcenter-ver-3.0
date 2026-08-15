@@ -6,6 +6,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.domains.staff.schemas import StaffEmploymentResponse, StaffPositionPeriodResponse
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -79,6 +81,21 @@ class ProfessionalAssignmentResponse(StrictModel):
 
 class ProfessionalAssignmentHistoryResponse(StrictModel):
     items: list[ProfessionalAssignmentResponse]
+
+
+class ProfessionalAssignmentStaffOptionResponse(StrictModel):
+    id: PositiveId
+    name: str
+    display_name: str | None
+    employments: list[StaffEmploymentResponse] = Field(default_factory=list)
+    positions: list[StaffPositionPeriodResponse] = Field(default_factory=list)
+
+
+class ProfessionalAssignmentStaffOptionListResponse(StrictModel):
+    items: list[ProfessionalAssignmentStaffOptionResponse]
+    total: int = Field(ge=0)
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1)
 
 
 class ServicePlanNoticeCreateRequest(StrictModel):

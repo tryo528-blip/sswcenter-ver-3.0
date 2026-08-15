@@ -4,22 +4,18 @@ import { ApiError } from '../../services/api';
 import { fetchAllRecipients, type RecipientListItem } from '../../services/recipientApi';
 import {
   createProfessionalAssignment,
+  fetchAllProfessionalAssignmentStaffOptions,
   listProfessionalAssignments,
   replaceProfessionalAssignment,
   type ProfessionalAssignment,
   type ProfessionalAssignmentInput,
+  type ProfessionalAssignmentStaffOption,
 } from '../../services/professionalAssignmentApi';
-import {
-  fetchAllStaff,
-  fetchStaffDetail,
-  type StaffDetailResponse,
-  type StaffResponse,
-} from '../../services/staffApi';
 
 type ProfessionalPosition = 'SOCIAL_WORKER' | 'NURSE';
 
 type StaffChoice = {
-  staff: StaffResponse;
+  staff: ProfessionalAssignmentStaffOption;
   employmentId: number;
   positionCode: ProfessionalPosition;
 };
@@ -44,21 +40,42 @@ function errorMessage(error: unknown): string {
   return '전문직 담당 요청을 처리하지 못했습니다.';
 }
 
-function periodOverlaps(
-  periodStart: string,
-  periodEnd: string | null | undefined,
+function nextDate(value: string): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function periodsCoverWindow(
+  periods: Array<{ start_date: string; end_date: string | null }>,
   windowStart: string,
   windowEnd: string,
 ): boolean {
-  const effectiveEnd = periodEnd ?? '9999-12-31';
-  return periodStart <= windowEnd && effectiveEnd >= windowStart;
+  let cursor = windowStart;
+  const relevant = periods
+    .filter(
+      (period) =>
+        period.start_date <= windowEnd
+        && (period.end_date === null || period.end_date >= windowStart),
+    )
+    .sort((left, right) => left.start_date.localeCompare(right.start_date));
+  for (const period of relevant) {
+    if (period.start_date > cursor) return false;
+    const effectiveEnd = period.end_date ?? '9999-12-31';
+    if (effectiveEnd >= windowEnd) return true;
+    if (effectiveEnd >= cursor) cursor = nextDate(effectiveEnd);
+  }
+  return false;
 }
 
 function assignmentKey(staffId: number, employmentId: number): string {
   return `${staffId}:${employmentId}`;
 }
 
-function staffLabel(staff: StaffResponse, positionCode: ProfessionalPosition): string {
+function staffLabel(
+  staff: ProfessionalAssignmentStaffOption,
+  positionCode: ProfessionalPosition,
+): string {
   const positionLabel = positionCode === 'NURSE' ? '간호사' : '사회복지사';
   return `${staff.display_name || staff.name} · ${positionLabel} (#${staff.id})`;
 }
@@ -68,23 +85,26 @@ function recipientLabel(recipient: RecipientListItem): string {
 }
 
 function staffHistoryCanCover(
-  staff: StaffResponse,
-  details: StaffDetailResponse | undefined,
+  staff: ProfessionalAssignmentStaffOption,
   employmentId: number,
   windowStart: string,
   windowEnd: string,
 ): ProfessionalPosition | null {
-  const employment = (details?.employments ?? []).find((item) => item.id === employmentId)
-    ?? (staff.current_employment?.id === employmentId ? staff.current_employment : null);
-  if (!employment || !periodOverlaps(employment.start_date, employment.end_date, windowStart, windowEnd)) {
+  const employment = staff.employments.find((item) => item.id === employmentId);
+  if (
+    !employment
+    || !periodsCoverWindow([employment], windowStart, windowEnd)
+  ) {
     return null;
   }
-  const positions = details?.positions?.filter((item) => item.employment_id === employmentId)
-    ?? (staff.current_employment?.id === employmentId ? staff.current_positions ?? [] : []);
-  const position = positions.find(
+  const positions = staff.positions.filter(
     (item) =>
-      (item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE')
-      && periodOverlaps(item.start_date, item.end_date, windowStart, windowEnd),
+      item.employment_id === employmentId
+      && (item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE'),
+  );
+  if (!periodsCoverWindow(positions, windowStart, windowEnd)) return null;
+  const position = positions.find(
+    (item) => item.position_code === 'SOCIAL_WORKER' || item.position_code === 'NURSE',
   );
   return position?.position_code === 'SOCIAL_WORKER' || position?.position_code === 'NURSE'
     ? position.position_code
@@ -94,8 +114,7 @@ function staffHistoryCanCover(
 export default function ProfessionalAssignmentWorkspace() {
   const [month, setMonth] = useState(currentMonth);
   const [recipients, setRecipients] = useState<RecipientListItem[]>([]);
-  const [staff, setStaff] = useState<StaffResponse[]>([]);
-  const [staffDetails, setStaffDetails] = useState<Record<number, StaffDetailResponse>>({});
+  const [staff, setStaff] = useState<ProfessionalAssignmentStaffOption[]>([]);
   const [recipientId, setRecipientId] = useState('');
   const [assignments, setAssignments] = useState<ProfessionalAssignment[]>([]);
   const [staffKey, setStaffKey] = useState('');
@@ -112,13 +131,9 @@ export default function ProfessionalAssignmentWorkspace() {
     const windowEnd = endDate || monthEnd(month);
     const choices = new Map<string, StaffChoice>();
     for (const item of staff) {
-      const details = staffDetails[item.id];
-      const employments = details?.employments
-        ?? (item.current_employment ? [item.current_employment] : []);
-      for (const employment of employments) {
+      for (const employment of item.employments) {
         const positionCode = staffHistoryCanCover(
           item,
-          details,
           employment.id,
           windowStart,
           windowEnd,
@@ -152,7 +167,7 @@ export default function ProfessionalAssignmentWorkspace() {
         'ko',
       ),
     );
-  }, [assignments, editingId, endDate, month, staff, staffDetails, startDate]);
+  }, [assignments, editingId, endDate, month, staff, startDate]);
 
   const loadAssignments = useCallback(
     async (nextRecipientId: string, nextMonth: string, generation: number) => {
@@ -188,22 +203,9 @@ export default function ProfessionalAssignmentWorkspace() {
 
     void (async () => {
       try {
-        const response = await fetchAllStaff();
+        const response = await fetchAllProfessionalAssignmentStaffOptions();
         if (!active) return;
         setStaff(response.items);
-        const detailEntries = await Promise.all(
-          response.items.map(async (item) => {
-            try {
-              return [item.id, await fetchStaffDetail(item.id)] as const;
-            } catch {
-              return null;
-            }
-          }),
-        );
-        if (!active) return;
-        setStaffDetails(
-          Object.fromEntries(detailEntries.filter((entry): entry is readonly [number, StaffDetailResponse] => entry !== null)),
-        );
       } catch (requestError: unknown) {
         if (active && !(requestError instanceof ApiError && requestError.status === 403)) {
           setError(errorMessage(requestError));
@@ -224,6 +226,7 @@ export default function ProfessionalAssignmentWorkspace() {
     setEditingId(null);
     setStaffKey('');
     setAssignments([]);
+    setSaving(false);
     setLoading(Boolean(recipientId));
     setError(null);
     void loadAssignments(recipientId, month, generation);
