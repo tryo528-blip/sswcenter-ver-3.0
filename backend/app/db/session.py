@@ -114,17 +114,16 @@ def _probe_log_append(logs_root: Path) -> bool:
     with _READINESS_PROBE_LOCK:
         for name in _CONFIGURED_LOG_FILES:
             path = logs_root / name
-            existed = path.exists()
+            # Missing files have no file-specific ACL to verify; the directory
+            # probe above already proves the handler can create them. Skipping
+            # them also avoids deleting a file created concurrently by a logger.
+            if not path.exists():
+                continue
             try:
                 with path.open("a", encoding="utf-8"):
                     pass
             except OSError:
                 return False
-            if not existed:
-                try:
-                    path.unlink()
-                except OSError:
-                    return False
     return True
 
 

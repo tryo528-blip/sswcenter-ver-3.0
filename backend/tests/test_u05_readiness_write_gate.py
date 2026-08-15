@@ -197,6 +197,21 @@ def test_runtime_paths_probe_append_access_for_configured_logs(
     assert (ready, reason) == (False, "logs_path_not_writable")
 
 
+def test_log_append_probe_checks_existing_files_without_creating_or_deleting_logs(
+    tmp_path: Path,
+) -> None:
+    logs_root = tmp_path / "logs"
+    logs_root.mkdir()
+    existing = logs_root / "app.log"
+    existing.write_text("keep", encoding="utf-8")
+
+    assert session._probe_log_append(logs_root) is True
+    assert existing.read_text(encoding="utf-8") == "keep"
+    assert not (logs_root / "error.log").exists()
+    assert not (logs_root / "access.log").exists()
+    assert not (logs_root / "install-update.log").exists()
+
+
 def test_write_requests_are_refused_when_application_is_not_ready(
     monkeypatch: Any,
 ) -> None:
