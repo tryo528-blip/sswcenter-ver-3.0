@@ -86,9 +86,10 @@ class SensitiveDataFilter(logging.Filter):
             text = normalize_sensitive_text(text).replace(
                 "[REDACTED-RRN]", cls._rrn_marker_placeholder
             )
-        for index, (pattern, replacement) in enumerate(cls._patterns):
-            if preserve_rrn_marker and index in {0, 2}:
-                continue
+        for pattern, replacement in cls._patterns:
+            # RRN values were already normalized above; the marker placeholder
+            # keeps those values stable while PIN patterns still run over the
+            # same exception text.
             text = pattern.sub(replacement, text)
         if preserve_rrn_marker:
             return text.replace(cls._rrn_marker_placeholder, "[REDACTED-RRN]")

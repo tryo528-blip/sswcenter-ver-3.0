@@ -213,6 +213,27 @@ def test_exception_traceback_pin_is_redacted_before_file_formatting() -> None:
     assert "[REDACTED]" in record.getMessage()
 
 
+def test_exception_traceback_quoted_pin_values_are_redacted() -> None:
+    try:
+        raise ValueError('{"current_pin":"654321", "pin": 123456}')
+    except ValueError:
+        record = logging.LogRecord(
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="request failed",
+            args=(),
+            exc_info=sys.exc_info(),
+        )
+
+    assert SensitiveDataFilter().filter(record)
+    message = record.getMessage()
+    assert "654321" not in message
+    assert "123456" not in message
+    assert message.count("[REDACTED]") >= 2
+
+
 def test_log_handler_rotates_compresses_and_preserves_redaction(tmp_path: object) -> None:
     from pathlib import Path
 
