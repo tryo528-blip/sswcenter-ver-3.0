@@ -178,6 +178,25 @@ def test_runtime_paths_use_a_real_create_delete_probe(
     assert (ready, reason) == (False, "logs_path_not_writable")
 
 
+def test_runtime_paths_probe_append_access_for_configured_logs(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    logs_root = tmp_path / "logs"
+    logs_root.mkdir()
+    (logs_root / "app.log").write_text("existing", encoding="utf-8")
+    monkeypatch.setattr(session, "database_is_ready", lambda _url: (True, None))
+    monkeypatch.setattr(session, "_probe_log_append", lambda _root: False)
+    settings = Settings(
+        database_url="postgresql://example.invalid/sswcenter",
+        data_root=tmp_path,
+    )
+
+    ready, reason = session.application_is_ready(settings)
+
+    assert (ready, reason) == (False, "logs_path_not_writable")
+
+
 def test_write_requests_are_refused_when_application_is_not_ready(
     monkeypatch: Any,
 ) -> None:

@@ -14,6 +14,7 @@ from app.core.settings import Settings
 _READINESS_ENGINE_LOCK = Lock()
 _READINESS_ENGINES: dict[str, Engine] = {}
 _READINESS_PROBE_LOCK = Lock()
+_CONFIGURED_LOG_FILES = ("app.log", "error.log", "access.log", "install-update.log")
 
 
 def create_postgres_engine(
@@ -107,6 +108,26 @@ def _probe_directory_write(directory: Path) -> bool:
             return False
 
 
+def _probe_log_append(logs_root: Path) -> bool:
+    """Verify append access for every file used by ``configure_logging``."""
+
+    with _READINESS_PROBE_LOCK:
+        for name in _CONFIGURED_LOG_FILES:
+            path = logs_root / name
+            existed = path.exists()
+            try:
+                with path.open("a", encoding="utf-8"):
+                    pass
+            except OSError:
+                return False
+            if not existed:
+                try:
+                    path.unlink()
+                except OSError:
+                    return False
+    return True
+
+
 def runtime_paths_are_ready(data_root: Path | None) -> tuple[bool, str | None]:
     """Check the non-database paths required before accepting a write."""
 
@@ -120,7 +141,11 @@ def runtime_paths_are_ready(data_root: Path | None) -> tuple[bool, str | None]:
     logs_root = data_root / "logs"
     if not logs_root.is_dir():
         return False, "logs_path_missing"
-    if not os.access(logs_root, os.R_OK | os.X_OK) or not _probe_directory_write(logs_root):
+    if (
+        not os.access(logs_root, os.R_OK | os.X_OK)
+        or not _probe_directory_write(logs_root)
+        or not _probe_log_append(logs_root)
+    ):
         return False, "logs_path_not_writable"
     return True, None
 
