@@ -1057,6 +1057,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recipient Care Assignments */
+        get: operations["listRecipientCareAssignments"];
+        put?: never;
+        /** Create Recipient Care Assignment */
+        post: operations["createRecipientCareAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipients/{recipient_id}/contracts/{contract_id}/care-assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recipient Care Assignment */
+        get: operations["getRecipientCareAssignment"];
+        /** Replace Recipient Care Assignment */
+        put: operations["replaceRecipientCareAssignment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/professional-assignments/{recipient_id}": {
         parameters: {
             query?: never;
@@ -1361,6 +1397,11 @@ export interface components {
             /** Row Version */
             row_version: number;
         };
+        /**
+         * AssignmentKind
+         * @enum {string}
+         */
+        AssignmentKind: "GENERAL" | "FAMILY";
         /** BasicGuardianMutation */
         BasicGuardianMutation: {
             /**
@@ -1456,6 +1497,105 @@ export interface components {
          * @enum {string}
          */
         BootstrapSexCode: "MALE" | "FEMALE" | "TEST";
+        /** CareAssignmentCreateRequest */
+        CareAssignmentCreateRequest: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            /** @default GENERAL */
+            assignment_kind: components["schemas"]["AssignmentKind"];
+            /** Family Relationship Text */
+            family_relationship_text?: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date?: string | null;
+        };
+        /** CareAssignmentListResponse */
+        CareAssignmentListResponse: {
+            /** Items */
+            items: components["schemas"]["CareAssignmentResponse"][];
+        };
+        /** CareAssignmentReplaceRequest */
+        CareAssignmentReplaceRequest: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            /** @default GENERAL */
+            assignment_kind: components["schemas"]["AssignmentKind"];
+            /** Family Relationship Text */
+            family_relationship_text?: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date?: string | null;
+            /** Expected Row Version */
+            expected_row_version: number;
+        };
+        /** CareAssignmentResponse */
+        CareAssignmentResponse: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /**
+             * Recipient Id
+             * Format: int64
+             */
+            recipient_id: number;
+            /**
+             * Recipient Contract Id
+             * Format: int64
+             */
+            recipient_contract_id: number;
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            assignment_kind: components["schemas"]["AssignmentKind"];
+            /** Family Relationship Text */
+            family_relationship_text: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+            /** Invalidated At Utc */
+            invalidated_at_utc: string | null;
+            /** Replacement Assignment Id */
+            replacement_assignment_id: number | null;
+            /** Row Version */
+            row_version: number;
+        };
         /** CertificationIdentityCreateRequest */
         CertificationIdentityCreateRequest: {
             /**
@@ -8983,6 +9123,324 @@ export interface operations {
                 };
             };
             /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listRecipientCareAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_PERIOD_CONFLICT, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createRecipientCareAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareAssignmentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_PERIOD_CONFLICT, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getRecipientCareAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_PERIOD_CONFLICT, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceRecipientCareAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareAssignmentReplaceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_PERIOD_CONFLICT, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
