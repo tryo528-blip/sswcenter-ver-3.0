@@ -4,6 +4,7 @@ import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from uuid import uuid4
 
 from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -66,6 +67,23 @@ def database_is_ready(database_url: str) -> tuple[bool, str | None]:
     return True, None
 
 
+def _probe_directory_write(directory: Path) -> bool:
+    """Exercise the service account's directory ACL with a create/delete probe."""
+
+    probe = directory / f".sswcenter-readiness-{uuid4().hex}.tmp"
+    try:
+        with probe.open("x", encoding="utf-8") as handle:
+            handle.write("ready")
+        probe.unlink()
+        return True
+    except OSError:
+        try:
+            probe.unlink()
+        except OSError:
+            pass
+        return False
+
+
 def runtime_paths_are_ready(data_root: Path | None) -> tuple[bool, str | None]:
     """Check the non-database paths required before accepting a write."""
 
@@ -73,13 +91,13 @@ def runtime_paths_are_ready(data_root: Path | None) -> tuple[bool, str | None]:
         return False, "data_root_not_configured"
     if not data_root.is_dir():
         return False, "data_root_missing"
-    if not os.access(data_root, os.R_OK | os.W_OK | os.X_OK):
+    if not os.access(data_root, os.R_OK | os.X_OK) or not _probe_directory_write(data_root):
         return False, "data_root_not_writable"
 
     logs_root = data_root / "logs"
     if not logs_root.is_dir():
         return False, "logs_path_missing"
-    if not os.access(logs_root, os.R_OK | os.W_OK | os.X_OK):
+    if not os.access(logs_root, os.R_OK | os.X_OK) or not _probe_directory_write(logs_root):
         return False, "logs_path_not_writable"
     return True, None
 

@@ -116,6 +116,24 @@ def test_application_readiness_requires_runtime_root_and_logs_directory(
     assert (ready, reason) == (True, None)
 
 
+def test_runtime_paths_use_a_real_create_delete_probe(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    logs_root = tmp_path / "logs"
+    logs_root.mkdir()
+    monkeypatch.setattr(session, "database_is_ready", lambda _url: (True, None))
+    monkeypatch.setattr(session, "_probe_directory_write", lambda directory: directory != logs_root)
+    settings = Settings(
+        database_url="postgresql://example.invalid/sswcenter",
+        data_root=tmp_path,
+    )
+
+    ready, reason = session.application_is_ready(settings)
+
+    assert (ready, reason) == (False, "logs_path_not_writable")
+
+
 def test_write_requests_are_refused_when_application_is_not_ready(
     monkeypatch: Any,
 ) -> None:
