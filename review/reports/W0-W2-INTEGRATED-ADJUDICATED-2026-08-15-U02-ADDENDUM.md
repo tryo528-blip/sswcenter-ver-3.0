@@ -2,7 +2,7 @@
 
 > 부록일: 2026-08-15 KST
 > 적용 대상: [`W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md`](W0-W2-INTEGRATED-ADJUDICATED-2026-08-14.md)
-> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → 별도 U-02 candidate commit
+> 평가 기준: `main` base `a55d25d64ea571acf94ca2cbfbfd38bf4eb5e4bf` → candidate `HEAD` (deterministic redaction-test correction)
 > 지위: U-02 한 슬라이스의 구현·검증 후보 기록. PR 병합·보안 review·W0 전체 acceptance와 동일하지 않다.
 
 ## 판정
@@ -27,10 +27,11 @@
   - bootstrap PIN 오류가 제출 PIN·요청 body를 재노출하지 않는지 검증한다.
   - 비인증 경로는 기존 기본 handler 범위를 유지하는지 확인한다.
   - 실제 production app OpenAPI가 두 인증 operation 모두 `ErrorEnvelope`를 선언하는지 검증한다.
+  - PIN redaction assertion은 UUID `request_id`를 제외한 response fields만 검사해 우연한 숫자 충돌을 배제한다.
 
 ## 검증 증거
 
-- U-02 focused pytest: `5 passed`, exit `0`.
+- U-02 focused pytest plus security regression: `13 passed`, exit `0`.
 - 관련 회귀(`test_u02`, `test_health`, `test_security`, `test_settings`): `70 passed`, exit `0`.
 - OpenAPI 생성물 check: `OPENAPI_TYPES_UP_TO_DATE`, exit `0`.
 - Ruff: 변경 Python 파일 exit `0`.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
@@ -49,7 +51,10 @@ def test_login_validation_uses_redacted_error_envelope() -> None:
     ]
     assert body["details"] == {}
     assert "input" not in response.text
-    assert "123" not in response.text
+    body_without_request_id = {
+        key: value for key, value in body.items() if key != "request_id"
+    }
+    assert "123" not in json.dumps(body_without_request_id, ensure_ascii=False)
 
 
 def test_bootstrap_validation_does_not_echo_pin_or_request_body() -> None:
