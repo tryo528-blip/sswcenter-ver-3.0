@@ -17,6 +17,12 @@ class RecipientSexCode(StrEnum):
     FEMALE = "FEMALE"
 
 
+class RecipientSexCodeRead(StrEnum):
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+    TEST = "TEST"
+
+
 class RecipientStatus(StrEnum):
     """Manually assigned recipient display/filter tag (memo-like).
 
@@ -74,9 +80,7 @@ class RecipientUpdateRequest(StrictModel):
     @classmethod
     def _reject_null_mobile_phone(cls, value: object) -> object:
         if value is None:
-            raise ValueError(
-                "mobile_phone cannot be null; omit the field to leave it unchanged"
-            )
+            raise ValueError("mobile_phone cannot be null; omit the field to leave it unchanged")
         return value
 
     @field_validator("payer_guardian_id", mode="before")
@@ -96,7 +100,7 @@ class RecipientResponse(StrictModel):
     id: int
     name: str | None
     birth_date: date | None
-    sex_code: RecipientSexCode | None
+    sex_code: RecipientSexCodeRead | None
     recipient_status: RecipientStatus
     recipient_no: str | None
     postal_code: str | None
@@ -141,7 +145,7 @@ class RecipientListItem(StrictModel):
     id: int
     name: str | None
     birth_date: date | None
-    sex_code: RecipientSexCode | None
+    sex_code: RecipientSexCodeRead | None
     recipient_no: str | None
     postal_code: str | None
     address: str | None

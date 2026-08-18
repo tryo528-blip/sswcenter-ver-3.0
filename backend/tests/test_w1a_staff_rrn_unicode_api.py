@@ -18,7 +18,7 @@ def _unicode_rrn_cases() -> list[str]:
     raw = "".join(("900101", "1123456"))
     all_unicode = raw.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
     mixed = raw.translate(
-        str.maketrans({"1": "١"}),
+        str.maketrans("1", "١"),
     )
     return [
         all_unicode,

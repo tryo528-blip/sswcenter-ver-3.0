@@ -88,7 +88,7 @@ def _require_columns(
     columns: dict[str, bool],
     *,
     required: dict[str, bool],
-    forbidden: set[str] = frozenset(),
+    forbidden: set[str] | frozenset[str] = frozenset(),
     label: str,
 ) -> None:
     missing = sorted(set(required) - columns.keys())
@@ -144,8 +144,7 @@ def verify_current_0025(connection: Connection) -> None:
     forbidden_present = sorted(FORBIDDEN_CURRENT_TABLES & tables)
     if missing_w2 or forbidden_present:
         raise SystemExit(
-            f"CURRENT_0025_TABLE_MISMATCH: missing={missing_w2} "
-            f"forbidden={forbidden_present}"
+            f"CURRENT_0025_TABLE_MISMATCH: missing={missing_w2} forbidden={forbidden_present}"
         )
 
     _require_columns(
@@ -214,9 +213,7 @@ def verify_current_0025(connection: Connection) -> None:
     expected_constraint_fragments = {
         "ck_recipient_guardian_slot_no": "CHECK (slot_no = ANY (ARRAY[1, 2]))",
         "uq_recipient_guardian_recipient_slot": "UNIQUE (recipient_id, slot_no)",
-        "fk_recipient_payer_guardian_same_recipient": (
-            "ON DELETE SET NULL (payer_guardian_id)"
-        ),
+        "fk_recipient_payer_guardian_same_recipient": ("ON DELETE SET NULL (payer_guardian_id)"),
         "fk_staff_health_check_employment": (
             "FOREIGN KEY (staff_id, employment_id) REFERENCES staff_employment(staff_id, id)"
         ),
@@ -228,8 +225,7 @@ def verify_current_0025(connection: Connection) -> None:
     )
     if wrong_relationship_constraints:
         raise SystemExit(
-            "CURRENT_0025_RELATIONSHIP_CONSTRAINT_MISMATCH: "
-            f"{wrong_relationship_constraints}"
+            f"CURRENT_0025_RELATIONSHIP_CONSTRAINT_MISMATCH: {wrong_relationship_constraints}"
         )
     _require_columns(
         _columns(connection, "staff_quarterly_consultation"),

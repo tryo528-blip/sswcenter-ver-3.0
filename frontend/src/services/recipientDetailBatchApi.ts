@@ -1,4 +1,5 @@
 import { apiRequest } from './api';
+import { normalizeApprovalAmountKrw } from './w1cApi';
 import type {
   Guardian,
   GuardianCreateRequest,
@@ -26,7 +27,7 @@ export interface RecipientDetailBatchRequest {
     start_text?: string;
   }>;
   approval_amount_period?: PeriodMutation<{
-    amount_krw: number;
+    amount_krw: string;
     start_date: string;
     end_date?: string | null;
   }>;
@@ -77,6 +78,24 @@ export interface RecipientBasicBatchResponse {
   saved_sections: string[];
 }
 
+function serializeRecipientDetailBatchPayload(payload: RecipientDetailBatchRequest): string {
+  const approvalMutation = payload.approval_amount_period;
+  if (!approvalMutation) return JSON.stringify(payload);
+
+  const amount = normalizeApprovalAmountKrw(approvalMutation.payload.amount_krw);
+  if (amount === null) {
+    throw new RangeError('amount_krw must be a PostgreSQL bigint');
+  }
+  const serializable = {
+    ...payload,
+    approval_amount_period: {
+      ...approvalMutation,
+      payload: { ...approvalMutation.payload, amount_krw: null },
+    },
+  };
+  return JSON.stringify(serializable).replace('"amount_krw":null', `"amount_krw":${amount}`);
+}
+
 export function saveRecipientDetailBatch(
   recipientId: number,
   payload: RecipientDetailBatchRequest,
@@ -86,7 +105,7 @@ export function saveRecipientDetailBatch(
   }
   return apiRequest(`/api/v1/recipients/${recipientId}/detail-batch`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: serializeRecipientDetailBatchPayload(payload),
   });
 }
 

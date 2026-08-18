@@ -32,6 +32,11 @@
 - `REVIEW`는 실행 단위 전체가 read-only다. 같은 AI도 다음 요청에서 다른 역할을 새로 받을 수 있다.
 - provider 실행은 `/home/codexctl/.local/bin/ssw-agent`만 사용한다. 이 명령은 프로젝트 밖 사용자 파일과 시스템 쓰기를 차단하고 `.git`을 read-only로 둔다.
 - provider credential은 저장소 밖 사용자 전용 경로에만 둔다. 값이나 인증 파일 내용을 읽거나 출력·복사·prompt 삽입·커밋하지 않는다.
+- 모든 actor의 실행환경은 저장소의 ignored `backend/.venv`를 공유한다. provider dispatch 전
+  `pwsh -NoProfile -File scripts/ensure-runtime.ps1`와
+  `pwsh -NoProfile -File scripts/verify-runtime.ps1`를 실행하고,
+  `SSWCENTER_RUNTIME_GREEN` 없이는 runtime PASS를 선언하지 않는다. dispatch 환경에는
+  `VIRTUAL_ENV=/home/codexctl/workspace/sswcenter-3-0/backend/.venv`와 그 `bin`을 PATH 앞에 둔다.
 - 저장소의 과거 provider 실행 자료와 프로젝트 스킬은 현재 실행 경로가 아니다. 실행하거나 현재 정책 근거로 사용하지 않는다.
 - Windows의 개인용 AI 도구와 `C:\sswcenter` 복사본은 이 프로젝트의 실행환경·정본·작업본이 아니다.
 - 형님을 항상 `형님`이라고 부른다.

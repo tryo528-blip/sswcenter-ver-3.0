@@ -35,7 +35,7 @@ def _migration_source() -> str:
         pytest.fail("W1A_VS2_SEMANTICS_MISSING: VS2 migration is not readable as UTF-8")
 
 
-def _require_mapped_tables() -> dict[str, object]:
+def _require_mapped_tables() -> dict[str, Table]:
     tables = Base.metadata.tables
     mapped_keys = {name: name if name in tables else f"erp.{name}" for name in VS2_TABLES}
     missing = sorted(name for name, key in mapped_keys.items() if key not in tables)

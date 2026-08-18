@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 
@@ -147,11 +148,21 @@ def test_test_profiles_are_explicit_and_truthful() -> None:
     assert "run test:historical" in ps1
     assert "run test:e2e:smoke" in ps1
     assert "historical" in ps1.lower() and ("fail" in ps1.lower() or "error" in ps1.lower())
+    for historical_backend_test in (
+        "tests/test_r0_w2_read_only_contract.py",
+        "tests/test_w1b_red.py",
+        "tests/test_w1d_contract.py",
+        "tests/test_w1e_contract.py",
+        "tests/test_w1f_contract.py",
+    ):
+        assert f'"{historical_backend_test}"' in ps1
+    assert '"--ignore=$HistoricalBackendTest"' in ps1
     assert (
         "SSWCENTER_TEST_PROFILE" in ps1
         and "backend" in ps1
         and "frontend" in ps1
-        and "e2e=smoke" in ps1
+        and "e2e={2}" in ps1
+        and "$E2eProfile" in ps1
         and "postgres" in ps1
         and "historical" in ps1
     )
@@ -258,9 +269,17 @@ def test_recipient_plan_postcheck_rejects_exact_catalog_mutations() -> None:
     }
     assert postcheck_w1a_vs1._RECIPIENT_PLAN_NOTIFICATION_CONSTRAINTS == expected_constraints
 
-    def snapshots():
+    def snapshots() -> tuple[
+        tuple[str, str, str | None],
+        list[tuple[Any, ...]],
+        dict[str, tuple[Any, ...]],
+        dict[str, tuple[Any, ...]],
+    ]:
         return (
-            tuple(postcheck_w1a_vs1._RECIPIENT_PLAN_NOTIFICATION_OWNERSHIP),
+            cast(
+                tuple[str, str, str | None],
+                tuple(postcheck_w1a_vs1._RECIPIENT_PLAN_NOTIFICATION_OWNERSHIP),
+            ),
             list(postcheck_w1a_vs1._RECIPIENT_PLAN_NOTIFICATION_COLUMNS),
             dict(expected_constraints),
             dict(postcheck_w1a_vs1._RECIPIENT_PLAN_NOTIFICATION_INDEXES),
@@ -272,10 +291,9 @@ def test_recipient_plan_postcheck_rejects_exact_catalog_mutations() -> None:
 
     # -- 1. table owner -> dbo ------------------------------------------------
     own, cols, cons, idxs = snapshots()
-    bad_own = list(own)
-    bad_own[0] = "dbo"
+    bad_own = ("dbo", own[1], own[2])
     with pytest.raises(SystemExit, match=r"(?i)owner"):
-        fn(tuple(bad_own), cols, cons, idxs)
+        fn(bad_own, cols, cons, idxs)
 
     # -- 2. id identity -> empty ----------------------------------------------
     own, cols, cons, idxs = snapshots()

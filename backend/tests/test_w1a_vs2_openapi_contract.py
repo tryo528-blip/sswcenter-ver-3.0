@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -47,7 +48,7 @@ def _schemas(document: dict[str, Any]) -> dict[str, Any]:
     return schemas
 
 
-def _all_schema_nodes(value: Any):
+def _all_schema_nodes(value: Any) -> Iterator[dict[Any, Any]]:
     if isinstance(value, dict):
         yield value
         for child in value.values():

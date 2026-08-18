@@ -23,11 +23,7 @@ from app.domains.staff.schemas import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MIGRATION_PATH = (
-    REPO_ROOT
-    / "backend"
-    / "alembic"
-    / "versions"
-    / "20260813_0020_w1_staff_contract_correction.py"
+    REPO_ROOT / "backend" / "alembic" / "versions" / "20260813_0020_w1_staff_contract_correction.py"
 )
 
 
@@ -59,6 +55,7 @@ def test_entry_window_handles_february_29_deterministically() -> None:
         date(2023, 3, 1),
         date(2025, 2, 28),
     )
+
 
 @pytest.mark.parametrize(
     ("employment_start", "employment_end", "calendar_year", "expected"),

@@ -1,0 +1,27 @@
+{
+  "fixture_version": "w3-source-intake-physical-reorder-v3",
+  "parent_fixture": "source_intake_semantic_v1",
+  "contains_pii": false,
+  "note": "A new immutable receipt replays the same semantics at different physical row addresses.",
+  "raw_row_cases": [
+    {
+      "case_id": "W3-NHIS-240-480-PHYSICAL-REORDER",
+      "parent_case_id": "W3-NHIS-240-480",
+      "new_receipt_ref": "RECEIPT-REUPLOAD-002",
+      "semantic_rows": [
+        {"receipt_row": 31, "declared_minutes": 480, "synthetic_service_key": "B"},
+        {"receipt_row": 32, "declared_minutes": 240, "synthetic_service_key": "A"},
+        {"receipt_row": 33, "declared_minutes": 240, "synthetic_service_key": "A"}
+      ]
+    },
+    {
+      "case_id": "W3-RFID-SAME-TIME-OCCURRENCE-PHYSICAL-REORDER",
+      "parent_case_id": "W3-RFID-SAME-TIME-OCCURRENCE",
+      "new_receipt_ref": "RECEIPT-REUPLOAD-003",
+      "semantic_rows": [
+        {"receipt_row": 19, "event_time": "2026-08-17T09:00:01+09:00"},
+        {"receipt_row": 20, "event_time": "2026-08-17T09:00:01+09:00"}
+      ]
+    }
+  ]
+}

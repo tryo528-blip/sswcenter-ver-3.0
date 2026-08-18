@@ -204,6 +204,119 @@
   opacity: 0.4;
 }
 
+.dashboard-official-reassign-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(20 24 32 / 42%);
+}
+
+.dashboard-official-reassign-dialog {
+  width: min(420px, 100%);
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-thin);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-subtle);
+}
+
+.dashboard-official-reassign-dialog h2 {
+  margin: 0 0 14px;
+  color: var(--text-main);
+  font-size: 16px;
+}
+
+.dashboard-official-reassign-confirm {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.dashboard-official-reassign-confirm > div {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.dashboard-official-reassign-confirm dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.dashboard-official-reassign-confirm dd {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-official-reassign-label,
+.dashboard-official-reassign-dialog select {
+  display: block;
+  width: 100%;
+}
+
+.dashboard-official-reassign-label {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.dashboard-official-reassign-dialog select {
+  min-height: 34px;
+  margin-bottom: 12px;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.dashboard-official-reassign-error {
+  margin: 0 0 12px;
+  color: var(--color-danger, #b42318);
+  font-size: 13px;
+}
+
+.dashboard-official-reassign-loading,
+.dashboard-reassign-notice {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.dashboard-reassign-notice {
+  padding: 10px 12px;
+  color: var(--text-main);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-thin);
+  border-radius: var(--border-radius-md);
+}
+
+.dashboard-official-reassign-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dashboard-official-reassign-actions button {
+  min-height: 30px;
+  padding: 5px 10px;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+}
+
+.dashboard-official-reassign-actions button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .dashboard-work-empty {
   margin: 0;
   padding: 20px;

@@ -22,9 +22,15 @@ Set-StrictMode -Version Latest
 
 Import-Module (Join-Path $PSScriptRoot "PostgresTools.psm1") -Force
 
-$CurrentRevision = "20260813_0025_w1_relationship_lock_contract_correction"
-$CurrentMarker = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
+$ActiveRevision = "20260817_0028_w3_source_intake_foundation"
+$ActiveMarker = "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK"
 $CurrentHeadMarker = "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"
+$Historical0025Revision = "20260813_0025_w1_relationship_lock_contract_correction"
+$Historical0025DirectMarker = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
+$Historical0026Revision = "20260814_0026_w1e_care_assignment_family_relationship_lock"
+$Historical0026DirectMarker = "SSWCENTER_CURRENT_0026_DB_POSTCHECK_OK"
+$Historical0027Revision = "20260817_0027_w2_official_card_assignee_and_plan_replacement"
+$Historical0027DirectMarker = "SSWCENTER_CURRENT_0027_DB_POSTCHECK_OK"
 
 $Connection = ConvertFrom-SswPostgresUrl -DatabaseUrl $AdminDatabaseUrl
 if ($Connection.Database -ne "postgres") {
@@ -76,7 +82,10 @@ $SupportedRevisions = @(
     "20260808_0017_recipient_guardian_email",
     "20260809_0018_w2_service_plan_notice",
     "20260812_0019_r0_w2_read_only",
-    $CurrentRevision
+    $Historical0025Revision,
+    $Historical0026Revision,
+    $Historical0027Revision,
+    $ActiveRevision
 )
 if ($SupportedRevisions -notcontains $ManifestRevision) {
     throw "Unsupported backup Alembic revision: $ManifestRevision"
@@ -197,17 +206,32 @@ try {
             throw "Restored Wave 0 database postcheck failed"
         }
     }
-    elseif ($ManifestRevision -eq $CurrentRevision) {
+    elseif ($ManifestRevision -in @(
+        $Historical0025Revision,
+        $Historical0026Revision,
+        $Historical0027Revision,
+        $ActiveRevision
+    )) {
         $ResolvedPythonExe = if ($PSBoundParameters.ContainsKey("PythonExe")) {
             [System.IO.Path]::GetFullPath($PythonExe)
         }
         else {
-            [System.IO.Path]::GetFullPath(
-                (Join-Path (Split-Path -Parent $PSScriptRoot) "backend\.venv\Scripts\python.exe")
+            $BackendRoot = [System.IO.Path]::GetFullPath(
+                (Join-Path (Split-Path -Parent $PSScriptRoot) "backend")
             )
+            if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+                [System.IO.Path]::GetFullPath(
+                    (Join-Path $BackendRoot ".venv\Scripts\python.exe")
+                )
+            }
+            else {
+                [System.IO.Path]::GetFullPath(
+                    (Join-Path $BackendRoot ".venv/bin/python")
+                )
+            }
         }
         if (-not (Test-Path -LiteralPath $ResolvedPythonExe -PathType Leaf)) {
-            throw "Current 0025 restore requires an existing Python executable"
+            throw "Current restore requires an existing Python executable"
         }
 
         New-Item -ItemType Directory -Path $ResolvedReviewDataRoot | Out-Null
@@ -233,9 +257,26 @@ try {
             $env:SSWCENTER_DATABASE_URL = $ReviewUrl
             $env:SSWCENTER_DATA_ROOT = $ResolvedReviewDataRoot
             $env:PYTHONDONTWRITEBYTECODE = "1"
-            $PostcheckOutput = @(
-                & $ResolvedPythonExe -c "from app.db.postcheck_dispatch import main; main()"
-            )
+            if ($ManifestRevision -eq $ActiveRevision) {
+                # Dispatch is reserved for the active 0028 head; it is the
+                # only restore branch allowed to emit the current-head marker.
+                $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_dispatch)
+            }
+            elseif ($ManifestRevision -eq $Historical0027Revision) {
+                # Keep the W2 pinned restore proof independent of active-head
+                # dispatch so it cannot masquerade as a 0028 current check.
+                $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_current_0027)
+            }
+            elseif ($ManifestRevision -eq $Historical0026Revision) {
+                # Keep the W1E pinned restore proof independent of active-head
+                # dispatch so it cannot masquerade as a 0028 current check.
+                $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_current_0026)
+            }
+            else {
+                # 0025 is likewise a direct historical verifier, never a
+                # current-head dispatch path.
+                $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_current_0025)
+            }
             $PostcheckExitCode = $LASTEXITCODE
         }
         finally {
@@ -251,14 +292,44 @@ try {
             }
         }
         if ($PostcheckExitCode -ne 0) {
-            throw "Restored current 0025 postcheck failed"
+            throw "Restored revision-specific postcheck failed"
         }
-        if ($PostcheckOutput -notcontains $CurrentMarker) {
-            throw "Restored current 0025 postcheck marker is missing"
+        if ($ManifestRevision -eq $ActiveRevision) {
+            if ($PostcheckOutput -notcontains $ActiveMarker) {
+                throw "Restored active 0028 postcheck marker is missing"
+            }
+            if ($PostcheckOutput -notcontains $CurrentHeadMarker) {
+                throw "Restored active current-head postcheck marker is missing"
+            }
         }
-        if ($PostcheckOutput -notcontains $CurrentHeadMarker) {
-            throw "Restored current-head postcheck marker is missing"
+        elseif ($ManifestRevision -eq $Historical0027Revision) {
+            if ($PostcheckOutput -notcontains $Historical0027DirectMarker) {
+                throw "Restored historical 0027 direct postcheck marker is missing"
+            }
+            if ($PostcheckOutput -contains $CurrentHeadMarker) {
+                throw "Historical 0027 restore emitted a current-head marker"
+            }
         }
+        elseif ($ManifestRevision -eq $Historical0026Revision) {
+            if ($PostcheckOutput -notcontains $Historical0026DirectMarker) {
+                throw "Restored historical 0026 direct postcheck marker is missing"
+            }
+            if ($PostcheckOutput -contains $CurrentHeadMarker) {
+                throw "Historical 0026 restore emitted a current-head marker"
+            }
+        }
+        else {
+            if ($PostcheckOutput -notcontains $Historical0025DirectMarker) {
+                throw "Restored historical 0025 direct postcheck marker is missing"
+            }
+            if ($PostcheckOutput -contains $CurrentHeadMarker) {
+                throw "Historical 0025 restore emitted a current-head marker"
+            }
+        }
+        # Expose the already-verified revision-specific marker to the caller.
+        # The W2 harness must independently prove its restored 0027 catalog
+        # stays historical rather than accepting only the generic final token.
+        $PostcheckOutput | Write-Output
     }
     elseif ($ManifestRevision -in @(
         "20260726_0003_w1a_staff",

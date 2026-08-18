@@ -1,0 +1,16 @@
+{
+  "fixture_version": "w3-matching-supplement-expected-v1",
+  "matching_cases": [
+    {"case_id": "W3-MATCH-ZERO", "result": "REVIEW_PENDING", "automatic_match_count": 0},
+    {"case_id": "W3-MATCH-ONE", "result": "AUTO_MATCH", "automatic_match_count": 1},
+    {"case_id": "W3-MATCH-MANY", "result": "REVIEW_PENDING", "automatic_match_count": 0},
+    {"case_id": "W3-STAFF-KEY-REUSED", "result": "REVIEW_PENDING", "name_or_phone_tiebreak_allowed": false}
+  ],
+  "supplement_cases": [
+    {"case_id": "W3-SUPPLEMENT-CREATE", "result": "VERSION_CREATED", "source_bytes_changed": false},
+    {"case_id": "W3-SUPPLEMENT-CANCEL", "result": "CANCEL_EVENT_CREATED", "prior_versions_preserved": true},
+    {"case_id": "W3-SUPPLEMENT-REPLACE", "result": "REPLACEMENT_VERSION_CREATED", "prior_versions_preserved": true},
+    {"case_id": "W3-SUPPLEMENT-STALE", "result": "REJECT_409", "write_count": 0},
+    {"case_id": "W3-SUPPLEMENT-FINALIZED", "result": "REJECT_FINALIZED_MONTH", "write_count": 0}
+  ]
+}

@@ -21,8 +21,7 @@ else {
     [System.IO.Path]::GetFullPath((Join-Path $BackendRoot "\.venv\Scripts\python.exe"))
 }
 $CurrentRevision = "20260813_0025_w1_relationship_lock_contract_correction"
-$CurrentMarker = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
-$CurrentHeadMarker = "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"
+$CurrentMarker = "SSWCENTER_HISTORICAL_0025_DB_POSTCHECK_OK"
 $ExpectedPrefix = "FOUNDATION_0025_"
 
 if ($ExpectedSha -notmatch "^[0-9a-fA-F]{40}$") {
@@ -315,7 +314,7 @@ try {
         throw "FOUNDATION_0025_INIT_FAILED"
     }
     Write-Output "FOUNDATION_0025_STAGE=development_init"
-    foreach ($Marker in @($CurrentMarker, $CurrentHeadMarker, "DEFAULT_POSTGRES_UNCHANGED")) {
+    foreach ($Marker in @($CurrentMarker, "DEFAULT_POSTGRES_UNCHANGED")) {
         if ($InitOutput -notcontains $Marker) {
             throw "FOUNDATION_0025_INIT_MARKER_MISSING"
         }

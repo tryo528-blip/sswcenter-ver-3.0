@@ -86,9 +86,7 @@ PRODUCT_HASHES = {
         "5EB67C21F12F2DAA69E791AA6AB38D64195DF7C59A52A4F85EE63D307E8EB06C"
     ),
 }
-PRODUCT_PRESENCE_PATHS = (
-    "backend/app/db/postcheck_w1a_vs1.py",
-)
+PRODUCT_PRESENCE_PATHS = ("backend/app/db/postcheck_w1a_vs1.py",)
 
 
 def _fail(message: str) -> NoReturn:
@@ -454,10 +452,7 @@ def _jsonable(value: Any) -> Any:
 
 
 def _mapping_rows(connection: Connection, sql: str) -> list[dict[str, Any]]:
-    return [
-        _jsonable(dict(row._mapping))
-        for row in connection.execute(text(sql)).all()
-    ]
+    return [_jsonable(dict(row._mapping)) for row in connection.execute(text(sql)).all()]
 
 
 def _effective_acl(connection: Connection, role: str) -> dict[str, Any]:
@@ -777,8 +772,7 @@ def _assert_snapshot_contract(snapshot: dict[str, Any], *, revision: str) -> Non
         _fail(f"R0_ROOM3_REVISION_MISMATCH: {snapshot['revision']!r}")
     if snapshot["row_count"] != 2 or snapshot["pks"] != PLAN_IDS:
         _fail(
-            "R0_ROOM3_HISTORY_ROWS_MISMATCH: "
-            f"count={snapshot['row_count']};pks={snapshot['pks']!r}"
+            f"R0_ROOM3_HISTORY_ROWS_MISMATCH: count={snapshot['row_count']};pks={snapshot['pks']!r}"
         )
     if snapshot["sequence_state"] != {"last_value": 910002, "is_called": True}:
         _fail(f"R0_ROOM3_SEQUENCE_STATE_MISMATCH: {snapshot['sequence_state']!r}")
@@ -1042,8 +1036,7 @@ def test_r0_w2_read_only_backup_restore_lifecycle() -> None:
         source_snapshots[label] = _snapshot(database_url)
         _assert_snapshot_contract(source_snapshots[label], revision=revisions[label])
         trigger_pairs = [
-            [row["tgname"], row["table_name"]]
-            for row in source_snapshots[label]["triggers"]
+            [row["tgname"], row["table_name"]] for row in source_snapshots[label]["triggers"]
         ]
         print(
             f"R0_ROOM3_SOURCE_{label} rows=2 pks=910001,910002 "
@@ -1155,10 +1148,7 @@ def test_r0_w2_read_only_backup_restore_lifecycle() -> None:
                 f"R0_ROOM3_RESTORED_SENTINEL_SHA_MISMATCH: "
                 f"expected={sentinel_sha256};actual={restored_sha256}"
             )
-        print(
-            f"R0_ROOM3_SOURCE_RESTORE_{label}_EXACT "
-            f"sentinel_sha256={restored_sha256}"
-        )
+        print(f"R0_ROOM3_SOURCE_RESTORE_{label}_EXACT sentinel_sha256={restored_sha256}")
 
     _assert_product_hashes(harness.repo_root)
     print("R0_ROOM3_LIFECYCLE_ASSERTIONS_OK")

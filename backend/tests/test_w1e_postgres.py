@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, NoReturn
@@ -74,7 +75,7 @@ def _without_sql_comments(value: str) -> str:
 
 
 @pytest.fixture(scope="session")
-def database_engine() -> Engine:
+def database_engine() -> Iterator[Engine]:
     if os.environ.get("SSWCENTER_W1E_REAL_PG") != "1":
         pytest.skip("requires the isolated W1E PostgreSQL harness")
     database_url = os.environ.get("SSWCENTER_DATABASE_URL")
@@ -88,7 +89,7 @@ def database_engine() -> Engine:
 
 
 @pytest.fixture
-def database_connection(database_engine: Engine):
+def database_connection(database_engine: Engine) -> Iterator[Connection]:
     connection = database_engine.connect()
     transaction = connection.begin()
     try:

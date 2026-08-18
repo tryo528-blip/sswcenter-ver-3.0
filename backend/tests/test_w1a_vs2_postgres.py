@@ -5,7 +5,7 @@ import re
 import threading
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, datetime
 from uuid import uuid4
 
 import pytest
@@ -88,7 +88,7 @@ def _require_vs2_revision_and_tables(engine: Engine) -> None:
 
 def _expect_integrity(
     connection: Connection,
-    operation: Callable[[Connection], None],
+    operation: Callable[[Connection], object],
     marker: str,
 ) -> None:
     try:
@@ -268,7 +268,7 @@ def _assert_fact_metadata(
     created_actor_id: int,
     updated_actor_id: int,
     minimum_row_version: int = 1,
-) -> tuple[int, object]:
+) -> tuple[int, datetime]:
     row = connection.execute(
         text(
             f"SELECT created_by_account_id, updated_by_account_id, "
@@ -289,7 +289,9 @@ def _assert_fact_metadata(
         or row.row_version < minimum_row_version
     ):
         pytest.fail("W1A_VS2_POSTGRES_MISSING: fact UTC/version metadata is invalid")
-    return row.row_version, row.updated_at_utc
+    updated_at = row.updated_at_utc
+    assert isinstance(updated_at, datetime)
+    return int(row.row_version), updated_at
 
 
 def _insert_audit_event(
@@ -324,8 +326,10 @@ def test_postgres_revision_and_exact_catalog_seed(owner_engine: Engine) -> None:
     _require_vs2_revision_and_tables(owner_engine)
     try:
         with owner_engine.connect() as connection:
-            groups = dict(
-                connection.execute(text("SELECT code, display_name FROM erp.service_group")).all()
+            groups: dict[str, str] = dict(
+                connection.execute(
+                    text("SELECT code, display_name FROM erp.service_group")
+                ).tuples()
             )
             services = {
                 (row.group_code, row.service_code): row.display_name
@@ -342,8 +346,8 @@ def test_postgres_revision_and_exact_catalog_seed(owner_engine: Engine) -> None:
                     )
                 )
             }
-            license_types = dict(
-                connection.execute(text("SELECT code, display_name FROM erp.license_type")).all()
+            license_types: dict[str, str] = dict(
+                connection.execute(text("SELECT code, display_name FROM erp.license_type")).tuples()
             )
             service_type_columns = {
                 row.column_name
@@ -574,8 +578,10 @@ def test_postgres_actual_mutation_guards_and_rollback(owner_engine: Engine) -> N
             staff_b = _insert_staff(connection, f"{token}-b")
             account_id = _insert_account(connection, staff_a, token)
             staff_b_account = _insert_account(connection, staff_b, f"{token}-b")
-            type_ids = dict(connection.execute(text("SELECT code, id FROM erp.license_type")).all())
-            service_ids = dict(
+            type_ids: dict[str, int] = dict(
+                connection.execute(text("SELECT code, id FROM erp.license_type")).tuples()
+            )
+            service_ids: dict[str, int] = dict(
                 connection.execute(
                     text(
                         """
@@ -584,7 +590,7 @@ def test_postgres_actual_mutation_guards_and_rollback(owner_engine: Engine) -> N
                         JOIN erp.service_group AS g ON g.id = s.service_group_id
                         """
                     )
-                ).all()
+                ).tuples()
             )
             employment_a = _insert_employment(
                 connection,

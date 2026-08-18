@@ -1,7 +1,7 @@
 import pytest
 
 
-def test_forbidden_legacy_and_status_properties_absent():
+def test_forbidden_legacy_and_status_properties_absent() -> None:
     """Verify legacy fields and standalone work-status columns are absent."""
     try:
         from app.db.models import Staff, StaffEmployment
@@ -34,7 +34,7 @@ def test_forbidden_legacy_and_status_properties_absent():
     )
 
 
-def test_preserved_wave0_columns_present():
+def test_preserved_wave0_columns_present() -> None:
     """Verify Wave 0 staff.display_name and staff.memo are preserved."""
     try:
         from app.db.models import Staff
@@ -47,7 +47,7 @@ def test_preserved_wave0_columns_present():
     assert hasattr(Staff, "memo"), "W1A_ABS_MEMO_REMOVED: Wave 0 'memo' must be preserved"
 
 
-def test_phone_normalized_absent_from_general_dto():
+def test_phone_normalized_absent_from_general_dto() -> None:
     """Verify phone_normalized is internal/DB-only and absent from general public DTOs."""
     try:
         from app.domains.staff.schemas import StaffDetailResponse, StaffResponse

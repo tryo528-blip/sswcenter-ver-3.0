@@ -12,16 +12,25 @@ import os
 import re
 import threading
 import time
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn, Protocol, cast
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session, sessionmaker
+
+from app.core.auth import CurrentAccount
+from app.domains.w1d.schemas import ContractCreateRequest, ServiceTypeCode
+
+if TYPE_CHECKING:
+    from app.domains.w1d.service import W1DService
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("SSWCENTER_W1D_REAL_PG") != "1",
@@ -36,20 +45,22 @@ W1D_REVISION = "20260730_0011_w1d_recipient_contract"
 
 _RUNTIME_REVISION_ENV = "SSWCENTER_W1D_EXPECTED_RUNTIME_REVISION"
 
-SERVICE_HOME_CARE = "HOME_CARE"
+SERVICE_HOME_CARE = ServiceTypeCode.HOME_CARE
 
-SERVICE_HOME_BATH = "HOME_BATH"
+SERVICE_HOME_BATH = ServiceTypeCode.HOME_BATH
 
-SERVICE_TEMP = "TEMP_HOME_CARE"
+SERVICE_TEMP = ServiceTypeCode.TEMP_HOME_CARE
 
-SERVICE_BARO = "BARO_CARE"
+SERVICE_BARO = ServiceTypeCode.BARO_CARE
 
 W1D_REVERSE_PERIOD_FIELD_ERRORS = [
     {"field": "end_date", "message": "입력값을 확인하세요."},
 ]
 
+
 def _fail(marker: str) -> NoReturn:
     pytest.fail(marker, pytrace=False)
+
 
 def _expected_runtime_revision() -> str:
     """Exact runtime Alembic revision required by product/catalog assertions.
@@ -67,6 +78,7 @@ def _expected_runtime_revision() -> str:
         return W1D_REVISION
     return text
 
+
 @dataclass(frozen=True)
 class W1DCase:
     account_id: int
@@ -75,8 +87,9 @@ class W1DCase:
     pin: str
     role_code: str
 
+
 @pytest.fixture(scope="session")
-def database_engine() -> Engine:
+def database_engine() -> Iterator[Engine]:
     database_url = os.environ.get("SSWCENTER_DATABASE_URL")
     if not database_url:
         _fail("W1D_HARNESS_DATABASE_URL_MISSING")
@@ -86,14 +99,17 @@ def database_engine() -> Engine:
     finally:
         engine.dispose()
 
+
 @pytest.fixture(scope="session")
 def session_factory(database_engine: Engine) -> sessionmaker[Session]:
     return sessionmaker(bind=database_engine, expire_on_commit=False, autoflush=False)
+
 
 def _synthetic_pin_for_staff_id(staff_id: int) -> str:
     if not 0 < staff_id <= 999_999:
         _fail("W1D_HARNESS_SYNTHETIC_PIN_SPACE_EXHAUSTED")
     return f"{staff_id:06d}"
+
 
 def _require_w1d_catalog(engine: Engine) -> None:
     expected_revision = _expected_runtime_revision()
@@ -113,6 +129,7 @@ def _require_w1d_catalog(engine: Engine) -> None:
         ).scalar()
         if present is not True:
             _fail("W1D_TABLE_MISSING: erp.recipient_contract")
+
 
 def _seed_case(factory: sessionmaker[Session]) -> W1DCase:
     from app.core.security import PinProtector
@@ -168,29 +185,36 @@ def _seed_case(factory: sessionmaker[Session]) -> W1DCase:
             role_code="ADMIN",
         )
 
-def _load_service():
+
+def _load_service() -> type[W1DService]:
     try:
-        from app.domains.w1d.service import W1DService  # type: ignore
+        from app.domains.w1d.service import W1DService
 
         return W1DService
     except Exception:
         _fail("W1D_SERVICE_MODULE_MISSING: W1DService")
 
-def _load_schemas():
-    try:
-        from app.domains.w1d import schemas as w1d_schemas  # type: ignore
 
-        return w1d_schemas
+class _W1DSchemas(Protocol):
+    ContractCreateRequest: type[ContractCreateRequest]
+
+
+def _load_schemas() -> _W1DSchemas:
+    try:
+        from app.domains.w1d import schemas as w1d_schemas
+
+        return cast(_W1DSchemas, w1d_schemas)
     except Exception:
         _fail("W1D_DOMAIN_MODULE_MISSING: schemas")
 
-def _current_account(case: W1DCase):
-    from app.core.auth import CurrentAccount
 
+def _current_account(case: W1DCase) -> CurrentAccount:
     return CurrentAccount(case.account_id, f"W1D {case.account_id}", case.role_code)
+
 
 def _error_code(exc: BaseException) -> str:
     return str(getattr(exc, "code", type(exc).__name__))
+
 
 def _is_uuid(value: object) -> bool:
     try:
@@ -200,6 +224,7 @@ def _is_uuid(value: object) -> bool:
         return True
     except Exception:
         return False
+
 
 def _assert_standard_error_envelope(body: dict[str, Any], *, expect_code: str) -> dict[str, Any]:
     """R4-06: exact top-level ErrorEnvelope (no nested field_errors, no detail)."""
@@ -229,6 +254,7 @@ def _assert_standard_error_envelope(body: dict[str, Any], *, expect_code: str) -
         _fail("W1D_API_ENVELOPE_REQUEST_ID_NOT_UUID: " + str(body.get("request_id")))
     return body
 
+
 def test_w1d_pg_harness_w1c_head_self_check(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
@@ -252,14 +278,14 @@ def test_w1d_pg_harness_w1c_head_self_check(
                 text("SELECT code FROM erp.service_type WHERE active IS TRUE")
             ).all()
         }
-        for required in (
+        for required_service in (
             SERVICE_HOME_CARE,
             SERVICE_HOME_BATH,
             SERVICE_TEMP,
             SERVICE_BARO,
         ):
-            if required not in codes:
-                _fail("W1D_HARNESS_SERVICE_SEED_MISSING: " + required)
+            if required_service not in codes:
+                _fail("W1D_HARNESS_SERVICE_SEED_MISSING: " + required_service)
 
         groups = {
             str(row[0])
@@ -267,9 +293,9 @@ def test_w1d_pg_harness_w1c_head_self_check(
                 text("SELECT code FROM erp.service_group WHERE active IS TRUE")
             ).all()
         }
-        for required in ("LONG_TERM_CARE", "LOCAL_CARE", "BARO_CARE"):
-            if required not in groups:
-                _fail("W1D_HARNESS_SERVICE_GROUP_SEED_MISSING: " + required)
+        for required_group in ("LONG_TERM_CARE", "LOCAL_CARE", "BARO_CARE"):
+            if required_group not in groups:
+                _fail("W1D_HARNESS_SERVICE_GROUP_SEED_MISSING: " + required_group)
 
         if (
             connection.execute(
@@ -333,6 +359,7 @@ def test_w1d_pg_harness_w1c_head_self_check(
         from app.domains.w1c.schemas import (
             CertificationIdentityCreateRequest,
             CertificationPeriodCreateRequest,
+            GradeCode,
         )
         from app.domains.w1c.service import W1CService
     except Exception:
@@ -353,7 +380,7 @@ def test_w1d_pg_harness_w1c_head_self_check(
             CertificationPeriodCreateRequest(
                 start_date=date(2030, 1, 1),
                 end_date=date(2030, 12, 31),
-                grade_code="3",
+                grade_code=GradeCode.GRADE_3,
             ),
             account,
         )
@@ -390,8 +417,9 @@ def test_w1d_pg_harness_w1c_head_self_check(
         if int(idle) != 0:
             _fail("W1D_HARNESS_IDLE_IN_TRANSACTION_RESIDUAL: " + str(idle))
 
-def _counter_sequence(connection) -> int | None:
-    return connection.execute(
+
+def _counter_sequence(connection: Connection) -> int | None:
+    value = connection.execute(
         text(
             """
             SELECT last_sequence FROM erp.business_number_counter
@@ -399,6 +427,8 @@ def _counter_sequence(connection) -> int | None:
             """
         )
     ).scalar_one_or_none()
+    return None if value is None else int(value)
+
 
 def _jsonb_encode(raw: Any, *, label: str) -> str:
     """Canonical encode of a jsonb scalar; fail closed on decode/type errors.
@@ -419,8 +449,9 @@ def _jsonb_encode(raw: Any, *, label: str) -> str:
         _fail(f"W1D_HARNESS_SNAPSHOT_TYPE_{label}")
     return json.dumps(data, ensure_ascii=False, sort_keys=True, default=str)
 
+
 def _full_ledger_fingerprint(
-    connection,
+    connection: Connection,
     recipient_id: int,
 ) -> str:
     """Fail-closed canonical full-row ledger snapshot (R8-03 / J-H02).
@@ -510,7 +541,8 @@ def _full_ledger_fingerprint(
         parts.append(label + "=" + _jsonb_encode(raw, label=label))
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
 
-def _all_audit_rows(connection) -> list[dict[str, Any]]:
+
+def _all_audit_rows(connection: Connection) -> list[dict[str, Any]]:
     """Full cluster audit_event rows via to_jsonb; fail closed (R9-02).
 
     Never silently drop non-dict elements. Query/decode/type failures raise
@@ -544,18 +576,21 @@ def _all_audit_rows(connection) -> list[dict[str, Any]]:
         out.append(dict(item))
     return out
 
+
 def _canonical_audit_rows_json(rows: list[dict[str, Any]]) -> str:
     """Deterministic canonical JSON for full audit row-set equality."""
     return json.dumps(rows, ensure_ascii=False, sort_keys=True, default=str)
 
-def _write_zero_pair(connection, recipient_id: int) -> tuple[str, str]:
+
+def _write_zero_pair(connection: Connection, recipient_id: int) -> tuple[str, str]:
     """Full ledger fingerprint + complete audit row-set (R11 / J-W1D-R4-H01)."""
     fingerprint = _full_ledger_fingerprint(connection, recipient_id)
     audit_canon = _canonical_audit_rows_json(_all_audit_rows(connection))
     return fingerprint, audit_canon
 
+
 def _assert_write_zero_pair(
-    connection,
+    connection: Connection,
     recipient_id: int,
     before_fp: str,
     before_audit: str,
@@ -568,6 +603,7 @@ def _assert_write_zero_pair(
     if after_audit != before_audit:
         _fail(label + "_AUDIT_ROWSET_CHANGED")
 
+
 def _assert_recipient_no_exact(value: object, *, label: str) -> str:
     """J-W1D-R5-M01 / R18: type is str + exact ^[0-9]{6,}$ on the raw value.
 
@@ -578,6 +614,7 @@ def _assert_recipient_no_exact(value: object, *, label: str) -> str:
     if not RECIPIENT_NO_EXACT_RE.fullmatch(value):
         _fail(label + "_FORMAT")
     return value
+
 
 def _r18_recipient_no_mutant_selfcheck() -> None:
     """Pure M01 mutants (no DB). Fail closed if acceptance regresses."""
@@ -613,6 +650,7 @@ def _r18_recipient_no_mutant_selfcheck() -> None:
     if not _accepts("1234567890"):
         _fail("W1D_R18_M01_MUTANT_LONG_REJECTED")
 
+
 def _canonical_date(value: Any) -> str | None:
     if value is None:
         return None
@@ -620,6 +658,7 @@ def _canonical_date(value: Any) -> str | None:
         return value.isoformat()
     text_value = str(value)
     return text_value[:10] if len(text_value) >= 10 else text_value
+
 
 def test_w1d_pg_00_first_contract_recipient_no_race_and_rollback(
     session_factory: sessionmaker[Session],
@@ -648,7 +687,7 @@ def test_w1d_pg_00_first_contract_recipient_no_race_and_rollback(
             _fail("W1D_REC03_COUNTER_NOT_VIRGIN: expected None got " + str(before_counter))
         expected_after = 1
 
-    def worker(service_code: str) -> str:
+    def worker(service_code: ServiceTypeCode) -> str:
         engine = create_engine(os.environ["SSWCENTER_DATABASE_URL"], pool_pre_ping=True)
         factory = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
         try:
@@ -791,7 +830,7 @@ def test_w1d_pg_00_first_contract_recipient_no_race_and_rollback(
     # Fault injection rollback (create path seam after_contract_insert).
     case2 = _seed_case(session_factory)
     try:
-        from app.domains.w1d import fault as w1d_fault  # type: ignore
+        from app.domains.w1d import fault as w1d_fault
     except Exception:
         _fail("W1D_FAULT_SEAM_MISSING: app.domains.w1d.fault")
     set_fault = getattr(w1d_fault, "set_fault_point", None) or getattr(w1d_fault, "install", None)
@@ -848,6 +887,7 @@ def test_w1d_pg_00_first_contract_recipient_no_race_and_rollback(
                 + f"{before_fault_counter}->{after_fault_counter}"
             )
 
+
 def test_w1d_pg_01_catalog_revision_and_nullable_round_trip(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
@@ -895,6 +935,7 @@ def test_w1d_pg_01_catalog_revision_and_nullable_round_trip(
             if row[column] is not None:
                 _fail("W1D_CON01_DB_NULLABLE_ROUND_TRIP_FAILED: " + column)
 
+
 def test_w1d_pg_02_period_conflicts_and_same_group_allow(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
@@ -906,7 +947,11 @@ def test_w1d_pg_02_period_conflicts_and_same_group_allow(
     schemas = _load_schemas()
     account = _current_account(case)
 
-    def create(service_code: str, start: date, end: date | None):
+    def create(
+        service_code: ServiceTypeCode,
+        start: date,
+        end: date | None,
+    ) -> tuple[str, object]:
         with session_factory() as database_session:
             service = service_cls(database_session)
             try:
@@ -1009,6 +1054,7 @@ def test_w1d_pg_02_period_conflicts_and_same_group_allow(
         except Exception as exc:
             _fail("W1D_CON04_OPEN_ENDED_SAME_GROUP_REJECTED: " + _error_code(exc))
 
+
 def test_w1d_pg_03_reactivation_forbidden_and_new_contract(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
@@ -1065,6 +1111,7 @@ def test_w1d_pg_03_reactivation_forbidden_and_new_contract(
             database_session.commit()
         except Exception as exc:
             _fail("W1D_CON03_NEW_CONTRACT_AFTER_END_FAILED: " + _error_code(exc))
+
 
 def test_w1d_pg_06_api_auth_csrf_and_error_envelope(
     session_factory: sessionmaker[Session],
@@ -1158,6 +1205,7 @@ def test_w1d_pg_06_api_auth_csrf_and_error_envelope(
         _assert_standard_error_envelope(
             conflict.json(), expect_code="CONTRACT_SERVICE_PERIOD_CONFLICT"
         )
+
 
 def test_w1d_pg_09_raw_cross_group_insert_serialization(
     session_factory: sessionmaker[Session],
@@ -1556,6 +1604,7 @@ def test_w1d_pg_09_raw_cross_group_insert_serialization(
         if int(n2) != 2:
             _fail("W1D_CON04_RAW_SAME_GROUP_ROW_COUNT: " + str(n2))
 
+
 _CONTRACT_RESPONSE_FIELDS = (
     "id",
     "recipient_id",
@@ -1586,6 +1635,7 @@ _CONTRACT_FORBIDDEN_FIELDS = (
 
 _API_DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
+
 def _strict_api_date_str(value: object) -> str | None:
     """Exact YYYY-MM-DD string only; no date object or str()/slice coercion."""
     if type(value) is not str:
@@ -1593,6 +1643,7 @@ def _strict_api_date_str(value: object) -> str | None:
     if not _API_DATE_RE.fullmatch(value):
         return None
     return value
+
 
 def _validate_contract_response_strict(body: object) -> str | None:
     """Pure strict 14-key ContractResponse gate (R24 / Joseph R8 H02).
@@ -1639,16 +1690,19 @@ def _validate_contract_response_strict(body: object) -> str | None:
         return "CONTRACT_RESP_ROW_VERSION"
     return None
 
+
 def _assert_contract_response_shape(body: object, *, label: str) -> None:
     err = _validate_contract_response_strict(body)
     if err is not None:
         _fail(f"W1D_API_{label}_{err}")
+
 
 def _db_normalize_int(value: Any, *, label: str) -> int:
     """DB-side only: accept strict int; reject bool; no API-path use."""
     if type(value) is bool or type(value) is not int:
         _fail(f"{label}_DB_INT_TYPE:{type(value).__name__}")
     return value
+
 
 def _db_normalize_date_str(value: Any, *, label: str) -> str | None:
     """DB-side only date → YYYY-MM-DD string or None."""
@@ -1663,6 +1717,7 @@ def _db_normalize_date_str(value: Any, *, label: str) -> str | None:
         _fail(f"{label}_DB_DATE_TYPE:{type(value).__name__}")
     return canon
 
+
 def _db_normalize_ts_str(value: Any, *, label: str) -> str | None:
     """DB-side only timestamp → non-empty string or None (nullability exact)."""
     if value is None:
@@ -1672,6 +1727,7 @@ def _db_normalize_ts_str(value: Any, *, label: str) -> str | None:
     if type(value) is datetime:
         return value.isoformat()
     _fail(f"{label}_DB_TS_TYPE:{type(value).__name__}")
+
 
 def _normalize_db_contract_row_for_api(row: Any, *, label: str) -> dict[str, Any]:
     """DB-driver values only → JSON-primitive ContractResponse field set."""
@@ -1703,6 +1759,7 @@ def _normalize_db_contract_row_for_api(row: Any, *, label: str) -> dict[str, Any
         "row_version": _db_normalize_int(row["row_version"], label=f"{label}_RV"),
     }
 
+
 def _assert_contract_response_matches_row(
     body: object,
     row: Any,
@@ -1717,6 +1774,7 @@ def _assert_contract_response_matches_row(
     for key in _CONTRACT_RESPONSE_FIELDS:
         if body[key] != expected[key]:
             _fail(f"W1D_API_{label}_ROW_MISMATCH:{key}:{body[key]!r}!={expected[key]!r}")
+
 
 def test_w1d_pg_12_list_get_end_contract_api(
     session_factory: sessionmaker[Session],
@@ -1941,6 +1999,7 @@ def test_w1d_pg_12_list_get_end_contract_api(
             if _full_ledger_fingerprint(connection, case.recipient_id) != snap_nr:
                 _fail("W1D_API_LIST_MISSING_RECIPIENT_WROTE_ROWS")
 
+
 def test_w1d_pg_13_null_identity_and_free_text_validation(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
@@ -2137,6 +2196,7 @@ def test_w1d_pg_13_null_identity_and_free_text_validation(
             if _full_ledger_fingerprint(connection, case.recipient_id) != snap_rev:
                 _fail("W1D_API_REVERSE_PERIOD_WROTE_ROWS")
 
+
 def test_w1d_pg_15_list_get_read_acl_and_purity(
     session_factory: sessionmaker[Session],
     database_engine: Engine,
@@ -2234,7 +2294,7 @@ def test_w1d_pg_15_list_get_read_acl_and_purity(
 
         def _gate(
             method_label: str,
-            response,
+            response: Response,
             *,
             expect_status: int,
             expect_code: str | None,
@@ -2244,7 +2304,7 @@ def test_w1d_pg_15_list_get_read_acl_and_purity(
         ) -> dict[str, Any]:
             if response.status_code != expect_status:
                 _fail(f"W1D_API_READ_{method_label}_STATUS: " + str(response.status_code))
-            body = response.json()
+            body = cast(dict[str, Any], response.json())
             if expect_code is not None:
                 _assert_standard_error_envelope(body, expect_code=expect_code)
             with database_engine.connect() as connection:

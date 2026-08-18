@@ -22,7 +22,9 @@ from app.api.dependencies import (
 from app.domains.staff.schemas import ErrorEnvelope
 from app.domains.w2.schemas import (
     OfficialWorkCardCloseRequest,
+    OfficialWorkCardEligibleAssigneeListResponse,
     OfficialWorkCardListResponse,
+    OfficialWorkCardReassignRequest,
     PersonalTodoCreateRequest,
     PersonalTodoDeleteRequest,
     PersonalTodoListResponse,
@@ -346,6 +348,19 @@ def list_official_work_cards(
     return service.list_official_cards(current_account)
 
 
+@router.get(
+    "/official-work-cards/eligible-assignees",
+    response_model=OfficialWorkCardEligibleAssigneeListResponse,
+    operation_id="listW2OfficialWorkCardEligibleAssignees",
+    responses=ERROR_RESPONSES,
+)
+def list_official_work_card_eligible_assignees(
+    current_account: CurrentAccountDependency,
+    service: W2ServiceDependency,
+) -> OfficialWorkCardEligibleAssigneeListResponse:
+    return service.list_eligible_assignees(current_account)
+
+
 @router.post(
     "/official-work-cards/{card_id}/close",
     response_model=OfficialWorkCardListResponse,
@@ -359,3 +374,18 @@ def close_official_work_card(
     service: W2ServiceDependency,
 ) -> OfficialWorkCardListResponse:
     return service.close_official_card(card_id, payload, current_account)
+
+
+@router.post(
+    "/official-work-cards/{card_id}/reassign",
+    response_model=OfficialWorkCardListResponse,
+    operation_id="reassignW2OfficialWorkCard",
+    responses=ERROR_RESPONSES,
+)
+def reassign_official_work_card(
+    card_id: int,
+    payload: OfficialWorkCardReassignRequest,
+    current_account: CsrfAccountDependency,
+    service: W2ServiceDependency,
+) -> OfficialWorkCardListResponse:
+    return service.reassign_official_card(card_id, payload, current_account)

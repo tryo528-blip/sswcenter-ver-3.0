@@ -47,9 +47,19 @@ function Get-SswPostgresExecutable {
         [string]$Name
     )
 
-    $BundledPath = Join-Path "C:\Program Files\PostgreSQL\17\bin" $Name
-    if (Test-Path -LiteralPath $BundledPath) {
-        return $BundledPath
+    $IsWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    if ($IsWindows) {
+        $BundledPath = Join-Path "C:\Program Files\PostgreSQL\17\bin" $Name
+        if (Test-Path -LiteralPath $BundledPath) {
+            return $BundledPath
+        }
+    }
+    else {
+        # Ubuntu PATH exposes psql/createdb/dropdb/pg_restore without the
+        # Windows .exe suffix.  Do not construct C:\ paths on non-Windows hosts.
+        if ($Name.EndsWith(".exe", [StringComparison]::OrdinalIgnoreCase)) {
+            $Name = $Name.Substring(0, $Name.Length - 4)
+        }
     }
     $Command = Get-Command $Name -ErrorAction SilentlyContinue
     if (-not $Command) {

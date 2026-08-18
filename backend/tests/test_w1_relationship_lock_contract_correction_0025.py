@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
+
+from sqlalchemy import Table
 
 from app.db.models import Recipient, RecipientGuardian, StaffHealthCheck
 from app.domains.recipient.schemas import GuardianCreateRequest, GuardianResponse
@@ -29,13 +32,13 @@ def test_0025_is_a_forward_only_correction_after_0024() -> None:
 
 
 def test_guardian_slots_and_payer_fallback_exist_in_the_orm_contract() -> None:
-    guardian_columns = RecipientGuardian.__table__.columns
-    guardian_constraints = {
-        constraint.name for constraint in RecipientGuardian.__table__.constraints
-    }
+    guardian_table = cast(Table, RecipientGuardian.__table__)
+    recipient_table = cast(Table, Recipient.__table__)
+    guardian_columns = guardian_table.columns
+    guardian_constraints = {constraint.name for constraint in guardian_table.constraints}
     payer_constraint = next(
         constraint
-        for constraint in Recipient.__table__.foreign_key_constraints
+        for constraint in recipient_table.foreign_key_constraints
         if constraint.name == "fk_recipient_payer_guardian_same_recipient"
     )
 
@@ -56,8 +59,9 @@ def test_guardian_slots_and_payer_fallback_exist_in_the_orm_contract() -> None:
 
 
 def test_health_check_link_is_internal_nullable_metadata_only() -> None:
-    health_columns = StaffHealthCheck.__table__.columns
-    health_constraints = {constraint.name for constraint in StaffHealthCheck.__table__.constraints}
+    health_table = cast(Table, StaffHealthCheck.__table__)
+    health_columns = health_table.columns
+    health_constraints = {constraint.name for constraint in health_table.constraints}
 
     assert health_columns["employment_id"].nullable is True
     assert "fk_staff_health_check_employment" in health_constraints
@@ -71,10 +75,7 @@ def test_finalized_schedule_month_exposes_http_423() -> None:
     assert "423" in paths["/api/v1/schedules"]["post"]["responses"]
     assert "423" in paths["/api/v1/schedules/{schedule_id}"]["put"]["responses"]
     assert "423" in paths["/api/v1/schedules/{schedule_id}"]["delete"]["responses"]
-    assert (
-        "423"
-        in paths["/api/v1/schedule-months/{schedule_month}/finalize"]["post"]["responses"]
-    )
+    assert "423" in paths["/api/v1/schedule-months/{schedule_month}/finalize"]["post"]["responses"]
     assert "423" not in paths["/api/v1/personal-todos"]["post"]["responses"]
 
 

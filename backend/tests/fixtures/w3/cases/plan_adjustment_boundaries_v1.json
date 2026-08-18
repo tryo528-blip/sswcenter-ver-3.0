@@ -1,0 +1,54 @@
+{
+  "fixture_version": "w3-plan-adjustment-cases-v1",
+  "contains_pii": false,
+  "cases": [
+    {
+      "case_id": "W3-ADJ-LONG-1799",
+      "rule_version": "w3-rfid-adjustment-v1",
+      "planned_start": "2026-08-17T09:00:00+09:00",
+      "planned_end": "2026-08-17T10:00:00+09:00",
+      "actual_start": "2026-08-17T09:00:00+09:00",
+      "actual_end": "2026-08-17T10:29:59+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-LONG-1800",
+      "rule_version": "w3-rfid-adjustment-v1",
+      "planned_start": "2026-08-17T09:00:00+09:00",
+      "planned_end": "2026-08-17T10:00:00+09:00",
+      "actual_start": "2026-08-17T09:00:00+09:00",
+      "actual_end": "2026-08-17T10:30:00+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-SHORT-0001",
+      "rule_version": "w3-rfid-adjustment-v1",
+      "planned_start": "2026-08-17T09:00:00+09:00",
+      "planned_end": "2026-08-17T10:00:00+09:00",
+      "actual_start": "2026-08-17T09:00:00+09:00",
+      "actual_end": "2026-08-17T09:59:59+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-FIVE-MIN-UNIQUE",
+      "rule_version": "w3-rfid-adjustment-v1",
+      "planned_start": "2026-08-17T09:00:00+09:00",
+      "planned_end": "2026-08-17T10:00:00+09:00",
+      "actual_start": "2026-08-17T09:02:00+09:00",
+      "actual_end": "2026-08-17T10:02:00+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-THIRTY-MIN-MIDPOINT",
+      "rule_version": "w3-rfid-adjustment-v1",
+      "planned_start": "2026-08-17T09:00:00+09:00",
+      "planned_end": "2026-08-17T10:00:00+09:00",
+      "actual_start": "2026-08-17T09:00:00+09:00",
+      "actual_end": "2026-08-17T10:45:00+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-FIVE-MIN-TIE",
+      "rule_version": "w3-rfid-adjustment-v1",
+      "planned_start": "2026-08-17T09:00:00+09:00",
+      "planned_end": "2026-08-17T10:00:00+09:00",
+      "actual_start": "2026-08-17T09:02:30+09:00",
+      "actual_end": "2026-08-17T10:02:30+09:00"
+    }
+  ]
+}

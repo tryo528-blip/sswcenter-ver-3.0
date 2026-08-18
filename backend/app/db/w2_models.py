@@ -45,8 +45,7 @@ class MonthlyProfessionalAssignment(Base):
             name="monthly_professional_assignment_date_order",
         ),
         CheckConstraint(
-            "start_date >= service_month "
-            "AND end_date < (service_month + INTERVAL '1 month')::date",
+            "start_date >= service_month AND end_date < (service_month + INTERVAL '1 month')::date",
             name="monthly_professional_assignment_inside_month",
         ),
         CheckConstraint(
@@ -129,6 +128,7 @@ class MonthlyProfessionalAssignment(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     row_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+
 
 class W2ScheduleMonthControl(Base):
     __tablename__ = "w2_schedule_month_control"
@@ -499,15 +499,18 @@ class W2ServicePlanNotice(Base):
             name="w2_service_plan_notice_row_version_positive",
         ),
         ForeignKeyConstraint(
-            ["recipient_contract_id"],
-            ["erp.recipient_contract.id"],
-            name="fk_w2_service_plan_notice_contract",
+            ["recipient_id", "recipient_contract_id"],
+            ["erp.recipient_contract.recipient_id", "erp.recipient_contract.id"],
+            name="fk_w2_service_plan_notice_contract_same_recipient",
             ondelete="RESTRICT",
         ),
         ForeignKeyConstraint(
-            ["replacement_service_plan_notice_id"],
-            ["erp.w2_service_plan_notice.id"],
-            name="fk_w2_service_plan_notice_replacement",
+            ["recipient_id", "replacement_service_plan_notice_id"],
+            [
+                "erp.w2_service_plan_notice.recipient_id",
+                "erp.w2_service_plan_notice.id",
+            ],
+            name="fk_w2_service_plan_notice_replacement_same_recipient",
             ondelete="RESTRICT",
             deferrable=True,
             initially="DEFERRED",
@@ -524,6 +527,11 @@ class W2ServicePlanNotice(Base):
             name="fk_w2_service_plan_notice_updated_by",
             ondelete="RESTRICT",
         ),
+        UniqueConstraint(
+            "recipient_id",
+            "id",
+            name="uq_w2_service_plan_notice_recipient_id_id",
+        ),
         Index(
             "ix_w2_service_plan_notice_contract_notification",
             "recipient_contract_id",
@@ -533,6 +541,9 @@ class W2ServicePlanNotice(Base):
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    # Recipient ownership is written only by W2 service code after it validates
+    # the contract/path parameter; no client request schema exposes this field.
+    recipient_id: Mapped[int] = mapped_column(BigInteger)
     recipient_contract_id: Mapped[int] = mapped_column(BigInteger)
     notification_date: Mapped[date] = mapped_column(Date)
     applied_start_date: Mapped[date] = mapped_column(Date)

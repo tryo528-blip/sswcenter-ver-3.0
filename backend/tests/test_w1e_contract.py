@@ -14,7 +14,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 import pytest
 from alembic.config import Config
@@ -128,13 +128,13 @@ def _product_absent(marker: str) -> NoReturn:
 def _down_revision_ids(value: object) -> tuple[str, ...]:
     if value is None:
         return ()
-    if type(value) is str:
+    if isinstance(value, str):
         return (value,)
-    if type(value) in (tuple, list):
-        values = tuple(value)
+    if isinstance(value, (tuple, list)):
+        values: tuple[object, ...] = tuple(value)
         if not all(type(item) is str for item in values):
             _fail("W1E_HARNESS_MIGRATION_GRAPH_INVALID: non-string down_revision")
-        return values
+        return cast(tuple[str, ...], values)
     _fail("W1E_HARNESS_MIGRATION_GRAPH_INVALID: unsupported down_revision type")
 
 
@@ -254,39 +254,39 @@ def _scan_plpgsql_lexical(sql: str) -> tuple[str, str]:
     while index < len(sql):
         if sql.startswith("--", index):
             newline = sql.find("\n", index + 2)
-            stop = len(sql) if newline < 0 else newline
-            masked = _masked_sql_fragment(sql[index:stop])
+            comment_stop = len(sql) if newline < 0 else newline
+            masked = _masked_sql_fragment(sql[index:comment_stop])
             text_pieces.append(masked)
             scan_pieces.append(masked)
-            index = stop
+            index = comment_stop
             continue
         if sql.startswith("/*", index):
-            stop = _sql_block_comment_stop(sql, index)
-            if stop is None:
+            block_stop = _sql_block_comment_stop(sql, index)
+            if block_stop is None:
                 raise _UnsupportedPlpgsql("unterminated block comment")
-            masked = _masked_sql_fragment(sql[index:stop])
+            masked = _masked_sql_fragment(sql[index:block_stop])
             text_pieces.append(masked)
             scan_pieces.append(masked)
-            index = stop
+            index = block_stop
             continue
         quoted = _sql_quoted_span(sql, index)
         if quoted is not None:
-            kind, stop = quoted
-            if stop is None:
+            kind, quoted_stop = quoted
+            if quoted_stop is None:
                 raise _UnsupportedPlpgsql("unterminated " + quote_labels[kind])
-            text_pieces.append(sql[index:stop])
-            scan_pieces.append(_masked_sql_fragment(sql[index:stop]))
-            index = stop
+            text_pieces.append(sql[index:quoted_stop])
+            scan_pieces.append(_masked_sql_fragment(sql[index:quoted_stop]))
+            index = quoted_stop
             continue
         if sql[index] == "$":
             dollar = _sql_dollar_span(sql, index)
             if dollar is not None:
-                _, stop = dollar
-                if stop is None:
+                _, dollar_stop = dollar
+                if dollar_stop is None:
                     raise _UnsupportedPlpgsql("unterminated dollar-quoted string")
-                text_pieces.append(sql[index:stop])
-                scan_pieces.append(_masked_sql_fragment(sql[index:stop]))
-                index = stop
+                text_pieces.append(sql[index:dollar_stop])
+                scan_pieces.append(_masked_sql_fragment(sql[index:dollar_stop]))
+                index = dollar_stop
                 continue
         text_pieces.append(sql[index])
         scan_pieces.append(sql[index])
@@ -896,8 +896,8 @@ def test_w1e_02_offline_sql_declares_only_the_assignment_contract() -> None:
         "updated_at_utc": {"updated_at_utctimestampwithtimezonedefaultnow()notnull"},
         "row_version": {"row_versionintegerdefault1notnull"},
     }
-    for name, expected in expected_column_clauses.items():
-        if compact_columns[name] not in expected:
+    for name, expected_clauses in expected_column_clauses.items():
+        if compact_columns[name] not in expected_clauses:
             _fail("W1E_ALEMBIC_COLUMN_CLAUSE_MISMATCH: " + name + ":" + repr(compact_columns[name]))
 
     function_targets = re.findall(

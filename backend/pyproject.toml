@@ -5,6 +5,9 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/20260809_0018_w2_service_plan_notice.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
@@ -14,3 +17,10 @@ python_version = "3.11"
 strict = true
 warn_unused_configs = true
 ignore_missing_imports = true
+exclude = [
+    "^alembic/versions/20260730_0009_w1b_recipient\\.py$",
+    "^alembic/versions/20260730_0010_w1c_certification_ledgers\\.py$",
+    "^alembic/versions/20260730_0011_w1d_recipient_contract\\.py$",
+    "^alembic/versions/20260801_0012_w1e_care_assignment\\.py$",
+    "^alembic/versions/20260803_0014_recipient_plan_notification\\.py$",
+]

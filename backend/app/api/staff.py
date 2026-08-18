@@ -69,7 +69,15 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorEnvelope},
     403: {"model": ErrorEnvelope},
     404: {"model": ErrorEnvelope},
-    409: {"model": ErrorEnvelope},
+    409: {
+        "model": ErrorEnvelope,
+        "description": (
+            "STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, "
+            "STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, "
+            "CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, "
+            "CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT"
+        ),
+    },
     422: {"model": ErrorEnvelope},
     500: {"model": ErrorEnvelope},
 }

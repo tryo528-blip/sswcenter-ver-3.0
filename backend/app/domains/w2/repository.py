@@ -59,6 +59,7 @@ class W2Repository:
                 UserAccount.active.is_(True),
             )
         )
+
     def staff_is_admin_account(self, staff_id: int) -> bool:
         return (
             self.session.scalar(
@@ -69,6 +70,101 @@ class W2Repository:
                 )
             )
             is not None
+        )
+
+    def staff_display_name(self, staff_id: int) -> str:
+        staff = self.staff(staff_id)
+        if staff is None:
+            return "미입력"
+        return staff.display_name or staff.name or "미입력"
+
+    def staff_currently_employed(self, staff_id: int, as_of_date: date) -> bool:
+        return (
+            self.session.scalar(
+                select(StaffEmployment.id).where(
+                    StaffEmployment.staff_id == staff_id,
+                    StaffEmployment.invalidated_at_utc.is_(None),
+                    StaffEmployment.start_date <= as_of_date,
+                    or_(
+                        StaffEmployment.end_date.is_(None),
+                        StaffEmployment.end_date >= as_of_date,
+                    ),
+                )
+            )
+            is not None
+        )
+
+    def current_assignments_covering(
+        self,
+        recipient_id: int,
+        as_of_date: date,
+        *,
+        for_update: bool = False,
+    ) -> list[MonthlyProfessionalAssignment]:
+        statement = (
+            select(MonthlyProfessionalAssignment)
+            .where(
+                MonthlyProfessionalAssignment.recipient_id == recipient_id,
+                MonthlyProfessionalAssignment.invalidated_at_utc.is_(None),
+                MonthlyProfessionalAssignment.start_date <= as_of_date,
+                MonthlyProfessionalAssignment.end_date >= as_of_date,
+            )
+            .order_by(MonthlyProfessionalAssignment.id)
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        return list(self.session.scalars(statement).all())
+
+    def eligible_card_assignees(self, as_of_date: date) -> list[Staff]:
+        admin_staff_ids = select(UserAccount.staff_id).where(
+            UserAccount.active.is_(True),
+            UserAccount.role_code == "ADMIN",
+            UserAccount.staff_id.is_not(None),
+        )
+        employed_staff_ids = select(StaffEmployment.staff_id).where(
+            StaffEmployment.invalidated_at_utc.is_(None),
+            StaffEmployment.start_date <= as_of_date,
+            or_(
+                StaffEmployment.end_date.is_(None),
+                StaffEmployment.end_date >= as_of_date,
+            ),
+        )
+        professional_staff_ids = select(StaffPositionPeriod.staff_id).where(
+            StaffPositionPeriod.position_code.in_(("SOCIAL_WORKER", "NURSE")),
+            StaffPositionPeriod.invalidated_at_utc.is_(None),
+            StaffPositionPeriod.start_date <= as_of_date,
+            or_(
+                StaffPositionPeriod.end_date.is_(None),
+                StaffPositionPeriod.end_date >= as_of_date,
+            ),
+        )
+        return list(
+            self.session.scalars(
+                select(Staff)
+                .where(
+                    Staff.id.in_(employed_staff_ids),
+                    Staff.id.in_(professional_staff_ids),
+                    Staff.id.not_in(admin_staff_ids),
+                )
+                .order_by(Staff.name, Staff.id)
+            ).all()
+        )
+
+    def latest_card_reassignment_audit(
+        self,
+        card_ids: list[int],
+    ) -> AuditEvent | None:
+        if not card_ids:
+            return None
+        return self.session.scalar(
+            select(AuditEvent)
+            .where(
+                AuditEvent.entity_type == "w2_official_work_card",
+                AuditEvent.action_code == "W2_OFFICIAL_WORK_CARD_REASSIGNED",
+                AuditEvent.entity_pk.in_(card_ids),
+            )
+            .order_by(AuditEvent.id.desc())
+            .limit(1)
         )
 
     def staff_has_professional_position(
@@ -100,8 +196,7 @@ class W2Repository:
         employment_id: int,
     ) -> StaffEmployment | None:
         return self.session.scalar(
-            select(StaffEmployment)
-            .where(
+            select(StaffEmployment).where(
                 StaffEmployment.staff_id == staff_id,
                 StaffEmployment.id == employment_id,
                 StaffEmployment.invalidated_at_utc.is_(None),
@@ -235,29 +330,20 @@ class W2Repository:
     def service_plan_notices(
         self,
         recipient_id: int,
-    ) -> list[tuple[W2ServicePlanNotice, RecipientContract]]:
+    ) -> list[W2ServicePlanNotice]:
         statement = (
-            select(W2ServicePlanNotice, RecipientContract)
-            .join(
-                RecipientContract,
-                RecipientContract.id == W2ServicePlanNotice.recipient_contract_id,
-            )
-            .where(RecipientContract.recipient_id == recipient_id)
+            select(W2ServicePlanNotice)
+            .where(W2ServicePlanNotice.recipient_id == recipient_id)
             .order_by(W2ServicePlanNotice.notification_date, W2ServicePlanNotice.id)
         )
-        return [
-            (notice, contract)
-            for notice, contract in self.session.execute(statement).all()
-        ]
+        return list(self.session.scalars(statement).all())
 
     def service_plan_notice_for_update(
         self,
         notice_id: int,
     ) -> W2ServicePlanNotice | None:
         return self.session.scalar(
-            select(W2ServicePlanNotice)
-            .where(W2ServicePlanNotice.id == notice_id)
-            .with_for_update()
+            select(W2ServicePlanNotice).where(W2ServicePlanNotice.id == notice_id).with_for_update()
         )
 
     def schedule_month(
@@ -285,9 +371,7 @@ class W2Repository:
                 created_by_account_id=actor_account_id,
                 updated_by_account_id=actor_account_id,
             )
-            .on_conflict_do_nothing(
-                index_elements=[W2ScheduleMonthControl.schedule_month]
-            )
+            .on_conflict_do_nothing(index_elements=[W2ScheduleMonthControl.schedule_month])
         )
         self.session.flush()
         row = self.schedule_month(schedule_month, for_update=True)
@@ -309,9 +393,7 @@ class W2Repository:
         if staff_id is not None:
             statement = statement.where(
                 W2Schedule.id.in_(
-                    select(W2ScheduleStaff.schedule_id).where(
-                        W2ScheduleStaff.staff_id == staff_id
-                    )
+                    select(W2ScheduleStaff.schedule_id).where(W2ScheduleStaff.staff_id == staff_id)
                 )
             )
         statement = statement.order_by(W2Schedule.id)
@@ -351,9 +433,10 @@ class W2Repository:
         errors: list[dict[str, Any]] = []
         for row in sorted(rows, key=lambda item: item.id):
             for assigned in self.schedule_staff(row.id):
-                values = self.session.execute(
-                    text(
-                        """
+                values = (
+                    self.session.execute(
+                        text(
+                            """
                         SELECT EXISTS (
                                    SELECT 1
                                      FROM erp.staff_employment employment
@@ -401,15 +484,18 @@ class W2Repository:
                                    '{}'::datemultirange
                                ) AS qualification_ok
                         """
-                    ),
-                    {
-                        "staff_id": assigned.staff_id,
-                        "employment_id": assigned.employment_id,
-                        "service_type_id": row.service_type_id,
-                        "starts_at": row.starts_at_utc,
-                        "ends_at": row.ends_at_utc,
-                    },
-                ).mappings().one()
+                        ),
+                        {
+                            "staff_id": assigned.staff_id,
+                            "employment_id": assigned.employment_id,
+                            "service_type_id": row.service_type_id,
+                            "starts_at": row.starts_at_utc,
+                            "ends_at": row.ends_at_utc,
+                        },
+                    )
+                    .mappings()
+                    .one()
+                )
                 details = {
                     "schedule_id": row.id,
                     "staff_id": assigned.staff_id,
@@ -418,9 +504,7 @@ class W2Repository:
                 if not values["employment_ok"]:
                     errors.append({**details, "code": "SCHEDULE_OUTSIDE_EMPLOYMENT"})
                 if not values["position_ok"]:
-                    errors.append(
-                        {**details, "code": "SCHEDULE_CARE_WORKER_POSITION_REQUIRED"}
-                    )
+                    errors.append({**details, "code": "SCHEDULE_CARE_WORKER_POSITION_REQUIRED"})
                 if not values["qualification_ok"]:
                     errors.append({**details, "code": "SCHEDULE_OUTSIDE_QUALIFICATION"})
         return errors
@@ -489,9 +573,7 @@ class W2Repository:
 
     def card_by_occurrence(self, occurrence_key: str) -> W2OfficialWorkCard | None:
         return self.session.scalar(
-            select(W2OfficialWorkCard).where(
-                W2OfficialWorkCard.occurrence_key == occurrence_key
-            )
+            select(W2OfficialWorkCard).where(W2OfficialWorkCard.occurrence_key == occurrence_key)
         )
 
     def cards_by_renewal_for_update(
@@ -509,9 +591,7 @@ class W2Repository:
 
     def card_for_update(self, card_id: int) -> W2OfficialWorkCard | None:
         return self.session.scalar(
-            select(W2OfficialWorkCard)
-            .where(W2OfficialWorkCard.id == card_id)
-            .with_for_update()
+            select(W2OfficialWorkCard).where(W2OfficialWorkCard.id == card_id).with_for_update()
         )
 
     def open_cards(
@@ -525,9 +605,7 @@ class W2Repository:
             .where(W2OfficialWorkCard.closed_at_utc.is_(None))
         )
         if assignee_staff_id is not None:
-            statement = statement.where(
-                W2OfficialWorkCard.assignee_staff_id == assignee_staff_id
-            )
+            statement = statement.where(W2OfficialWorkCard.assignee_staff_id == assignee_staff_id)
         statement = statement.order_by(
             Staff.name,
             W2OfficialWorkCard.due_date,

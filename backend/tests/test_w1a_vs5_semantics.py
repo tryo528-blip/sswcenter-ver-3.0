@@ -16,11 +16,7 @@ HISTORICAL_MIGRATION = (
     / "20260728_0007_w1a_staff_quarterly_consultation.py"
 )
 CORRECTION_MIGRATION = (
-    REPO_ROOT
-    / "backend"
-    / "alembic"
-    / "versions"
-    / "20260813_0020_w1_staff_contract_correction.py"
+    REPO_ROOT / "backend" / "alembic" / "versions" / "20260813_0020_w1_staff_contract_correction.py"
 )
 SERVICE_PATH = REPO_ROOT / "backend" / "app" / "domains" / "staff" / "service.py"
 

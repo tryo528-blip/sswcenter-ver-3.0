@@ -1,0 +1,56 @@
+# W1E 0026 current candidate manifest
+# generated: 2026-08-16 KST
+# format: status|sha256|bytes|path
+# scope: every tracked-modified or untracked non-ignored file in the workspace at generation time
+# excluded: this manifest itself; ignored runtime caches such as backend/.venv
+ M|c4a0ea3c4d123db1018f956a09451e1bfb9060c313e4bcfa113302e17c724037|10244|00-먼저읽기-작업환경안내.md
+ M|3f8c6e448d66137c5120a47b1d3a340859eeca98cb849aa22bd673aefb1c6727|8597|00-오케스트레이션-작업지침.md
+ M|5c4e79f59ad37505af1b007c5623ba231cb9a90e9b6b786b10050941f81f372a|4599|AGENTS.md
+ M|47cb69d6704d3fc504625d379cbcb518fb49af77d4b8afac28cf1d15c4402877|10866|backend/app/api/dependencies.py
+ M|9cba5f0c8fcd9134c569273a6d7a307c4cf4cd8024980031ca26b59c959dbb3b|23170|backend/app/api/staff.py
+ M|de6ba83dbd3f1ea240c53cd7fb84df900317021e99cfad5aee0c790e601c955c|2960|backend/app/api/w1d.py
+ M|aa4ac88d4f1391585ba860dabd00cdb0072927dd1e951d044f4c57d9d24a5d6e|2897|backend/app/core/readiness.py
+ M|50371ccb1996cd7cfa878425d13604ad54d60a5b06cd5f308f58c9b6020b9814|74238|backend/app/db/models.py
+ M|694c443e9ecb313dd684e527a4e2567f66b808e028bde549142236d5a9cd4511|10756|backend/app/db/postcheck_current_0025.py
+ M|9dba45a8d6064e2524e595f72fe32cc58ca1075a7e3f09b038e6bbe726d92d61|2653|backend/app/db/postcheck_dispatch.py
+ M|322e457dab128867d38c06b1ffff862f14770f75dd5b79f15477901985029175|16567|backend/app/domains/recipient/detail_batch.py
+ M|ca718a4255c5b084be26cdaabd45704574b97806a9496956c2d2f5a60a8e84d0|7320|backend/app/domains/recipient/schemas.py
+ M|bf847d4953a78c0cd56e9b878275d9cc65d9b5b102bbd0aeeb13e6d89d026b79|26752|backend/app/domains/recipient/service.py
+ M|ccd32002915f2ebfa93beda449a0aa2b2857abdea7c3297e47971e24ce0e00ff|99588|backend/app/domains/staff/service.py
+ M|4be441b2a46e72e2d9fe400892980c0497eb21fdd6fd3a61c7dd560342553d9a|2079|backend/app/domains/w1d/errors.py
+ M|5e63cb520f89820e309ad50b177f4a8a3dd40fcc3c2ddc596ed16252703a8977|13075|backend/app/domains/w1d/service.py
+ M|06b85cc4b1ba89ba0696dc69c084672fc28522d74b18cb13f2d311f4373b8826|1921|backend/app/main.py
+ M|67be76425b277f12c5907c33b796abdb69ce26abb07f644337a038a161434f3d|7230|backend/tests/test_w0_readiness_write_gate.py
+ M|69223f73d5444ecdf60cb817461d0849c560d8a1e2143dbc9a4b3f44369cad99|27301|backend/tests/test_w1d_contract.py
+ M|705b642d440978b7a7a6e83a395e7ffe8f0193015f4878dffc7c402e6cc838de|7092|docs/AI_프로젝트_에이전트_실행계약_v1.0.md
+ M|3f1b59fdc056e1e73c1932404a1b900278329a5be86aba6a4f8e65aec9d87e46|362637|frontend/src/generated/sswcenter-api.ts
+ M|81ecedfdb700cf7a5180d61c999720604693e74b5c49cad54dc3526bbf272081|3737|scripts/PostgresTools.psm1
+ M|a9519d2644842eb639d5e39dd23da6d00b0cf5f06099b03249ddb7af88cc8efe|5295|scripts/generate-openapi-types.ps1
+ M|4e61b61a41f6f4340173b02f61d6a22bf7034f1ae7ce29945b6f077465be33ae|19143|scripts/restore-drill.ps1
+??|a2f48774e934862c3325dc145e33c8b4d9b16af82176c225fc56a5f58e7139c0|28507|backend/alembic/versions/20260814_0026_w1e_care_assignment_family_relationship_lock.py
+??|7101eadc9169861cbe05b2d464dac3868ab63381f158deef37c99795bb91ad22|3765|backend/app/api/w1e.py
+??|f2432b2bffcf69d994bdacb7f14d7ba777e3f84363686d1c70d28e57e7cfe7dc|77062|backend/app/db/postcheck_current_0026.py
+??|62464143c719628c8213831f1b8ec83114ce1b0eaab9506c99353bea3528755c|1543|backend/app/db/w1e_family_relationship.py
+??|dac9f13be99bb6b23431236c4f385a8559151bd9dc34f9a56188fdb3069fd619|34|backend/app/domains/w1e/__init__.py
+??|5ae3694d94b8d326b809f670e86664245fcaf5cac04b6baa3b437acfd6a77a44|883|backend/app/domains/w1e/clock.py
+??|fd3485a3e5bb8aec51a16aade0d8cfb5668c4a788bbc0be6610a68ed24cb40da|6680|backend/app/domains/w1e/errors.py
+??|e6e4fa80f36164057be52674d3962bfdc7fdca3b8c81421b5d3562980e1dc9c0|8527|backend/app/domains/w1e/repository.py
+??|fd10e04b38a3d908b9ea7aa7b5834e4f5b734e2d8878b395941f3c512ca5f463|1500|backend/app/domains/w1e/schemas.py
+??|b11079aaa117c754673c61c48088b745c294c61db5a5e5532fd448a7d0500bf0|19179|backend/app/domains/w1e/service.py
+??|bb0ca876da28714c707afd3756c3670046421b3b0b8da9e728bf6e1a4248c198|9537|backend/tests/test_verify_runtime_script.py
+??|34bc7043a2bd3d32857e4c91d78895c7150dacc2c3f652338d3a5546d50bcd31|12684|backend/tests/test_w1e_0026_integrity_mapping.py
+??|0c9b67a4a578746ba1dd1869c77c4033e41e6ca4b52926859c59ba1542f44cf9|16969|backend/tests/test_w1e_0026_postcheck_unit.py
+??|03cecdd9f57ab2732e0db48c34cd262310e014b4fdad034142461dc9c3c67612|138864|backend/tests/test_w1e_0026_postgres.py
+??|b8bd72e64b15ef4dd89ae80272f799e599c10b9df5a4fb21a342ad5b45fff125|35884|backend/tests/test_w1e_phase1_behavior.py
+??|802d75ee47eb2481cf711479570e7f73d233a3cdeb0ef7413ff271eb9e00257b|27057|backend/tests/test_w1e_phase1_contract.py
+??|a0e0808bf32ddb5a1528af9bef784dec923d0b69bdffb5a72c2dd9a4dff86d71|4374|backend/tests/test_w1e_phase1_unit.py
+??|cd458ba7cc13c6d5214e07de83b39e8d0c641da01d654abd6b055bc73b8c674c|13225|docs/AI_2라운드_상호검증_운영표준_v1.0.md
+??|1e728c6424d34b03455517420b68dedbc3b6e758be3bb23b414156789e7ef58a|4513|review/handovers/W1E_20260815_3ROUND_TROUBLE_HANDOFF.md
+??|118e63d32b0d78ff39ce8526dbe3cbd78b0d6b44aaade5aff9d72ac94ec556e0|75292|review/handovers/W1E_20260816_PROVIDER_ROUND_LEDGER.md
+??|d226164643a7bec594f723d90113f8d833a04b1d5ea7d36bfc8b6d4c0cb79635|13264|review/packets/W1E_0026_CANDIDATE_ADDENDUM.md
+??|0dd03cb5f4c999b3caeca16a3a1350702f1471a0cffc85a206bde4546e3052db|14456|review/plans/W1E_0026_CURRENT_CANDIDATE_PLAN.md
+??|0d81285a19d193c78d8190c6b404fb6b01c8a8e632de7f2690b3ac29580ba476|48620|review/reports/W1E_20260816_FINAL_REPORT.html
+??|382dac046d211feaa20a52d13ed2d841dc890f0750aaef5a4bfc0bd8ea58ba22|2898|scripts/RuntimeVersion.psm1
+??|a56d764f5578d1c2a1c06b3f508db0960ea7ee589a4361703cc75fa952a9fa14|1496|scripts/ensure-runtime.ps1
+??|088c12c8edd2547b43a988daa3ba2063dfa547719e16d1918f2a6dadc042852b|19268|scripts/test-w1e-0026-postgres-linux.ps1
+??|9195bb5a4769163769a8c02c0b1d81b242cac9f692ff27d2d3a329edf7ca6d8e|6109|scripts/verify-runtime.ps1

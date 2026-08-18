@@ -1,0 +1,53 @@
+{
+  "fixture_version": "w3-source-intake-classification-expected-v2",
+  "parent_fixture": "source_intake_semantic_v1",
+  "receipt_behavior": "PRESERVE_APPEND_ONLY_RECEIPT",
+  "cases": [
+    {
+      "case_id": "W3-INTAKE-DUPLICATE-SUCCESS",
+      "classification": "DUPLICATE_SUCCESS_NOOP",
+      "snapshot_identity": "REUSE",
+      "new_parse_count": 0,
+      "new_apply_count": 0,
+      "superseded_count": 0
+    },
+    {
+      "case_id": "W3-INTAKE-FAILED-RETRY",
+      "classification": "RETRY_SAME_SNAPSHOT",
+      "snapshot_identity": "REUSE",
+      "new_parse_count": 1,
+      "new_apply_count": 0,
+      "superseded_count": 0,
+      "retry_attempt_allowed": true,
+      "confirm_required": true
+    },
+    {
+      "case_id": "W3-INTAKE-BLOCKED-REUPLOAD",
+      "classification": "BLOCKED_REUPLOAD_REJECTED",
+      "snapshot_identity": "REUSE",
+      "new_parse_count": 0,
+      "new_apply_count": 0,
+      "superseded_count": 0,
+      "same_bytes_profile_bypass_allowed": false
+    },
+    {
+      "case_id": "W3-INTAKE-NEW-PROFILE",
+      "classification": "REPARSE_SAME_SNAPSHOT",
+      "snapshot_identity": "REUSE",
+      "new_parse_count": 1,
+      "new_apply_count": 0,
+      "superseded_count": 0,
+      "confirm_required": true
+    },
+    {
+      "case_id": "W3-INTAKE-NEW-DIGEST-NO-PRIOR",
+      "classification": "CANDIDATE_NEW_SNAPSHOT",
+      "snapshot_identity": "NEW",
+      "new_parse_count": 1,
+      "new_apply_count": 0,
+      "superseded_count": 0,
+      "confirm_required": true,
+      "active_snapshot_preserved": true
+    }
+  ]
+}

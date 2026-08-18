@@ -54,9 +54,7 @@ W2_GUARD_TRIGGER_CONTRACTS = {
 }
 W2_IMMUTABLE_TRIGGER_CONTRACTS = {
     "ct_recipient_contract_recipient_id_immutable": "recipient_contract",
-    "ct_recipient_certification_period_recipient_id_immutable": (
-        "recipient_certification_period"
-    ),
+    "ct_recipient_certification_period_recipient_id_immutable": ("recipient_certification_period"),
 }
 W2_CONSTRAINTS = {
     "pk_recipient_service_plan_notice",
@@ -937,9 +935,7 @@ def main() -> None:
                     else W1A_PERMISSION_CODES
                 ),
             )
-            _verify_role_acl_fingerprint(
-                connection, current_revision=str(current_revision)
-            )
+            _verify_role_acl_fingerprint(connection, current_revision=str(current_revision))
 
             sensitive_columns = _column_contract(
                 connection,
@@ -3867,9 +3863,7 @@ def _verify_w2_constraint_snapshot(
     if set(constraints) != set(expected):
         missing = sorted(set(expected) - set(constraints))
         extra = sorted(set(constraints) - set(expected))
-        raise SystemExit(
-            f"W2 constraint set mismatch: missing={missing}, extra={extra}"
-        )
+        raise SystemExit(f"W2 constraint set mismatch: missing={missing}, extra={extra}")
     if set(expected) != W2_CONSTRAINTS:
         raise SystemExit(
             "W2 constraint snapshot keys drifted from W2_CONSTRAINTS: "
@@ -3908,13 +3902,11 @@ def _verify_w2_constraint_snapshot(
 
         if exp_contype != act_contype:
             raise SystemExit(
-                f"W2 constraint {name} type mismatch: "
-                f"expected {exp_contype!r}, got {act_contype!r}"
+                f"W2 constraint {name} type mismatch: expected {exp_contype!r}, got {act_contype!r}"
             )
         if exp_def != act_def:
             raise SystemExit(
-                f"W2 constraint {name} definition mismatch: "
-                f"expected {exp_def!r}, got {act_def!r}"
+                f"W2 constraint {name} definition mismatch: expected {exp_def!r}, got {act_def!r}"
             )
         if exp_local_cols != act_local_cols:
             raise SystemExit(
@@ -3968,9 +3960,7 @@ def _verify_w2_constraint_snapshot(
             )
 
 
-def _verify_w2_service_plan_notice_contract(
-    connection: Connection, *, read_only: bool
-) -> None:
+def _verify_w2_service_plan_notice_contract(connection: Connection, *, read_only: bool) -> None:
     """Revision-aware W2 history checks for 0018 (writable) and 0019 (read-only)."""
     if (
         connection.execute(
@@ -4120,14 +4110,10 @@ def _verify_w2_service_plan_notice_contract(
         conname = str(row.conname)
         contype = str(row.contype)
         definition = _normalize_w2_catalog_sql(row.definition)
-        local_columns: tuple[str, ...] = tuple(
-            str(col) for col in (row.local_columns or [])
-        )
+        local_columns: tuple[str, ...] = tuple(str(col) for col in (row.local_columns or []))
         ref_schema: str | None = str(row.ref_schema) if row.ref_schema else None
         ref_table: str | None = str(row.ref_table) if row.ref_table else None
-        ref_columns: tuple[str, ...] = tuple(
-            str(col) for col in (row.ref_columns or [])
-        )
+        ref_columns: tuple[str, ...] = tuple(str(col) for col in (row.ref_columns or []))
         confdeltype: str | None = (
             str(row.confdeltype) if contype == "f" and row.confdeltype else None
         )
@@ -4190,37 +4176,29 @@ def _verify_w2_service_plan_notice_contract(
             ),
             {
                 "names": sorted(
-                    set(W2_GUARD_TRIGGER_CONTRACTS)
-                    | set(W2_IMMUTABLE_TRIGGER_CONTRACTS)
+                    set(W2_GUARD_TRIGGER_CONTRACTS) | set(W2_IMMUTABLE_TRIGGER_CONTRACTS)
                 )
             },
         )
     }
 
-    expected_immutable = {
-        (name, table) for name, table in W2_IMMUTABLE_TRIGGER_CONTRACTS.items()
-    }
+    expected_immutable = {(name, table) for name, table in W2_IMMUTABLE_TRIGGER_CONTRACTS.items()}
     present_immutable = trigger_rows & expected_immutable
     missing_immutable = sorted(expected_immutable - present_immutable)
     if missing_immutable:
         raise SystemExit(f"Missing W2 immutable triggers: {missing_immutable}")
 
-    expected_guards = {
-        (name, table) for name, table in W2_GUARD_TRIGGER_CONTRACTS.items()
-    }
+    expected_guards = {(name, table) for name, table in W2_GUARD_TRIGGER_CONTRACTS.items()}
     present_guards = trigger_rows & expected_guards
     if read_only:
         if present_guards:
             raise SystemExit(
-                "W2 guard trigger pairs must be absent after 0019: "
-                f"{sorted(present_guards)}"
+                f"W2 guard trigger pairs must be absent after 0019: {sorted(present_guards)}"
             )
     else:
         missing_guards = sorted(expected_guards - present_guards)
         if missing_guards:
-            raise SystemExit(
-                f"Missing W2 guard trigger pairs for 0018: {missing_guards}"
-            )
+            raise SystemExit(f"Missing W2 guard trigger pairs for 0018: {missing_guards}")
 
     # Table ACL: all eight privilege types for erp_app and erp_backup.
     # 0018 erp_app: SELECT/INSERT/UPDATE only.
@@ -4271,8 +4249,7 @@ def _verify_w2_service_plan_notice_contract(
     ]
     if column_write_refs:
         raise SystemExit(
-            "W2 column-level INSERT/UPDATE/REFERENCES grants must be absent: "
-            f"{column_write_refs}"
+            f"W2 column-level INSERT/UPDATE/REFERENCES grants must be absent: {column_write_refs}"
         )
 
     # Sequence USAGE/SELECT/UPDATE (exact; preserved from prior W2 postcheck).
@@ -4291,9 +4268,7 @@ def _verify_w2_service_plan_notice_contract(
             """
         )
     ).one()
-    expected_app_seq = (
-        (False, True, False) if read_only else (True, True, False)
-    )
+    expected_app_seq = (False, True, False) if read_only else (True, True, False)
     if tuple(app_seq) != expected_app_seq:
         raise SystemExit(
             f"W2 erp_app sequence ACL is invalid (read_only={read_only}): {tuple(app_seq)}"
@@ -4315,9 +4290,7 @@ def _verify_w2_service_plan_notice_contract(
         )
     ).one()
     if tuple(backup_seq) != (False, True, False):
-        raise SystemExit(
-            f"W2 erp_backup sequence ACL is not SELECT-only: {tuple(backup_seq)}"
-        )
+        raise SystemExit(f"W2 erp_backup sequence ACL is not SELECT-only: {tuple(backup_seq)}")
 
 
 if __name__ == "__main__":

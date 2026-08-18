@@ -1,0 +1,23 @@
+# W3 pseudonymous semantic sample pack manifest
+# generated: 2026-08-17 KST
+# head: 059ecf3dbfb54ac0a896303702d74ef190f8d984
+# format: status|sha256|bytes|path
+# scope: backend/tests/fixtures/w3 files only
+# excluded: this manifest itself, parser-ready xlsx because approved header profile is absent
+# meaning: semantic contract fixtures; not a claim about external workbook sheet/header/type shape
+# note: v1/v2 fixture bytes are preserved; classifier v2 and physical reorder v3 are additive
+??|c3150a97a4e7d7b8ed837f3d729e85eb4ef26aefbfc87fb61b7ffed979129170|2178|backend/tests/fixtures/w3/README.md
+??|e45f04b4a1879182081c13b3c114219129c383b8649382607e696dbe24f582f5|1031|backend/tests/fixtures/w3/cases/matching_and_supplement_semantic_v1.json
+??|d4babf2a1d3d52596add9381934ea31f6d82c1bba43f6a12b9341db32d3e9c13|1905|backend/tests/fixtures/w3/cases/plan_adjustment_boundaries_v1.json
+??|b8dff226752efcfcc0b216b6cd15485c5ff834c370bf1a834f37c3f619efdb32|1293|backend/tests/fixtures/w3/cases/source_intake_classification_v2.json
+??|2f43cb493f1cc7ff25437b97a1a6defcf4c511f5f9a474f5eaff6c3a309212fd|1066|backend/tests/fixtures/w3/cases/source_intake_physical_reorder_v3.json
+??|b30fe934333409e07aac5f7936733879e9eda784857864ae2dd9df940c04b6a1|929|backend/tests/fixtures/w3/cases/source_intake_reorder_semantic_v2.json
+??|74e219df5389aa84d510e0a32c84ffd1946a2dad1f83a87b5c2b6ef52542a770|1810|backend/tests/fixtures/w3/cases/source_intake_semantic_v1.json
+??|300866dfaecb609ad72f4048ce3d201d21df0350842530b8c38bea98aa0148bd|997|backend/tests/fixtures/w3/expected/matching_and_supplement_semantic_v1.json
+??|365488f239f0a0d67861548d36a6f559608abedf349d8378c5c93ea5ad222db3|1967|backend/tests/fixtures/w3/expected/plan_adjustment_boundaries_v1.json
+??|9c0e8b0f92d24d26b8acf7586c32759cbf3fd918db9ee6a0320e17a5ea941b11|1557|backend/tests/fixtures/w3/expected/source_intake_classification_v2.json
+??|07a7c655fc08716b957fc0fe2429ec6e7bc4c50c6832d57e27f16dd407d1018a|1157|backend/tests/fixtures/w3/expected/source_intake_physical_reorder_v3.json
+??|e2e892da2aca02ba2686e00b27709442dcf53046e40ea1106b2143545fe61c1b|941|backend/tests/fixtures/w3/expected/source_intake_reorder_semantic_v2.json
+??|71a52401bb810ee954345db1710479b4a380b9c992e02d04c033d600c04ab05f|1833|backend/tests/fixtures/w3/expected/source_intake_semantic_v1.json
+??|5001657044730c73bdbf8abf12b938da9af56bbf0baaf2e19ad5eabd1a1993c6|379|backend/tests/fixtures/w3/profiles/nhis_schedule_v0.blocked.json
+??|586c767bed0db9b035f51fc134150e5003d8e98557647fd36266ff8dc50dd7a9|381|backend/tests/fixtures/w3/profiles/rfid_v0.blocked.json

@@ -8,9 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import DBAPIError
 
-from app.api.dependencies import get_settings
 from app.core.readiness import CURRENT_ALEMBIC_REVISION, evaluate_readiness
-from app.core.settings import Environment, Settings
+from app.core.settings import Environment, Settings, get_settings
 from app.main import app
 
 LIVE_ENABLED = os.environ.get("SSWCENTER_W0_POSTGRES_LIVE") == "1"
@@ -52,9 +51,7 @@ def test_write_gate_fails_closed_on_live_revision_drift() -> None:
     try:
         with owner_engine.begin() as connection:
             event_count_before = connection.scalar(text("SELECT count(*) FROM erp.auth_event"))
-            connection.execute(
-                text("UPDATE erp.alembic_version SET version_num = 'w0_live_drift'")
-            )
+            connection.execute(text("UPDATE erp.alembic_version SET version_num = 'w0_live_drift'"))
 
         app.dependency_overrides[get_settings] = _runtime_settings
         try:

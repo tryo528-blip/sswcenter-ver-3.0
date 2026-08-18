@@ -4,6 +4,7 @@ type JsonRecord = Record<string, unknown>;
 
 export const W2_ENDPOINTS = {
   officialWorkCards: '/api/v1/official-work-cards',
+  officialWorkCardEligibleAssignees: '/api/v1/official-work-cards/eligible-assignees',
   personalTodos: '/api/v1/personal-todos',
   personalTodoReorder: '/api/v1/personal-todos/reorder',
   schedules: '/api/v1/schedules',
@@ -27,11 +28,23 @@ export interface OfficialWorkCard {
   readonly id: number;
   readonly rowVersion: number;
   readonly kind: OfficialWorkCardKind;
+  readonly assigneeStaffId: number;
+  readonly assigneeStaffName: string;
   readonly title: string;
   readonly targetName: string;
   readonly detail: string;
   readonly dueDate: string;
   readonly dDay: number;
+}
+
+export interface OfficialWorkCardEligibleAssignee {
+  readonly staffId: number;
+  readonly staffName: string;
+}
+
+export interface OfficialWorkCardEligibleAssigneeList {
+  readonly asOfDate: string;
+  readonly items: readonly OfficialWorkCardEligibleAssignee[];
 }
 
 export interface OfficialWorkCardGroup {
@@ -82,8 +95,14 @@ export interface ScheduleAssignedStaffInput {
 export interface ScheduleMonthSnapshot {
   readonly scheduleMonth: string;
   readonly finalized: boolean;
+  readonly finalizedAtUtc: string | null;
   readonly rowVersion: number;
   readonly items: readonly ScheduleItem[];
+}
+
+export interface ScheduleSnapshotFilter {
+  readonly recipientId?: number;
+  readonly staffId?: number;
 }
 
 export interface ScheduleListParams {
@@ -145,6 +164,7 @@ export class W2ConflictError extends Error {
   readonly latestScheduleSnapshot?: ScheduleMonthSnapshot;
   readonly latestTodoList?: PersonalTodoList;
   readonly latestServicePlanHistory?: ServicePlanNoticeHistory;
+  readonly latestOfficialWorkCards?: OfficialWorkCardCollection;
 
   constructor(
     message: string,
@@ -152,6 +172,7 @@ export class W2ConflictError extends Error {
       latestScheduleSnapshot?: ScheduleMonthSnapshot;
       latestTodoList?: PersonalTodoList;
       latestServicePlanHistory?: ServicePlanNoticeHistory;
+      latestOfficialWorkCards?: OfficialWorkCardCollection;
     } = {},
   ) {
     super(message);
@@ -159,6 +180,7 @@ export class W2ConflictError extends Error {
     this.latestScheduleSnapshot = options.latestScheduleSnapshot;
     this.latestTodoList = options.latestTodoList;
     this.latestServicePlanHistory = options.latestServicePlanHistory;
+    this.latestOfficialWorkCards = options.latestOfficialWorkCards;
   }
 }
 
@@ -222,6 +244,10 @@ function normalizeOfficialWorkCard(value: unknown): OfficialWorkCard {
     id: requireNumber(record, 'id', 'official-work-card'),
     rowVersion: requireNumber(record, 'row_version', 'official-work-card'),
     kind: normalizeOfficialWorkCardKind(record.kind),
+    assigneeStaffId: requireNumber(record, 'assignee_staff_id', 'official-work-card'),
+    assigneeStaffName: displayName(
+      requireString(record, 'assignee_staff_name', 'official-work-card'),
+    ),
     title: requireString(display, 'work_title', 'official-work-card.display'),
     targetName: displayName(
       requireString(display, 'target_name', 'official-work-card.display'),
@@ -298,11 +324,47 @@ function normalizeScheduleItem(value: unknown): ScheduleItem {
 
 export function normalizeScheduleMonthSnapshot(payload: unknown): ScheduleMonthSnapshot {
   const record = requireRecord(payload, 'schedule-month');
+  if (!Object.prototype.hasOwnProperty.call(record, 'finalized_at_utc')) {
+    throw new Error('Invalid schedule-month.finalized_at_utc');
+  }
+  const rawFinalizedAtUtc = record.finalized_at_utc;
+  if (rawFinalizedAtUtc !== null && typeof rawFinalizedAtUtc !== 'string') {
+    throw new Error('Invalid schedule-month.finalized_at_utc');
+  }
   return {
     scheduleMonth: requireString(record, 'schedule_month', 'schedule-month'),
     finalized: requireBoolean(record, 'finalized', 'schedule-month'),
+    finalizedAtUtc: rawFinalizedAtUtc as string | null,
     rowVersion: requireNumber(record, 'row_version', 'schedule-month'),
     items: requireArray(record, 'items', 'schedule-month').map(normalizeScheduleItem),
+  };
+}
+
+export function projectScheduleMonthSnapshot(
+  snapshot: ScheduleMonthSnapshot,
+  filter: ScheduleSnapshotFilter = {},
+): ScheduleMonthSnapshot {
+  const { recipientId, staffId } = filter;
+  if (recipientId === undefined && staffId === undefined) {
+    return snapshot;
+  }
+  return {
+    scheduleMonth: snapshot.scheduleMonth,
+    finalized: snapshot.finalized,
+    finalizedAtUtc: snapshot.finalizedAtUtc,
+    rowVersion: snapshot.rowVersion,
+    items: snapshot.items.filter((item) => {
+      if (recipientId !== undefined && item.recipientId !== recipientId) {
+        return false;
+      }
+      if (
+        staffId !== undefined
+        && !item.assignedStaff.some((assigned) => assigned.staffId === staffId)
+      ) {
+        return false;
+      }
+      return true;
+    }),
   };
 }
 
@@ -457,6 +519,66 @@ export function closeOfficialWorkCard(
       body: JSON.stringify({ expected_row_version: expectedRowVersion }),
     },
   ).then(normalizeOfficialWorkCardCollection);
+}
+
+export function normalizeOfficialWorkCardEligibleAssignees(
+  payload: unknown,
+): OfficialWorkCardEligibleAssigneeList {
+  const record = requireRecord(payload, 'official-work-card-eligible-assignees');
+  return {
+    asOfDate: requireString(record, 'as_of_date', 'official-work-card-eligible-assignees'),
+    items: requireArray(record, 'items', 'official-work-card-eligible-assignees').map((value) => {
+      const item = requireRecord(value, 'official-work-card-eligible-assignee');
+      return {
+        staffId: requireNumber(item, 'staff_id', 'official-work-card-eligible-assignee'),
+        staffName: displayName(
+          requireString(item, 'staff_name', 'official-work-card-eligible-assignee'),
+        ),
+      };
+    }),
+  };
+}
+
+function throwOfficialCardConflict(error: unknown): never {
+  if (error instanceof ApiError && error.status === 409) {
+    const latest = latestFromDetails(error);
+    throw new W2ConflictError(error.message || '다른 요청이 업무카드를 먼저 변경했습니다.', {
+      ...(latest !== undefined
+        ? { latestOfficialWorkCards: normalizeOfficialWorkCardCollection(latest) }
+        : {}),
+    });
+  }
+  throw error;
+}
+
+export function listOfficialWorkCardEligibleAssignees(
+  signal?: AbortSignal,
+): Promise<OfficialWorkCardEligibleAssigneeList> {
+  return apiRequest<unknown>(W2_ENDPOINTS.officialWorkCardEligibleAssignees, {
+    method: 'GET',
+    signal,
+  }).then(normalizeOfficialWorkCardEligibleAssignees);
+}
+
+export async function reassignOfficialWorkCard(
+  id: number,
+  expectedRowVersion: number,
+  assigneeStaffId: number,
+): Promise<OfficialWorkCardCollection> {
+  try {
+    return await apiRequest<unknown>(
+      `${W2_ENDPOINTS.officialWorkCards}/${encodeURIComponent(id)}/reassign`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expected_row_version: expectedRowVersion,
+          assignee_staff_id: assigneeStaffId,
+        }),
+      },
+    ).then(normalizeOfficialWorkCardCollection);
+  } catch (error) {
+    throwOfficialCardConflict(error);
+  }
 }
 
 export function listPersonalTodos(signal?: AbortSignal): Promise<PersonalTodoList> {

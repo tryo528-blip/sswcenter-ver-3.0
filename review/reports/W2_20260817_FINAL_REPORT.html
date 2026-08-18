@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>W2 0027 · 1A Scoped 봉인 완료 보고서</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f2f5f9;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --ink: #172033;
+      --muted: #596579;
+      --line: #d9e1eb;
+      --navy: #173b70;
+      --blue: #245fc7;
+      --green: #087552;
+      --green-soft: #e8f7f1;
+      --amber: #865507;
+      --amber-soft: #fff6dc;
+      --shadow: 0 16px 44px rgba(27, 50, 80, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(160deg, #e9f1fb 0, var(--bg) 28rem);
+      color: var(--ink);
+      font-family: Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    a:focus-visible { outline: 3px solid #78a9ff; outline-offset: 3px; border-radius: 3px; }
+    .page { width: min(1100px, calc(100% - 32px)); margin: 28px auto 56px; }
+    .hero {
+      padding: clamp(24px, 5vw, 54px);
+      border-radius: 26px;
+      color: #fff;
+      background: linear-gradient(135deg, #102d57, #245fc7 68%, #218b79);
+      box-shadow: var(--shadow);
+    }
+    .eyebrow { margin: 0 0 8px; font-size: .82rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .82; }
+    h1 { margin: 0; font-size: clamp(2rem, 6vw, 4rem); line-height: 1.1; letter-spacing: -.04em; }
+    .lead { max-width: 720px; margin: 18px 0 0; font-size: clamp(1rem, 2.2vw, 1.2rem); color: #e9f1ff; }
+    .approval { margin-top: 24px; padding: 15px 18px; border: 1px solid rgba(255,255,255,.28); border-radius: 16px; background: rgba(255,255,255,.11); }
+    .approval strong { display: block; font-size: 1.08rem; }
+    .approval span { color: #dce9ff; font-size: .9rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 18px 0 28px; }
+    .stat { min-height: 128px; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: 0 8px 24px rgba(27, 50, 80, .06); }
+    .stat .value { display: block; color: var(--navy); font-size: clamp(1.35rem, 3vw, 2rem); font-weight: 850; line-height: 1.18; }
+    .stat .label { display: block; margin-top: 8px; color: var(--muted); font-size: .9rem; }
+    main { display: grid; min-width: 0; gap: 18px; }
+    section { min-width: 0; padding: clamp(20px, 4vw, 34px); border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: 0 7px 24px rgba(27, 50, 80, .055); }
+    h2 { margin: 0 0 16px; color: var(--navy); font-size: clamp(1.3rem, 3vw, 1.75rem); letter-spacing: -.02em; }
+    h3 { margin: 0 0 8px; font-size: 1.03rem; }
+    p { margin: 0 0 12px; }
+    p:last-child { margin-bottom: 0; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .item { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-2); }
+    .item p { color: var(--muted); font-size: .94rem; }
+    .ok { color: var(--green); font-weight: 800; }
+    .notice { padding: 15px 17px; border-left: 5px solid #d29a2e; border-radius: 10px; background: var(--amber-soft); color: #5f430d; }
+    .table-wrap { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; min-width: 650px; border-collapse: collapse; background: var(--surface); }
+    th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--navy); background: var(--surface-2); font-size: .86rem; }
+    tr:last-child td { border-bottom: 0; }
+    code { padding: .15em .38em; border-radius: 5px; color: #143563; background: #eaf1fb; font-size: .9em; overflow-wrap: anywhere; }
+    .links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .link-card { display: block; padding: 17px; border: 1px solid #b8cbea; border-radius: 14px; background: #f3f7fd; text-decoration: none; }
+    .link-card strong { display: block; color: var(--navy); }
+    .link-card span { color: var(--muted); font-size: .88rem; }
+    footer { padding: 22px 4px; color: var(--muted); text-align: center; font-size: .84rem; }
+    @media (max-width: 820px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid-3, .links { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .page { width: min(100% - 20px, 1100px); margin-top: 10px; }
+      .hero { border-radius: 19px; }
+      .stats { gap: 9px; }
+      .stat { min-height: 112px; padding: 15px; }
+      section { border-radius: 16px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { width: 100%; margin: 0; }
+      .hero, section, .stat { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <p class="eyebrow">SSWCenter 3.0 · W2 Final</p>
+      <h1>W2 0027 · 1A Scoped<br>봉인 완료</h1>
+      <p class="lead">전문직 공식카드 자동배정·관리자 담당 변경·감사·동시성·계획서 replacement 3A를 실제 PostgreSQL, API, UI, 브라우저, 복구 경로까지 검증한 후보가 형님 승인으로 봉인되었습니다.</p>
+      <div class="approval">
+        <strong>형님 승인: “승인 w3로 간다”</strong>
+        <span>승인 기록 시각 2026-08-17 18:56:18 KST · 다음 단계 W3 Fast Track</span>
+      </div>
+    </header>
+
+    <div class="stats" aria-label="최종 상태 요약">
+      <div class="stat"><span class="value">SEALED</span><span class="label">W2 scoped 상태</span></div>
+      <div class="stat"><span class="value">98 / 98</span><span class="label">후보 파일 exact 검증</span></div>
+      <div class="stat"><span class="value">NONE</span><span class="label">Sol ultra P0–P3 finding</span></div>
+      <div class="stat"><span class="value">W3 START</span><span class="label">Fast Track 전환</span></div>
+    </div>
+
+    <main>
+      <section>
+        <h2>봉인된 업무 계약</h2>
+        <div class="grid-3">
+          <article class="item">
+            <h3>1A · 자동배정</h3>
+            <p>새 공식카드는 카드 업무기준일의 월 전문직 담당자에게 자동배정되며, 유효한 담당자가 없으면 fail-closed 합니다.</p>
+          </article>
+          <article class="item">
+            <h3>관리자 재배정</h3>
+            <p>열린 미완료 카드만 재직 중인 사회복지사·간호사에게 변경합니다. 종류·대상자·상세업무·마감일·현재 담당자를 재확인하고 관리자는 대신 완료하지 않습니다.</p>
+          </article>
+          <article class="item">
+            <h3>3A · replacement</h3>
+            <p>같은 수급자이면 계약이 달라도 계획서 연결을 허용하고, 다른 수급자 연결은 composite FK로 DB에서 차단합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>데이터·감사·경합 보장</h2>
+        <div class="grid-3">
+          <article class="item">
+            <h3>최소 변경</h3>
+            <p>재배정은 카드 ID·종류·마감일·발생키를 유지하고 <code>assignee_staff_id</code>와 <code>row_version</code>만 변경합니다.</p>
+          </article>
+          <article class="item">
+            <h3>감사이력</h3>
+            <p>같은 트랜잭션에서 변경 전·후 담당자와 실행 관리자를 기록합니다. stale 버전과 완료 카드 변경은 거부합니다.</p>
+          </article>
+          <article class="item">
+            <h3>수동담당 승계</h3>
+            <p>같은 갱신 건에서 우선순위 카드로 교체돼도 수동 변경 담당자를 유지하며, 재배정·완료·교체 경합을 직렬화합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>최종 검증 결과</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>게이트</th><th>결과</th><th>범위</th></tr></thead>
+            <tbody>
+              <tr><td>후보 manifest</td><td class="ok">98/98 exact</td><td>status·SHA-256·bytes, 최종 Sol 검수</td></tr>
+              <tr><td>W2 PostgreSQL</td><td class="ok">30 passed</td><td>0026↔0027 lifecycle, 직접 SQL, composite FK, 2-connection 경합</td></tr>
+              <tr><td>실 브라우저</td><td class="ok">1 passed</td><td>실 FastAPI·Vite·Chromium, 관리자 재배정과 409 최신상태</td></tr>
+              <tr><td>백엔드 정적·계약</td><td class="ok">PASS</td><td>Ruff, mypy 79 sources, targeted 27 passed</td></tr>
+              <tr><td>프런트엔드</td><td class="ok">265 passed</td><td>supported tests, lint 0 errors, production build</td></tr>
+              <tr><td>W1E 회귀</td><td class="ok">23 passed</td><td>0026 pinned historical gate, manifest delta 0</td></tr>
+              <tr><td>복구·계약</td><td class="ok">PASS</td><td>active-0027 backup/restore, OpenAPI zero drift, diff-check</td></tr>
+              <tr><td>정리 상태</td><td class="ok">0 / 0 / 0 / 0</td><td>listener·process·temp·git delta</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>검수 판정과 알려진 경고</h2>
+        <p><strong>Sol ultra 최종 독립 검수:</strong> <span class="ok">P0·P1·P2·P3 finding 없음, 사용자 봉인 승인 가능</span>.</p>
+        <p>첫 Sol 검수에서는 <code>pg_ctl start</code>가 process를 만들었지만 nonzero로 끝나는 실패경로에서 임시 cluster 정리가 누락될 수 있는 P2가 발견되었습니다. 해당 cleanup 경로를 수정하고 실행 검증한 뒤, Sol ultra follow-up에서 최종 PASS와 finding 없음 판정을 받았습니다.</p>
+        <p>Starlette TestClient deprecation warning 1건, 기존 프런트 lint warning 5건, 기존 500&nbsp;kB 초과 chunk 경고는 관측되었으나 W2 봉인 차단 사유는 아닙니다.</p>
+        <div class="notice">
+          이전 Grok/Terra 재실행에서 발생한 timeout·interrupt는 성공으로 계산하지 않았습니다. 위 PASS 수치는 완료되고 증거가 남은 검증만 집계합니다.
+        </div>
+      </section>
+
+      <section>
+        <h2>이 봉인이 주장하지 않는 것</h2>
+        <p>이번 결과는 reviewed manifest 98개 경로의 W2 scoped candidate 봉인입니다. 저장소 전체 release GREEN, 전체 pytest·전체 mypy의 무부채 상태, 기존 mixed dirty WIP의 작성자 귀속·정리, Git stage·commit·merge·push를 뜻하지 않습니다.</p>
+        <p>또한 W3 착수 승인은 W3 구현 완료가 아닙니다. W3-01~09와 가명 실형상 샘플 기대 결과를 잠근 뒤 별도 구현·검증 게이트를 통과해야 합니다.</p>
+      </section>
+
+      <section>
+        <h2>W3로 전환</h2>
+        <p>W3 fast track은 시작되었습니다. 첫 게이트는 RFID 입력경로, 계획·확정 UX, 0/1/N 매칭, snapshot identity, 공단 수가행 그룹, content·receipt 연결, 수기보완, 동률 정정 등 9개 결정을 잠그는 것입니다.</p>
+        <p>추천 묶음은 자동판단을 좁게 두고 원본·이력·가명 샘플 증거를 먼저 고정합니다. W4 계산·청구·수납과 W5 파일함·OCR는 이번 범위에 들어오지 않습니다.</p>
+      </section>
+
+      <section>
+        <h2>근거 파일</h2>
+        <div class="links">
+          <a class="link-card" href="../evidence/W2_20260817_USER_APPROVAL_SEAL.md"><strong>사용자 승인 봉인 기록</strong><span>승인 문구·candidate identity·불변 범위</span></a>
+          <a class="link-card" href="../evidence/W2_20260817_CURRENT_CANDIDATE_MANIFEST.sha256"><strong>후보 manifest</strong><span>검수된 98개 경로·hash·bytes</span></a>
+          <a class="link-card" href="../packets/W3_20260817_FAST_TRACK_DECISION_PACKET.md"><strong>W3 의사결정 패킷</strong><span>W3-01~09 추천안과 구현 순서</span></a>
+        </div>
+      </section>
+    </main>
+
+    <footer>SSWCenter 3.0 · W2 scoped seal · 2026-08-17 · 이 HTML과 seal·W3 packet은 post-review 증적이며 98개 candidate에 포함되지 않음 · 기존 dirty WIP 정리·Git 반영 없음</footer>
+  </div>
+</body>
+</html>

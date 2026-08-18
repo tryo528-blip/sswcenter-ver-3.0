@@ -47,6 +47,7 @@ def _assert_exact_training_catalog() -> None:
         """
     )
 
+
 def _remove_health_check_requirement_ledger() -> None:
     op.execute(
         """

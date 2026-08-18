@@ -25,6 +25,8 @@ function workCard(overrides: Record<string, unknown> = {}) {
     id: 3,
     row_version: 3,
     kind: 'RECOGNITION_EXPIRY',
+    assignee_staff_id: 11,
+    assignee_staff_name: '박복지',
     display: {
       work_title: '인정만료',
       target_name: '김수급',
@@ -57,6 +59,25 @@ function installDashboardFetch(cards: unknown = officialResponse(), deadlines: u
     }
     if (url === '/api/v1/official-work-cards/3/close' && init?.method === 'POST') {
       return json(officialResponse());
+    }
+    if (url === '/api/v1/official-work-cards/eligible-assignees' && (init?.method ?? 'GET') === 'GET') {
+      return json({
+        as_of_date: '2026-08-13',
+        items: [
+          { staff_id: 11, staff_name: '박복지' },
+          { staff_id: 12, staff_name: '이간호' },
+        ],
+      });
+    }
+    if (url === '/api/v1/official-work-cards/3/reassign' && init?.method === 'POST') {
+      return json({
+        as_of_date: '2026-08-13',
+        groups: [{
+          staff_id: 12,
+          staff_name: '이간호',
+          items: [workCard({ assignee_staff_id: 12, assignee_staff_name: '이간호', row_version: 4 })],
+        }],
+      });
     }
     throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
   });
@@ -137,8 +158,8 @@ describe('Dashboard W2 contract', () => {
     expect(JSON.parse(String(closeCall?.[1]?.body))).toEqual({ expected_row_version: 3 });
   });
 
-  it('renders admin groups read-only without close/create/delete/reopen controls', async () => {
-    installDashboardFetch({
+  it('renders admin groups without close/create/delete/reopen and opens reassignment confirm', async () => {
+    const fetchMock = installDashboardFetch({
       as_of_date: '2026-08-13',
       groups: [{ staff_id: 11, staff_name: '박복지', items: [workCard()] }],
     });
@@ -149,6 +170,210 @@ describe('Dashboard W2 contract', () => {
     expect(screen.queryByText('생성')).not.toBeInTheDocument();
     expect(screen.queryByText('삭제')).not.toBeInTheDocument();
     expect(screen.queryByText('재개방')).not.toBeInTheDocument();
+    const card = screen.getByTestId('official-work-card');
+    expect(card.querySelectorAll('dt')).toHaveLength(5);
+    expect(card).not.toHaveTextContent('현재 담당자');
+
+    fireEvent.click(screen.getByRole('button', { name: '담당자 변경' }));
+    const dialog = await screen.findByTestId('official-work-card-reassign-dialog');
+    expect(dialog).toHaveTextContent('인정만료');
+    expect(dialog).toHaveTextContent('김수급');
+    expect(dialog).toHaveTextContent('인정 갱신 준비');
+    expect(dialog).toHaveTextContent('2026-09-30');
+    expect(dialog).toHaveTextContent('박복지');
+    fireEvent.change(screen.getByTestId('official-work-card-new-assignee'), {
+      target: { value: '12' },
+    });
+    fireEvent.click(screen.getByTestId('official-work-card-reassign-confirm'));
+    await waitFor(() => expect(screen.getByText('이간호')).toBeInTheDocument());
+    const reassignCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/3/reassign'));
+    expect(reassignCall?.[1]?.method).toBe('POST');
+    expect(JSON.parse(String(reassignCall?.[1]?.body))).toEqual({
+      expected_row_version: 3,
+      assignee_staff_id: 12,
+    });
+  });
+
+  it('keeps the reassignment dialog and selected assignee on 409 latest snapshot', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith('/api/v1/staff?')) return json({ items: [], total: 0, page: 1, page_size: 200 });
+      if (url === '/api/v1/recipients/deadlines') return json({ items: [] });
+      if (url.startsWith('/api/v1/recipients?')) return json({ items: [], total: 0, page: 1, page_size: 1 });
+      if (url === '/api/v1/official-work-cards' && (init?.method ?? 'GET') === 'GET') {
+        return json(officialResponse([workCard()]));
+      }
+      if (url === '/api/v1/official-work-cards/eligible-assignees') {
+        return json({
+          as_of_date: '2026-08-13',
+          items: [
+            { staff_id: 11, staff_name: '박복지' },
+            { staff_id: 12, staff_name: '이간호' },
+          ],
+        });
+      }
+      if (url === '/api/v1/official-work-cards/3/reassign' && init?.method === 'POST') {
+        return json({
+          error: { code: 'ROW_VERSION_CONFLICT', message: '먼저 변경됨' },
+          details: {
+            latest: officialResponse([
+              workCard({ row_version: 9, assignee_staff_id: 11, assignee_staff_name: '박복지' }),
+            ]),
+          },
+        }, 409);
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    renderDashboard('ADMIN');
+
+    fireEvent.click(await screen.findByRole('button', { name: '담당자 변경' }));
+    fireEvent.change(await screen.findByTestId('official-work-card-new-assignee'), {
+      target: { value: '12' },
+    });
+    fireEvent.click(screen.getByTestId('official-work-card-reassign-confirm'));
+
+    expect(await screen.findByText('먼저 변경됨')).toBeInTheDocument();
+    expect(screen.getByTestId('official-work-card-reassign-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('official-work-card-new-assignee')).toHaveValue('12');
+  });
+
+  it('closes an absent-card 409 dialog, announces completion, and leaves no repeat submit control', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith('/api/v1/staff?')) return json({ items: [], total: 0, page: 1, page_size: 200 });
+      if (url === '/api/v1/recipients/deadlines') return json({ items: [] });
+      if (url.startsWith('/api/v1/recipients?')) return json({ items: [], total: 0, page: 1, page_size: 1 });
+      if (url === '/api/v1/official-work-cards') return json(officialResponse([workCard()]));
+      if (url === '/api/v1/official-work-cards/eligible-assignees') {
+        return json({ as_of_date: '2026-08-13', items: [{ staff_id: 12, staff_name: '이간호' }] });
+      }
+      if (url === '/api/v1/official-work-cards/3/reassign' && init?.method === 'POST') {
+        return json({
+          error: { code: 'CARD_ALREADY_CLOSED', message: '이미 완료되었습니다.' },
+          details: { latest: officialResponse() },
+        }, 409);
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    renderDashboard('ADMIN');
+
+    fireEvent.click(await screen.findByRole('button', { name: '담당자 변경' }));
+    const select = await screen.findByTestId('official-work-card-new-assignee');
+    await waitFor(() => expect(select).not.toBeDisabled());
+    fireEvent.change(select, { target: { value: '12' } });
+    fireEvent.click(screen.getByTestId('official-work-card-reassign-confirm'));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('이미 완료되었습니다');
+    expect(screen.queryByTestId('official-work-card-reassign-dialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('official-work-card-reassign-confirm')).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/3/reassign'))).toHaveLength(1);
+  });
+
+  it('filters the current assignee and makes a current-only candidate list non-submittable', async () => {
+    const fetchMock = installDashboardFetch(officialResponse([workCard()]));
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith('/api/v1/staff?')) return json({ items: [], total: 0, page: 1, page_size: 200 });
+      if (url === '/api/v1/recipients/deadlines') return json({ items: [] });
+      if (url.startsWith('/api/v1/recipients?')) return json({ items: [], total: 0, page: 1, page_size: 1 });
+      if (url === '/api/v1/official-work-cards') return json(officialResponse([workCard()]));
+      if (url === '/api/v1/official-work-cards/eligible-assignees') {
+        return json({ as_of_date: '2026-08-13', items: [{ staff_id: 11, staff_name: '박복지' }] });
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    });
+    renderDashboard('ADMIN');
+
+    fireEvent.click(await screen.findByRole('button', { name: '담당자 변경' }));
+    const select = await screen.findByTestId('official-work-card-new-assignee');
+    await waitFor(() => expect(select).toBeDisabled());
+    expect(screen.queryByRole('option', { name: '박복지' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('official-work-card-reassign-confirm')).toBeDisabled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/3/reassign'))).toBe(false);
+  });
+
+  it('keeps the dialog safe and cancellable when candidate loading fails', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith('/api/v1/staff?')) return json({ items: [], total: 0, page: 1, page_size: 200 });
+      if (url === '/api/v1/recipients/deadlines') return json({ items: [] });
+      if (url.startsWith('/api/v1/recipients?')) return json({ items: [], total: 0, page: 1, page_size: 1 });
+      if (url === '/api/v1/official-work-cards') return json(officialResponse([workCard()]));
+      if (url === '/api/v1/official-work-cards/eligible-assignees') {
+        return json({ error: { code: 'UPSTREAM', message: '후보 목록 실패' } }, 503);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }) as unknown as typeof fetch;
+    renderDashboard('ADMIN');
+
+    fireEvent.click(await screen.findByRole('button', { name: '담당자 변경' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('후보 목록 실패');
+    expect(screen.getByTestId('official-work-card-new-assignee')).toBeDisabled();
+    expect(screen.getByTestId('official-work-card-reassign-confirm')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    await waitFor(() => expect(screen.queryByTestId('official-work-card-reassign-dialog')).not.toBeInTheDocument());
+  });
+
+  it('ignores a canceled stale candidate response and keeps the newer dialog choices', async () => {
+    const pending: Array<{ resolve: (response: Response) => void; signal?: AbortSignal }> = [];
+    globalThis.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith('/api/v1/staff?')) return Promise.resolve(json({ items: [], total: 0, page: 1, page_size: 200 }));
+      if (url === '/api/v1/recipients/deadlines') return Promise.resolve(json({ items: [] }));
+      if (url.startsWith('/api/v1/recipients?')) return Promise.resolve(json({ items: [], total: 0, page: 1, page_size: 1 }));
+      if (url === '/api/v1/official-work-cards') {
+        return Promise.resolve(json(officialResponse([workCard(), workCard({ id: 4 })])));
+      }
+      if (url === '/api/v1/official-work-cards/eligible-assignees') {
+        return new Promise<Response>((resolve) => pending.push({ resolve, signal: init?.signal ?? undefined }));
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url}`);
+    }) as unknown as typeof fetch;
+    renderDashboard('ADMIN');
+
+    const buttons = await screen.findAllByRole('button', { name: '담당자 변경' });
+    fireEvent.click(buttons[0]);
+    await waitFor(() => expect(pending).toHaveLength(1));
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(pending[0].signal?.aborted).toBe(true);
+    fireEvent.click(buttons[1]);
+    await waitFor(() => expect(pending).toHaveLength(2));
+    await act(async () => {
+      pending[1].resolve(json({ as_of_date: '2026-08-13', items: [{ staff_id: 13, staff_name: '최신간호' }] }));
+    });
+    expect(await screen.findByRole('option', { name: '최신간호' })).toBeInTheDocument();
+    await act(async () => {
+      pending[0].resolve(json({ as_of_date: '2026-08-13', items: [{ staff_id: 12, staff_name: '오래된간호' }] }));
+    });
+    expect(screen.queryByRole('option', { name: '오래된간호' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '최신간호' })).toBeInTheDocument();
+  });
+
+  it('contains modal focus, restores the opening button, and marks the background inert', async () => {
+    installDashboardFetch(officialResponse([workCard()]));
+    renderDashboard('ADMIN');
+    const trigger = await screen.findByRole('button', { name: '담당자 변경' });
+    fireEvent.click(trigger);
+    const dialog = await screen.findByTestId('official-work-card-reassign-dialog');
+    const select = screen.getByTestId('official-work-card-new-assignee');
+    await waitFor(() => expect(select).not.toBeDisabled());
+    expect(document.querySelector('.dashboard-content-grid-w2')).toHaveAttribute('inert');
+    expect(Array.from(dialog.querySelectorAll('dt')).map((node) => node.textContent)).toEqual([
+      '업무종류', '대상자', '상세업무', '마감일', '현재 담당자',
+    ]);
+    expect(dialog).toHaveTextContent('인정만료');
+    expect(select).toHaveFocus();
+    const cancel = screen.getByRole('button', { name: '취소' });
+    cancel.focus();
+    fireEvent.keyDown(cancel, { key: 'Tab' });
+    expect(select).toHaveFocus();
+    fireEvent.keyDown(select, { key: 'Tab', shiftKey: true });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(cancel, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('official-work-card-reassign-dialog')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
   });
 
   it('shows whitespace-only recipient names as 미입력', async () => {

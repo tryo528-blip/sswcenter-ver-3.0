@@ -11,6 +11,8 @@ STABLE_CODES: frozenset[str] = frozenset(
         "CONTRACT_SERVICE_PERIOD_CONFLICT",
         "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT",
         "CONTRACT_REACTIVATION_FORBIDDEN",
+        "CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN",
+        "CARE_ASSIGNMENT_CONCURRENT_CONFLICT",
     }
 )
 ERROR_CODES = STABLE_CODES
@@ -21,6 +23,10 @@ MESSAGES: dict[str, str] = {
     "CONTRACT_SERVICE_PERIOD_CONFLICT": "동일 서비스의 계약 기간이 겹칩니다.",
     "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT": ("다른 서비스 그룹의 계약 기간이 겹칩니다."),
     "CONTRACT_REACTIVATION_FORBIDDEN": "종료된 계약은 재활성화할 수 없습니다.",
+    "CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN": "유효 배정을 고아로 만드는 계약 변경입니다.",
+    "CARE_ASSIGNMENT_CONCURRENT_CONFLICT": (
+        "다른 요청과 배정기간이 충돌했습니다. 최신 정보를 다시 확인하세요."
+    ),
     "SERVICE_TYPE_NOT_FOUND": "서비스 유형을 찾을 수 없습니다.",
     "ROW_VERSION_CONFLICT": ("다른 사용자가 먼저 변경했습니다. 최신 정보를 다시 불러오세요."),
     "VALIDATION_ERROR": "입력값을 확인하세요.",

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import Table
 
 from app.domains.w1c.policies import normalize_certification_number, validate_period
 from app.domains.w1c.schemas import (
@@ -67,15 +68,15 @@ def test_w1c_public_enums_and_period_validation_are_exact() -> None:
         validate_period(date(2026, 7, 2), date(2026, 7, 1))
 
     with pytest.raises(ValidationError):
-        CertificationPeriodCreateRequest(
-            grade_code="COGNITIVE_SUPPORT",
-            start_date=date(2026, 7, 1),
-            end_date=date(2026, 7, 31),
+        CertificationPeriodCreateRequest.model_validate(
+            {
+                "grade_code": "COGNITIVE_SUPPORT",
+                "start_date": date(2026, 7, 1),
+                "end_date": date(2026, 7, 31),
+            }
         )
     with pytest.raises(ValidationError):
-        BenefitPeriodCreateRequest(
-            benefit_code="UNCONFIRMED_RATE",
-        )
+        BenefitPeriodCreateRequest.model_validate({"benefit_code": "UNCONFIRMED_RATE"})
     with pytest.raises(ValidationError):
         ApprovalAmountPeriodCreateRequest(
             amount_krw=-1,
@@ -104,9 +105,7 @@ def test_w1c_schemas_exclude_unapproved_fields_and_defaults() -> None:
     )
     assert identity_output["properties"]["certification_number"]["pattern"] == (r"^L[0-9]{10}$")
 
-    certification_properties = CertificationPeriodCreateRequest.model_json_schema()[
-        "properties"
-    ]
+    certification_properties = CertificationPeriodCreateRequest.model_json_schema()["properties"]
     assert "grade_code" in certification_properties
     assert "certification_period_id" not in certification_properties
     assert "grade_changed_date" not in certification_properties
@@ -188,10 +187,10 @@ def test_w1c_database_models_preserve_required_absences() -> None:
     )
 
     tables = (
-        RecipientCertificationIdentity.__table__,
-        RecipientCertificationPeriod.__table__,
-        RecipientBenefitPeriod.__table__,
-        RecipientLocalApprovalAmountPeriod.__table__,
+        cast(Table, RecipientCertificationIdentity.__table__),
+        cast(Table, RecipientCertificationPeriod.__table__),
+        cast(Table, RecipientBenefitPeriod.__table__),
+        cast(Table, RecipientLocalApprovalAmountPeriod.__table__),
     )
     all_columns = {column.name for table in tables for column in table.columns}
     assert "issued_date" not in all_columns
@@ -204,8 +203,7 @@ def test_w1c_database_models_preserve_required_absences() -> None:
         RecipientBenefitPeriod.__table__.c.keys()
     )
 
-    identity_constraints = {
-        constraint.name for constraint in RecipientCertificationIdentity.__table__.constraints
-    }
+    identity_table = cast(Table, RecipientCertificationIdentity.__table__)
+    identity_constraints = {constraint.name for constraint in identity_table.constraints}
     assert "uq_recipient_certification_identity_certification_number" in identity_constraints
-    assert RecipientCertificationIdentity.__table__.primary_key.columns.keys() == ["recipient_id"]
+    assert identity_table.primary_key.columns.keys() == ["recipient_id"]

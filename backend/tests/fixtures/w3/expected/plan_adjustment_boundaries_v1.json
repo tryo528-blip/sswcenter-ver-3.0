@@ -1,0 +1,70 @@
+{
+  "fixture_version": "w3-plan-adjustment-expected-v1",
+  "cases": [
+    {
+      "case_id": "W3-ADJ-LONG-1799",
+      "status": "REVIEW_PENDING",
+      "reason": "PLAN_WINDOW_TIE",
+      "service_seconds": 3600,
+      "shortage_seconds": 0,
+      "markers": [],
+      "candidate_duration_seconds": [3600]
+    },
+    {
+      "case_id": "W3-ADJ-LONG-1800",
+      "status": "PROPOSED",
+      "reason": "MINIMUM_ERROR_WINDOW",
+      "service_seconds": 5400,
+      "shortage_seconds": 0,
+      "markers": [],
+      "candidate_duration_seconds": [5400],
+      "candidate_start": "2026-08-17T09:00:00+09:00",
+      "candidate_end": "2026-08-17T10:30:00+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-SHORT-0001",
+      "status": "REVIEW_PENDING",
+      "reason": "PLAN_WINDOW_TIE",
+      "service_seconds": 1800,
+      "shortage_seconds": 1,
+      "markers": ["ACTUAL_SHORTAGE_YELLOW_DOT"],
+      "candidate_duration_seconds": [1800]
+    },
+    {
+      "case_id": "W3-ADJ-FIVE-MIN-UNIQUE",
+      "status": "PROPOSED",
+      "reason": "MINIMUM_ERROR_WINDOW",
+      "service_seconds": 3600,
+      "shortage_seconds": 0,
+      "markers": [],
+      "candidate_duration_seconds": [3600],
+      "candidate_start": "2026-08-17T09:00:00+09:00",
+      "candidate_end": "2026-08-17T10:00:00+09:00"
+    },
+    {
+      "case_id": "W3-ADJ-THIRTY-MIN-MIDPOINT",
+      "status": "REVIEW_PENDING",
+      "reason": "SERVICE_DURATION_MIDPOINT",
+      "service_seconds": null,
+      "shortage_seconds": 0,
+      "markers": [],
+      "candidate_duration_seconds": [5400, 7200]
+    },
+    {
+      "case_id": "W3-ADJ-FIVE-MIN-TIE",
+      "status": "REVIEW_PENDING",
+      "reason": "PLAN_WINDOW_TIE",
+      "service_seconds": 3600,
+      "shortage_seconds": 0,
+      "markers": [],
+      "candidate_duration_seconds": [3600]
+    }
+  ],
+  "all_cases": {
+    "plan_write_count": 0,
+    "event_write_count": 0,
+    "audit_write_count": 0,
+    "input_immutable": true,
+    "deterministic": true
+  }
+}

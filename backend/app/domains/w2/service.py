@@ -34,10 +34,13 @@ from app.domains.w2.repository import W2Repository
 from app.domains.w2.schemas import (
     OfficialWorkCardCloseRequest,
     OfficialWorkCardDisplay,
+    OfficialWorkCardEligibleAssignee,
+    OfficialWorkCardEligibleAssigneeListResponse,
     OfficialWorkCardGroup,
     OfficialWorkCardItem,
     OfficialWorkCardKind,
     OfficialWorkCardListResponse,
+    OfficialWorkCardReassignRequest,
     PersonalTodoCreateRequest,
     PersonalTodoDeleteRequest,
     PersonalTodoListResponse,
@@ -162,9 +165,7 @@ class W2Service:
                 else 409
                 if code == "SCHEDULE_OVERLAP"
                 else 422,
-                details={
-                    "latest": self._schedule_snapshot(schedule_month).model_dump(mode="json")
-                },
+                details={"latest": self._schedule_snapshot(schedule_month).model_dump(mode="json")},
             ) from None
         if todo_owner_account_id is not None and constraint == (
             "uq_w2_personal_todo_owner_sort_order"
@@ -195,9 +196,9 @@ class W2Service:
                     {}
                     if service_plan_recipient_id is None
                     else {
-                        "latest": self._service_plan_snapshot(
-                            service_plan_recipient_id
-                        ).model_dump(mode="json")
+                        "latest": self._service_plan_snapshot(service_plan_recipient_id).model_dump(
+                            mode="json"
+                        )
                     }
                 ),
             ) from None
@@ -209,9 +210,26 @@ class W2Service:
                     {}
                     if service_plan_recipient_id is None
                     else {
-                        "latest": self._service_plan_snapshot(
-                            service_plan_recipient_id
-                        ).model_dump(mode="json")
+                        "latest": self._service_plan_snapshot(service_plan_recipient_id).model_dump(
+                            mode="json"
+                        )
+                    }
+                ),
+            ) from None
+        if (
+            constraint == "fk_w2_service_plan_notice_replacement_same_recipient"
+            or "W2_SERVICE_PLAN_REPLACEMENT_CROSS_RECIPIENT" in message
+        ):
+            raise domain_error(
+                "SERVICE_PLAN_REPLACEMENT_CROSS_RECIPIENT",
+                422,
+                details=(
+                    {}
+                    if service_plan_recipient_id is None
+                    else {
+                        "latest": self._service_plan_snapshot(service_plan_recipient_id).model_dump(
+                            mode="json"
+                        )
                     }
                 ),
             ) from None
@@ -347,18 +365,17 @@ class W2Service:
             "occurrence_key": row.occurrence_key,
             "renewal_key": row.renewal_key,
             "assignee_staff_id": row.assignee_staff_id,
-            "closed_at_utc": (
-                None if row.closed_at_utc is None else row.closed_at_utc.isoformat()
-            ),
+            "closed_at_utc": (None if row.closed_at_utc is None else row.closed_at_utc.isoformat()),
             "row_version": row.row_version,
         }
 
-    @staticmethod
-    def _card_item(row: W2OfficialWorkCard, as_of_date: date) -> OfficialWorkCardItem:
+    def _card_item(self, row: W2OfficialWorkCard, as_of_date: date) -> OfficialWorkCardItem:
         return OfficialWorkCardItem(
             id=row.id,
             row_version=row.row_version,
             kind=OfficialWorkCardKind(row.kind),
+            assignee_staff_id=row.assignee_staff_id,
+            assignee_staff_name=self.repository.staff_display_name(row.assignee_staff_id),
             display=OfficialWorkCardDisplay(
                 work_title=row.work_title,
                 target_name=row.target_name,
@@ -367,6 +384,93 @@ class W2Service:
                 d_day=(row.due_date - as_of_date).days,
             ),
         )
+
+    def _card_conflict_details(
+        self,
+        current_account: CurrentAccount,
+        row: W2OfficialWorkCard,
+    ) -> dict[str, Any]:
+        return {
+            "entity": "official_work_card",
+            "current_row_version": row.row_version,
+            "latest": self.list_official_cards(current_account).model_dump(mode="json"),
+            "card": {
+                **self._card_json(row),
+                "assignee_staff_name": self.repository.staff_display_name(row.assignee_staff_id),
+            },
+        }
+
+    def _assignee_snapshot(self, row: W2OfficialWorkCard) -> dict[str, Any]:
+        return {
+            "card_id": row.id,
+            "kind": row.kind,
+            "due_date": row.due_date.isoformat(),
+            "occurrence_key": row.occurrence_key,
+            "renewal_key": row.renewal_key,
+            "recipient_id": row.recipient_id,
+            "closed_at_utc": (None if row.closed_at_utc is None else row.closed_at_utc.isoformat()),
+            "assignee_staff_id": row.assignee_staff_id,
+            "assignee_staff_name": self.repository.staff_display_name(row.assignee_staff_id),
+            "row_version": row.row_version,
+        }
+
+    def _resolve_automatic_assignee(self, recipient_id: int, as_of_date: date) -> int:
+        if self.repository.recipient(recipient_id) is None:
+            raise domain_error("RECIPIENT_NOT_FOUND", 404)
+        rows = self.repository.current_assignments_covering(
+            recipient_id,
+            as_of_date,
+            for_update=True,
+        )
+        if len(rows) != 1:
+            raise domain_error("CARD_ASSIGNEE_UNRESOLVED", 422)
+        staff_id = rows[0].staff_id
+        if self.repository.staff_is_admin_account(staff_id):
+            raise domain_error("ADMIN_CARD_ASSIGNEE_FORBIDDEN", 422)
+        return staff_id
+
+    def _inherited_manual_assignee(
+        self,
+        renewal_history: list[W2OfficialWorkCard],
+    ) -> int | None:
+        audit = self.repository.latest_card_reassignment_audit([row.id for row in renewal_history])
+        if audit is None or not isinstance(audit.after_json, dict):
+            return None
+        value = audit.after_json.get("assignee_staff_id")
+        if not isinstance(value, int) or value <= 0:
+            return None
+        return value
+
+    def _require_eligible_reassignment_assignee(
+        self,
+        staff_id: int,
+        as_of_date: date,
+    ) -> None:
+        if self.repository.staff(staff_id) is None:
+            raise domain_error("STAFF_NOT_FOUND", 404)
+        if self.repository.staff_is_admin_account(staff_id):
+            raise domain_error("ADMIN_CARD_ASSIGNEE_FORBIDDEN", 422)
+        if not self.repository.staff_currently_employed(staff_id, as_of_date):
+            raise domain_error("CARD_ASSIGNEE_INELIGIBLE", 422, field="assignee_staff_id")
+        if not self.repository.staff_has_professional_position(staff_id, as_of_date):
+            raise domain_error("CARD_ASSIGNEE_INELIGIBLE", 422, field="assignee_staff_id")
+
+    def _resolve_new_card_assignee(
+        self,
+        normalized: OfficialCardSource,
+        renewal_history: list[W2OfficialWorkCard],
+    ) -> int:
+        inherited = self._inherited_manual_assignee(renewal_history)
+        if inherited is not None:
+            # A successful ADMIN reassignment is a recorded fact of this
+            # renewal lineage. Do not later re-check employment, position,
+            # account linkage, or even staff lookup while replacing a lower
+            # priority card: doing so can silently discard a valid manual
+            # override after the original request already passed eligibility.
+            return inherited
+        if normalized.recipient_id is None:
+            raise domain_error("CARD_ASSIGNEE_UNRESOLVED", 422)
+        return self._resolve_automatic_assignee(normalized.recipient_id, normalized.due_date)
 
     def _professional_staff_for_account(self, current_account: CurrentAccount) -> int:
         if current_account.role_code == "ADMIN":
@@ -406,6 +510,7 @@ class W2Service:
                     ),
                 },
             )
+
     def list_professional_assignments(
         self,
         recipient_id: int,
@@ -615,14 +720,10 @@ class W2Service:
         return response
 
     @staticmethod
-    def _service_plan_response(
-        row: W2ServicePlanNotice,
-        *,
-        recipient_id: int,
-    ) -> ServicePlanNoticeResponse:
+    def _service_plan_response(row: W2ServicePlanNotice) -> ServicePlanNoticeResponse:
         return ServicePlanNoticeResponse(
             id=row.id,
-            recipient_id=recipient_id,
+            recipient_id=row.recipient_id,
             recipient_contract_id=row.recipient_contract_id,
             notification_date=row.notification_date,
             applied_start_date=row.applied_start_date,
@@ -636,18 +737,15 @@ class W2Service:
     def _service_plan_json(row: W2ServicePlanNotice) -> dict[str, Any]:
         return {
             "id": row.id,
+            "recipient_id": row.recipient_id,
             "recipient_contract_id": row.recipient_contract_id,
             "notification_date": row.notification_date.isoformat(),
             "applied_start_date": row.applied_start_date.isoformat(),
             "applied_end_date": row.applied_end_date.isoformat(),
             "invalidated_at_utc": (
-                None
-                if row.invalidated_at_utc is None
-                else row.invalidated_at_utc.isoformat()
+                None if row.invalidated_at_utc is None else row.invalidated_at_utc.isoformat()
             ),
-            "replacement_service_plan_notice_id": (
-                row.replacement_service_plan_notice_id
-            ),
+            "replacement_service_plan_notice_id": (row.replacement_service_plan_notice_id),
             "row_version": row.row_version,
         }
 
@@ -657,8 +755,8 @@ class W2Service:
     ) -> ServicePlanNoticeHistoryResponse:
         return ServicePlanNoticeHistoryResponse(
             items=[
-                self._service_plan_response(row, recipient_id=contract.recipient_id)
-                for row, contract in self.repository.service_plan_notices(recipient_id)
+                self._service_plan_response(row)
+                for row in self.repository.service_plan_notices(recipient_id)
             ]
         )
 
@@ -678,10 +776,7 @@ class W2Service:
         if (
             contract.invalidated_at_utc is not None
             or payload.applied_start_date < contract.start_date
-            or (
-                contract.end_date is not None
-                and payload.applied_start_date > contract.end_date
-            )
+            or (contract.end_date is not None and payload.applied_start_date > contract.end_date)
         ):
             raise domain_error("SERVICE_PLAN_OUTSIDE_CONTRACT", 422)
 
@@ -711,9 +806,8 @@ class W2Service:
         else:
             applied_end_date = payload.applied_end_date
 
-        if (
-            applied_end_date < payload.applied_start_date
-            or (contract.end_date is not None and applied_end_date > contract.end_date)
+        if applied_end_date < payload.applied_start_date or (
+            contract.end_date is not None and applied_end_date > contract.end_date
         ):
             raise domain_error("SERVICE_PLAN_OUTSIDE_CONTRACT", 422)
         if applied_end_date > certification.end_date:
@@ -741,6 +835,7 @@ class W2Service:
             payload,
         )
         row = W2ServicePlanNotice(
+            recipient_id=recipient_id,
             recipient_contract_id=contract.id,
             notification_date=payload.notification_date,
             applied_start_date=payload.applied_start_date,
@@ -759,7 +854,7 @@ class W2Service:
             after=self._service_plan_json(row),
         )
         self._commit(service_plan_recipient_id=recipient_id)
-        return self._service_plan_response(row, recipient_id=recipient_id)
+        return self._service_plan_response(row)
 
     def replace_service_plan_notice(
         self,
@@ -772,10 +867,7 @@ class W2Service:
         current = self.repository.service_plan_notice_for_update(notice_id)
         if current is None:
             raise domain_error("SERVICE_PLAN_NOTICE_NOT_FOUND", 404)
-        current_contract = self.repository.recipient_contract(
-            current.recipient_contract_id
-        )
-        if current_contract is None or current_contract.recipient_id != recipient_id:
+        if current.recipient_id != recipient_id:
             raise domain_error("SERVICE_PLAN_NOTICE_NOT_FOUND", 404)
         if current.row_version != payload.expected_row_version:
             raise domain_error(
@@ -784,9 +876,7 @@ class W2Service:
                 details={
                     "entity": "w2_service_plan_notice",
                     "current_row_version": current.row_version,
-                    "latest": self._service_plan_snapshot(recipient_id).model_dump(
-                        mode="json"
-                    ),
+                    "latest": self._service_plan_snapshot(recipient_id).model_dump(mode="json"),
                 },
             )
         if current.invalidated_at_utc is not None:
@@ -794,9 +884,7 @@ class W2Service:
                 "SERVICE_PLAN_NOTICE_REPLACED",
                 409,
                 details={
-                    "latest": self._service_plan_snapshot(recipient_id).model_dump(
-                        mode="json"
-                    )
+                    "latest": self._service_plan_snapshot(recipient_id).model_dump(mode="json")
                 },
             )
 
@@ -807,6 +895,7 @@ class W2Service:
         before = self._service_plan_json(current)
         now = _now()
         replacement = W2ServicePlanNotice(
+            recipient_id=recipient_id,
             recipient_contract_id=contract.id,
             notification_date=payload.notification_date,
             applied_start_date=payload.applied_start_date,
@@ -830,21 +919,19 @@ class W2Service:
             after=self._service_plan_json(replacement),
         )
         self._commit(service_plan_recipient_id=recipient_id)
-        return self._service_plan_response(replacement, recipient_id=recipient_id)
+        return self._service_plan_response(replacement)
 
     def record_service_plan_notice_card_source(
         self,
         notice_id: int,
         *,
-        assignee_staff_id: int,
         as_of_date: date,
         actor_account_id: int | None = None,
     ) -> W2OfficialWorkCard | None:
         """Bridge one due plan notice into the sealed internal card sink.
 
-        Assignee selection is intentionally supplied by the trusted worker: the
-        approved contract does not yet define which dated monthly assignment
-        owns an overdue card.  This method is not exposed by the HTTP router.
+        Assignee is resolved from the monthly professional assignment covering
+        the card due date.  This method is not exposed by the HTTP router.
         """
         notice = self.repository.service_plan_notice_for_update(notice_id)
         if notice is None or notice.invalidated_at_utc is not None:
@@ -855,9 +942,7 @@ class W2Service:
         certification = next(
             (
                 item
-                for item in self.repository.recipient_certifications(
-                    contract.recipient_id
-                )
+                for item in self.repository.recipient_certifications(notice.recipient_id)
                 if item.start_date <= notice.applied_start_date
                 and item.end_date >= notice.applied_end_date
             ),
@@ -870,17 +955,14 @@ class W2Service:
             contract_end_date=contract.end_date,
             certification_end_date=certification.end_date,
         )
-        recipient = self.repository.recipient(contract.recipient_id)
+        recipient = self.repository.recipient(notice.recipient_id)
         source = plan_notice_source(
             occurrence_key=f"plan-notice:{notice.id}:{writing_deadline.isoformat()}",
-            renewal_key=(
-                f"recipient:{contract.recipient_id}:renewal:{writing_deadline.isoformat()}"
-            ),
-            assignee_staff_id=assignee_staff_id,
+            renewal_key=(f"recipient:{notice.recipient_id}:renewal:{writing_deadline.isoformat()}"),
             writing_deadline=writing_deadline,
             target_name=None if recipient is None else recipient.name,
             detail="급여계획서 갱신 통보",
-            recipient_id=contract.recipient_id,
+            recipient_id=notice.recipient_id,
         )
         if source.due_date > as_of_date:
             self.database_session.rollback()
@@ -951,10 +1033,13 @@ class W2Service:
         for assigned in assigned_staff:
             if self.repository.staff(assigned.staff_id) is None:
                 raise domain_error("STAFF_NOT_FOUND", 404)
-            if self.repository.employment_fact(
-                assigned.staff_id,
-                assigned.employment_id,
-            ) is None:
+            if (
+                self.repository.employment_fact(
+                    assigned.staff_id,
+                    assigned.employment_id,
+                )
+                is None
+            ):
                 raise domain_error(
                     "SCHEDULE_STAFF_FACT_INVALID",
                     422,
@@ -1381,12 +1466,16 @@ class W2Service:
         if row.assignee_staff_id != staff_id:
             raise domain_error("CARD_ACCESS_FORBIDDEN", 403)
         if row.closed_at_utc is not None:
-            raise domain_error("CARD_ALREADY_CLOSED", 409)
+            raise domain_error(
+                "CARD_ALREADY_CLOSED",
+                409,
+                details=self._card_conflict_details(current_account, row),
+            )
         if row.row_version != payload.expected_row_version:
             raise domain_error(
                 "ROW_VERSION_CONFLICT",
                 409,
-                details={"current_row_version": row.row_version},
+                details=self._card_conflict_details(current_account, row),
             )
         before = self._card_json(row)
         row.closed_at_utc = _now()
@@ -1401,6 +1490,70 @@ class W2Service:
             entity_pk=row.id,
             before=before,
             after=self._card_json(row),
+        )
+        self._commit()
+        return self.list_official_cards(current_account)
+
+    def list_eligible_assignees(
+        self,
+        current_account: CurrentAccount,
+    ) -> OfficialWorkCardEligibleAssigneeListResponse:
+        if current_account.role_code != "ADMIN":
+            raise domain_error("CARD_REASSIGN_FORBIDDEN", 403)
+        as_of = _today_seoul()
+        return OfficialWorkCardEligibleAssigneeListResponse(
+            as_of_date=as_of,
+            items=[
+                OfficialWorkCardEligibleAssignee(
+                    staff_id=staff.id,
+                    staff_name=staff.display_name or staff.name or "미입력",
+                )
+                for staff in self.repository.eligible_card_assignees(as_of)
+            ],
+        )
+
+    def reassign_official_card(
+        self,
+        card_id: int,
+        payload: OfficialWorkCardReassignRequest,
+        current_account: CurrentAccount,
+    ) -> OfficialWorkCardListResponse:
+        if current_account.role_code != "ADMIN":
+            raise domain_error("CARD_REASSIGN_FORBIDDEN", 403)
+        as_of = _today_seoul()
+        row = self.repository.card_for_update(card_id)
+        if row is None:
+            raise domain_error("CARD_NOT_FOUND", 404)
+        if row.closed_at_utc is not None:
+            raise domain_error(
+                "CARD_ALREADY_CLOSED",
+                409,
+                details=self._card_conflict_details(current_account, row),
+            )
+        if row.row_version != payload.expected_row_version:
+            raise domain_error(
+                "ROW_VERSION_CONFLICT",
+                409,
+                details=self._card_conflict_details(current_account, row),
+            )
+        if row.assignee_staff_id == payload.assignee_staff_id:
+            raise domain_error(
+                "CARD_REASSIGN_SAME_ASSIGNEE",
+                422,
+                field="assignee_staff_id",
+            )
+        self._require_eligible_reassignment_assignee(payload.assignee_staff_id, as_of)
+
+        before = self._assignee_snapshot(row)
+        row.assignee_staff_id = payload.assignee_staff_id
+        row.row_version += 1
+        self._audit(
+            actor_account_id=current_account.id,
+            action_code="W2_OFFICIAL_WORK_CARD_REASSIGNED",
+            entity_type="w2_official_work_card",
+            entity_pk=row.id,
+            before=before,
+            after=self._assignee_snapshot(row),
         )
         self._commit()
         return self.list_official_cards(current_account)
@@ -1420,18 +1573,10 @@ class W2Service:
                 422,
                 details={"source_error": str(exc)},
             ) from None
-        if self.repository.staff(normalized.assignee_staff_id) is None:
-            raise domain_error("STAFF_NOT_FOUND", 404)
-        if self.repository.staff_is_admin_account(normalized.assignee_staff_id):
-            raise domain_error("ADMIN_CARD_ASSIGNEE_FORBIDDEN", 422)
-        if not self.repository.staff_has_professional_position(
-            normalized.assignee_staff_id,
-            normalized.due_date,
+        if (
+            normalized.recipient_id is not None
+            and self.repository.recipient(normalized.recipient_id) is None
         ):
-            raise domain_error("PROFESSIONAL_ROLE_REQUIRED", 422)
-        if normalized.recipient_id is not None and self.repository.recipient(
-            normalized.recipient_id
-        ) is None:
             raise domain_error("RECIPIENT_NOT_FOUND", 404)
 
         lock_key = normalized.renewal_key or normalized.occurrence_key
@@ -1442,10 +1587,9 @@ class W2Service:
             return existing_occurrence
 
         current: W2OfficialWorkCard | None = None
+        renewal_history: list[W2OfficialWorkCard] = []
         if normalized.renewal_key is not None:
-            renewal_history = self.repository.cards_by_renewal_for_update(
-                normalized.renewal_key
-            )
+            renewal_history = self.repository.cards_by_renewal_for_update(normalized.renewal_key)
             dominant = max(
                 renewal_history,
                 key=lambda item: card_priority(OfficialWorkCardKind(item.kind)),
@@ -1460,6 +1604,8 @@ class W2Service:
                 (item for item in renewal_history if item.closed_at_utc is None),
                 None,
             )
+
+        assignee_staff_id = self._resolve_new_card_assignee(normalized, renewal_history)
 
         now = _now()
         if current is not None:
@@ -1488,7 +1634,7 @@ class W2Service:
             due_date=normalized.due_date,
             occurrence_key=normalized.occurrence_key,
             renewal_key=normalized.renewal_key,
-            assignee_staff_id=normalized.assignee_staff_id,
+            assignee_staff_id=assignee_staff_id,
             created_by_account_id=actor_account_id,
             updated_by_account_id=actor_account_id,
         )

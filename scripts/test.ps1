@@ -22,6 +22,13 @@ $NpmExe = if ($IsWindowsHost) {
     (Get-Command npm -CommandType Application -ErrorAction Stop).Source
 }
 $PowerShellExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+$HistoricalBackendTests = @(
+    "tests/test_r0_w2_read_only_contract.py",
+    "tests/test_w1b_red.py",
+    "tests/test_w1d_contract.py",
+    "tests/test_w1e_contract.py",
+    "tests/test_w1f_contract.py"
+)
 
 if (-not $IsWindowsHost) {
     $UserProfilePath = [Environment]::GetFolderPath(
@@ -146,9 +153,9 @@ try {
             $PytestArguments += "--ignore=tests/test_w1a_vs6_postgres.py"
         }
         if (-not $IncludeHistoricalContracts) {
-            $PytestArguments += "--ignore=tests/test_w1b_red.py"
-            $PytestArguments += "--ignore=tests/test_w1d_contract.py"
-            $PytestArguments += "--ignore=tests/test_w1e_contract.py"
+            foreach ($HistoricalBackendTest in $HistoricalBackendTests) {
+                $PytestArguments += "--ignore=$HistoricalBackendTest"
+            }
         }
         $BackendProfile = if ($IncludeHistoricalContracts) {
             "supported+historical"

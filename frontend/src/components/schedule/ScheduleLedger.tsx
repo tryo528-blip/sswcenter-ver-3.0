@@ -1,7 +1,8 @@
 import {
-  useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from 'react';
@@ -12,10 +13,14 @@ import {
   deleteSchedule,
   finalizeScheduleMonth,
   listSchedules,
+  projectScheduleMonthSnapshot,
   replaceSchedule,
   type ScheduleItem,
   type ScheduleMonthSnapshot,
+  type ScheduleSnapshotFilter,
 } from '../../services/w2Api';
+
+const EMPTY_SCHEDULE_ITEMS: readonly ScheduleItem[] = [];
 
 type Draft = {
   editingId: number | null;
@@ -28,6 +33,29 @@ type Draft = {
   serviceTypeId: string;
   startsAtLocal: string;
   endsAtLocal: string;
+};
+
+type ScheduleQueryVisit = {
+  readonly id: number;
+  readonly key: string;
+  readonly month: string;
+  readonly scheduleMonth: string;
+  readonly filter: ScheduleSnapshotFilter;
+};
+
+type ScheduleMutationOwner = {
+  readonly id: number;
+  readonly queryVisitId: number;
+  readonly key: string;
+  readonly month: string;
+  readonly scheduleMonth: string;
+  readonly filter: ScheduleSnapshotFilter;
+};
+
+type OwnedScheduleConflict = {
+  readonly snapshot: ScheduleMonthSnapshot;
+  readonly queryVisitId: number;
+  readonly mutationId: number;
 };
 
 function scheduleMonthDate(month: string): string {
@@ -103,44 +131,116 @@ function requestErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '일정을 처리하지 못했습니다.';
 }
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function scheduleQueryFilter(
+  kind: ScheduleKind,
+  filterId: number | undefined,
+): ScheduleSnapshotFilter {
+  if (filterId === undefined) return {};
+  return kind === 'recipient' ? { recipientId: filterId } : { staffId: filterId };
+}
+
+function scheduleQueryVisit(
+  id: number,
+  key: string,
+  kind: ScheduleKind,
+  month: string,
+  filterId: number | undefined,
+): ScheduleQueryVisit {
+  return {
+    id,
+    key,
+    month,
+    scheduleMonth: scheduleMonthDate(month),
+    filter: scheduleQueryFilter(kind, filterId),
+  };
+}
+
 export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: string }) {
   const [snapshot, setSnapshot] = useState<ScheduleMonthSnapshot>({
     scheduleMonth: scheduleMonthDate(month),
     rowVersion: 1,
     finalized: false,
+    finalizedAtUtc: null,
     items: [],
   });
   const [draft, setDraft] = useState<Draft>(() => emptyDraft(month));
   const [filterDraft, setFilterDraft] = useState('');
   const [appliedFilterId, setAppliedFilterId] = useState<number | undefined>();
-  const [latestConflict, setLatestConflict] = useState<ScheduleMonthSnapshot | null>(null);
+  const cells = useMemo(() => monthCells(month), [month]);
+  const filterLabel = kind === 'recipient' ? '수급자 ID 조회' : '직원 ID 조회';
+  const queryKey = useMemo(
+    () => JSON.stringify([scheduleMonthDate(month), kind, appliedFilterId]),
+    [appliedFilterId, kind, month],
+  );
+  const [queryVisit, setQueryVisit] = useState<ScheduleQueryVisit>(
+    () => scheduleQueryVisit(1, queryKey, kind, month, appliedFilterId),
+  );
+  const [latestConflict, setLatestConflict] = useState<OwnedScheduleConflict | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cells = useMemo(() => monthCells(month), [month]);
-  const filterLabel = kind === 'recipient' ? '수급자 ID 조회' : '직원 ID 조회';
+  const [loadedQueryVisitId, setLoadedQueryVisitId] = useState<number | null>(null);
+  const nextQueryVisitIdRef = useRef(2);
+  const activeQueryVisitRef = useRef(queryVisit);
+  const nextMutationIdRef = useRef(1);
+  const activeMutationRef = useRef<ScheduleMutationOwner | null>(null);
+  const mutationFallbackAbortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+  const previousKindRef = useRef(kind);
+  const queryAligned = queryVisit.key === queryKey;
+  const snapshotProven = queryAligned && loadedQueryVisitId === queryVisit.id;
+  const mutationsLocked = saving || loading || !snapshotProven;
+  const visibleItems = !loading && snapshotProven ? snapshot.items : EMPTY_SCHEDULE_ITEMS;
+  const visibleConflict = latestConflict?.queryVisitId === queryVisit.id && queryAligned
+    ? latestConflict
+    : null;
 
   const itemsByDate = useMemo(() => {
     const grouped = new Map<string, ScheduleItem[]>();
-    for (const item of snapshot.items) {
+    for (const item of visibleItems) {
       const date = kstDate(item.startsAtUtc);
       const current = grouped.get(date) ?? [];
       current.push(item);
       grouped.set(date, current);
     }
     return grouped;
-  }, [snapshot.items]);
+  }, [visibleItems]);
 
-  const fetchSnapshot = useCallback(
-    (signal?: AbortSignal) => listSchedules({
-      month: scheduleMonthDate(month),
-      ...(kind === 'recipient'
-        ? { recipientId: appliedFilterId }
-        : { staffId: appliedFilterId }),
-      signal,
-    }),
-    [appliedFilterId, kind, month],
-  );
+  useLayoutEffect(() => {
+    if (previousKindRef.current === kind) return;
+    previousKindRef.current = kind;
+    setFilterDraft('');
+    setAppliedFilterId(undefined);
+  }, [kind]);
+
+  useLayoutEffect(() => {
+    if (activeQueryVisitRef.current.key === queryKey) return;
+    mutationFallbackAbortRef.current?.abort();
+    mutationFallbackAbortRef.current = null;
+    const nextVisit = scheduleQueryVisit(
+      nextQueryVisitIdRef.current,
+      queryKey,
+      kind,
+      month,
+      appliedFilterId,
+    );
+    nextQueryVisitIdRef.current += 1;
+    activeQueryVisitRef.current = nextVisit;
+    setQueryVisit(nextVisit);
+  }, [appliedFilterId, kind, month, queryKey]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      mutationFallbackAbortRef.current?.abort();
+      mutationFallbackAbortRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     setDraft(emptyDraft(month));
@@ -148,36 +248,150 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
   }, [kind, month]);
 
   useEffect(() => {
+    if (activeQueryVisitRef.current.id !== queryVisit.id) return undefined;
     const controller = new AbortController();
+    const requestedVisit = queryVisit;
+    setLoadedQueryVisitId(null);
     setLoading(true);
     setError(null);
-    fetchSnapshot(controller.signal)
-      .then(setSnapshot)
+    setLatestConflict(null);
+    listSchedules({
+      month: requestedVisit.scheduleMonth,
+      ...requestedVisit.filter,
+      signal: controller.signal,
+    })
+      .then((nextSnapshot) => {
+        if (
+          !mountedRef.current
+          || controller.signal.aborted
+          || activeQueryVisitRef.current.id !== requestedVisit.id
+        ) return;
+        setSnapshot(projectScheduleMonthSnapshot(nextSnapshot, requestedVisit.filter));
+        setLoadedQueryVisitId(requestedVisit.id);
+      })
       .catch((requestError: unknown) => {
-        if (requestError instanceof Error && requestError.name === 'AbortError') return;
+        if (
+          !mountedRef.current
+          || controller.signal.aborted
+          || activeQueryVisitRef.current.id !== requestedVisit.id
+        ) return;
+        if (isAbortError(requestError)) return;
         setError(requestErrorMessage(requestError));
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (
+          mountedRef.current
+          && activeQueryVisitRef.current.id === requestedVisit.id
+          && !controller.signal.aborted
+        ) {
+          setLoading(false);
+        }
       });
     return () => controller.abort();
-  }, [fetchSnapshot]);
+  }, [queryVisit]);
 
-  const showConflict = async (requestError: unknown) => {
+  const canSurfaceOwnedMutation = (owner: ScheduleMutationOwner): boolean => (
+    Boolean(mountedRef.current)
+    && activeMutationRef.current?.id === owner.id
+    && activeQueryVisitRef.current.key === owner.key
+  );
+
+  const invalidateActiveVisitForOwnedQuery = (owner: ScheduleMutationOwner) => {
+    if (!canSurfaceOwnedMutation(owner)) return;
+    const nextVisit: ScheduleQueryVisit = {
+      id: nextQueryVisitIdRef.current,
+      key: owner.key,
+      month: owner.month,
+      scheduleMonth: owner.scheduleMonth,
+      filter: owner.filter,
+    };
+    nextQueryVisitIdRef.current += 1;
+    activeQueryVisitRef.current = nextVisit;
+    setQueryVisit(nextVisit);
+    setLoadedQueryVisitId(null);
+    setLoading(true);
+    setError(null);
+    setLatestConflict(null);
+  };
+
+  const applyOwnedMutationSuccess = (
+    owner: ScheduleMutationOwner,
+    nextSnapshot: ScheduleMonthSnapshot,
+    resetDraft = false,
+  ) => {
+    if (!canSurfaceOwnedMutation(owner)) return;
+    const active = activeQueryVisitRef.current;
+    if (active.id === owner.queryVisitId) {
+      setSnapshot(projectScheduleMonthSnapshot(nextSnapshot, owner.filter));
+      setLoadedQueryVisitId(owner.queryVisitId);
+      setLatestConflict(null);
+      if (resetDraft) setDraft(emptyDraft(owner.month));
+      return;
+    }
+    if (resetDraft) setDraft(emptyDraft(owner.month));
+    invalidateActiveVisitForOwnedQuery(owner);
+  };
+
+  const showConflict = async (
+    requestError: unknown,
+    owner: ScheduleMutationOwner,
+  ) => {
+    if (!canSurfaceOwnedMutation(owner)) return;
     if (!(requestError instanceof W2ConflictError)) {
       setError(requestErrorMessage(requestError));
       return;
     }
+    const targetVisitId = activeQueryVisitRef.current.id;
     let latest = requestError.latestScheduleSnapshot;
     if (!latest) {
+      mutationFallbackAbortRef.current?.abort();
+      const fallbackController = new AbortController();
+      mutationFallbackAbortRef.current = fallbackController;
       try {
-        latest = await fetchSnapshot();
-      } catch {
+        latest = await listSchedules({
+          month: owner.scheduleMonth,
+          ...owner.filter,
+          signal: fallbackController.signal,
+        });
+      } catch (fallbackError) {
+        if (isAbortError(fallbackError)) return;
         // Keep the original conflict message if the fallback read also fails.
       }
+      if (mutationFallbackAbortRef.current === fallbackController) {
+        mutationFallbackAbortRef.current = null;
+      }
     }
-    setLatestConflict(latest ?? null);
+    if (!canSurfaceOwnedMutation(owner)) return;
+    if (activeQueryVisitRef.current.id !== targetVisitId) return;
+    setLatestConflict(latest ? {
+      snapshot: projectScheduleMonthSnapshot(latest, owner.filter),
+      queryVisitId: targetVisitId,
+      mutationId: owner.id,
+    } : null);
     setError('다른 요청이 먼저 저장되었습니다. 입력값은 보존했고 서버 최신본을 자동으로 합치지 않았습니다.');
+  };
+
+  const beginOwnedMutation = (): ScheduleMutationOwner | null => {
+    if (activeMutationRef.current || loading || !snapshotProven) return null;
+    const owner: ScheduleMutationOwner = {
+      id: nextMutationIdRef.current,
+      queryVisitId: queryVisit.id,
+      key: queryVisit.key,
+      month: queryVisit.month,
+      scheduleMonth: queryVisit.scheduleMonth,
+      filter: queryVisit.filter,
+    };
+    nextMutationIdRef.current += 1;
+    activeMutationRef.current = owner;
+    setSaving(true);
+    setError(null);
+    return owner;
+  };
+
+  const finishOwnedMutation = (owner: ScheduleMutationOwner) => {
+    if (activeMutationRef.current?.id !== owner.id) return;
+    activeMutationRef.current = null;
+    if (mountedRef.current) setSaving(false);
   };
 
   const startEditing = (item: ScheduleItem) => {
@@ -199,6 +413,7 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
 
   const saveDraft = async (event: FormEvent) => {
     event.preventDefault();
+    if (activeMutationRef.current || loading || !snapshotProven) return;
     const recipientId = positiveInteger(draft.recipientId);
     const staffId1 = positiveInteger(draft.staffId1);
     const employmentId1 = positiveInteger(draft.employmentId1);
@@ -238,8 +453,8 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
       return;
     }
 
-    setSaving(true);
-    setError(null);
+    const owned = beginOwnedMutation();
+    if (!owned) return;
     try {
       const commonInput = {
         recipientId,
@@ -261,58 +476,67 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
         })
         : await createSchedule({
           ...commonInput,
-          scheduleMonth: scheduleMonthDate(month),
+          scheduleMonth: owned.scheduleMonth,
         });
-      setSnapshot(nextSnapshot);
-      setLatestConflict(null);
-      setDraft(emptyDraft(month));
+      applyOwnedMutationSuccess(owned, nextSnapshot, true);
     } catch (requestError) {
-      await showConflict(requestError);
+      await showConflict(requestError, owned);
     } finally {
-      setSaving(false);
+      finishOwnedMutation(owned);
     }
   };
 
   const removeDraftSchedule = async () => {
     if (draft.editingId === null || draft.expectedRowVersion === null) return;
-    setSaving(true);
-    setError(null);
+    const owned = beginOwnedMutation();
+    if (!owned) return;
     try {
-      setSnapshot(await deleteSchedule(draft.editingId, {
+      const nextSnapshot = await deleteSchedule(draft.editingId, {
         expectedMonthRowVersion: snapshot.rowVersion,
         expectedRowVersion: draft.expectedRowVersion,
-      }));
-      setLatestConflict(null);
-      setDraft(emptyDraft(month));
+      });
+      applyOwnedMutationSuccess(owned, nextSnapshot, true);
     } catch (requestError) {
-      await showConflict(requestError);
+      await showConflict(requestError, owned);
     } finally {
-      setSaving(false);
+      finishOwnedMutation(owned);
     }
   };
 
   const finalizeMonth = async () => {
-    setSaving(true);
-    setError(null);
+    const owned = beginOwnedMutation();
+    if (!owned) return;
     try {
-      setSnapshot(await finalizeScheduleMonth(
-        scheduleMonthDate(month),
+      const nextSnapshot = await finalizeScheduleMonth(
+        owned.scheduleMonth,
         snapshot.rowVersion,
-      ));
-      setLatestConflict(null);
+      );
+      applyOwnedMutationSuccess(owned, nextSnapshot);
     } catch (requestError) {
-      await showConflict(requestError);
+      await showConflict(requestError, owned);
     } finally {
-      setSaving(false);
+      finishOwnedMutation(owned);
     }
   };
 
   const acceptLatest = () => {
-    if (!latestConflict) return;
-    setSnapshot(latestConflict);
+    if (
+      !latestConflict
+      || loading
+      || saving
+      || !snapshotProven
+      || latestConflict.queryVisitId !== queryVisit.id
+      || activeQueryVisitRef.current.id !== queryVisit.id
+    ) return;
+    const accepted = projectScheduleMonthSnapshot(
+      latestConflict.snapshot,
+      queryVisit.filter,
+    );
+    setSnapshot(accepted);
+    setLoadedQueryVisitId(queryVisit.id);
     setDraft((current) => {
       if (current.editingId === null) return current;
-      const currentItem = latestConflict.items.find((item) => item.id === current.editingId);
+      const currentItem = accepted.items.find((item) => item.id === current.editingId);
       return currentItem
         ? { ...current, expectedRowVersion: currentItem.rowVersion }
         : { ...current, editingId: null, expectedRowVersion: null };
@@ -323,6 +547,7 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
 
   const applyFilter = (event: FormEvent) => {
     event.preventDefault();
+    if (activeMutationRef.current || saving) return;
     if (filterDraft.trim() === '') {
       setAppliedFilterId(undefined);
       return;
@@ -345,7 +570,7 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
           <span>공용 schedules 원장 · version {snapshot.rowVersion}</span>
           <button
             type="button"
-            disabled={saving || snapshot.finalized}
+            disabled={mutationsLocked || snapshot.finalized}
             onClick={() => void finalizeMonth()}
           >
             {snapshot.finalized ? '확정됨' : '월 확정'}
@@ -357,20 +582,21 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
             <input
               inputMode="numeric"
               value={filterDraft}
+              disabled={saving}
               onChange={(event) => setFilterDraft(event.target.value)}
             />
           </label>
-          <button type="submit">조회</button>
+          <button type="submit" disabled={saving}>조회</button>
         </form>
         {error && <p className="schedule-panel-error" role="alert">{error}</p>}
-        {latestConflict && (
+        {visibleConflict && (
           <section className="schedule-latest-snapshot" data-testid="schedule-latest-snapshot">
             <div>
-              <strong>서버 최신본 · version {latestConflict.rowVersion}</strong>
+              <strong>서버 최신본 · version {visibleConflict.snapshot.rowVersion}</strong>
               <span>현재 입력에는 자동 반영하지 않았습니다.</span>
             </div>
             <ul>
-              {latestConflict.items.map((item) => (
+              {visibleConflict.snapshot.items.map((item) => (
                 <li key={item.id}>
                   {kstDate(item.startsAtUtc)} · {itemTitle(item)} · {itemViewLabel(item, kind)}
                 </li>
@@ -411,7 +637,7 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
           </div>
         </section>
         {loading && <p className="schedule-panel-empty">일정을 불러오는 중…</p>}
-        {!loading && snapshot.items.length === 0 && (
+        {!loading && snapshotProven && visibleItems.length === 0 && (
           <p className="schedule-panel-empty">등록된 일정이 없습니다.</p>
         )}
       </div>
@@ -502,7 +728,7 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
             <button
               className="schedule-draft-delete"
               type="button"
-              disabled={saving || snapshot.finalized}
+              disabled={mutationsLocked || snapshot.finalized}
               onClick={() => void removeDraftSchedule()}
             >
               일정 삭제
@@ -511,7 +737,7 @@ export function ScheduleLedger({ kind, month }: { kind: ScheduleKind; month: str
           <button
             className="schedule-draft-submit"
             type="submit"
-            disabled={saving || snapshot.finalized}
+            disabled={mutationsLocked || snapshot.finalized}
           >
             {saving ? '저장 중…' : '임시저장'}
           </button>

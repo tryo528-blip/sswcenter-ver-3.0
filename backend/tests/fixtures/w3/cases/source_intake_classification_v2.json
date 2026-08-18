@@ -1,0 +1,44 @@
+{
+  "fixture_version": "w3-source-intake-classification-v2",
+  "parent_fixture": "source_intake_semantic_v1",
+  "contains_pii": false,
+  "source_type": "RFID",
+  "target_date": "2026-08-17",
+  "cases": [
+    {
+      "case_id": "W3-INTAKE-DUPLICATE-SUCCESS",
+      "same_content_digest": true,
+      "same_parser_profile": true,
+      "equivalent_success_exists": true,
+      "latest_attempt_status": "SUCCEEDED"
+    },
+    {
+      "case_id": "W3-INTAKE-FAILED-RETRY",
+      "same_content_digest": true,
+      "same_parser_profile": true,
+      "equivalent_success_exists": false,
+      "latest_attempt_status": "FAILED_RETRYABLE"
+    },
+    {
+      "case_id": "W3-INTAKE-BLOCKED-REUPLOAD",
+      "same_content_digest": true,
+      "same_parser_profile": true,
+      "equivalent_success_exists": false,
+      "latest_attempt_status": "BLOCKED"
+    },
+    {
+      "case_id": "W3-INTAKE-NEW-PROFILE",
+      "same_content_digest": true,
+      "same_parser_profile": false,
+      "equivalent_success_exists": false,
+      "latest_attempt_status": "SUCCEEDED"
+    },
+    {
+      "case_id": "W3-INTAKE-NEW-DIGEST-NO-PRIOR",
+      "same_content_digest": false,
+      "same_parser_profile": false,
+      "equivalent_success_exists": false,
+      "latest_attempt_status": "NO_PRIOR_ATTEMPT"
+    }
+  ]
+}

@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>W1E 2라운드·최종 독립검수 보고서</title>
+  <style>
+    :root { color-scheme: light; --ink:#172033; --muted:#5b667a; --line:#dfe5ef; --bg:#f5f7fb; --card:#fff; --green:#087443; --amber:#8a5a00; --red:#a22a2a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { max-width:980px; margin:0 auto; padding:24px 16px 48px; }
+    h1 { margin:0 0 8px; font-size:clamp(1.5rem,4vw,2.25rem); line-height:1.2; }
+    h2 { margin:28px 0 10px; font-size:1.2rem; }
+    p { margin:8px 0; }
+    .sub { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:18px 0; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; box-shadow:0 2px 8px #1720330d; }
+    .label { color:var(--muted); font-size:.82rem; }
+    .value { display:block; margin-top:3px; font-weight:700; }
+    .pass { color:var(--green); }
+    .warn { color:var(--amber); }
+    .fail { color:var(--red); }
+    .table-wrap { overflow-x:auto; background:var(--card); border:1px solid var(--line); border-radius:12px; }
+    table { width:100%; border-collapse:collapse; min-width:650px; }
+    th,td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eef2f8; font-size:.9rem; }
+    tr:last-child td { border-bottom:0; }
+    code { font: .88em ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+    ul { margin:8px 0; padding-left:22px; }
+    .note { border-left:4px solid var(--amber); background:#fff8e8; padding:10px 12px; border-radius:6px; }
+    .ok { border-left-color:var(--green); background:#edf9f2; }
+    a { color:#075db7; }
+    footer { margin-top:28px; color:var(--muted); font-size:.9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>W1E 2라운드·최종 독립검수 보고서</h1>
+  <p class="sub">작성일: 2026-08-16 · 대상: W1E care assignment 0026 후보</p>
+
+  <div class="grid">
+    <div class="card"><span class="label">W1E 현재 상태</span><span class="value warn">FINE_GRAINED_FIX · F14_CLOSING_MUTUAL_VERIFICATION_FIX · NO_SEAL · SOL_PENDING</span></div>
+    <div class="card"><span class="label">최종 검수</span><span class="value">gpt-5.6-sol · ultra</span></div>
+    <div class="card"><span class="label">정본 반영</span><span class="value warn">보류 (형님 승인 대기)</span></div>
+    <div class="card"><span class="label">Repository-wide</span><span class="value fail">RED · 범위 밖</span></div>
+  </div>
+
+  <h2>진행 순서와 실행 설정</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>단계</th><th>설정</th><th>결과</th></tr></thead>
+      <tbody>
+        <tr><td>초기 DeepSeek 구현</td><td>128턴 · 900초</td><td>사용자 설정 정정 전의 예외 실행</td></tr>
+        <tr><td>1라운드 Grok</td><td>128턴 · 3600초</td><td class="pass">성공</td></tr>
+        <tr><td>1라운드 DeepSeek</td><td>128턴 → 필요 시 256턴 · 3600초</td><td class="pass">128턴 초과 후 256턴 성공</td></tr>
+        <tr><td>2라운드 Grok</td><td>128턴 · 3600초</td><td class="pass">성공</td></tr>
+        <tr><td>2라운드 DeepSeek</td><td>128턴 → 필요 시 256턴 · 3600초</td><td class="pass">128턴 초과 후 256턴 성공</td></tr>
+        <tr><td>추가 Grok finding review</td><td>128턴 · 3600초</td><td class="pass">3개 evidence-backed finding 확인</td></tr>
+        <tr><td>추가 DeepSeek FIX</td><td>256턴 · 3600초</td><td class="pass">manifest·token·mutation 보강</td></tr>
+        <tr><td>추가 Grok 재검수</td><td>128턴 · 3600초</td><td class="pass">scoped STATUS=PASS</td></tr>
+        <tr><td>범위별 신규 운용 기준</td><td>넓은 구현·상호검수·실DB·독립검수: DeepSeek/Grok 모두 256턴 · 3600초</td><td class="warn">다음 라운드부터 적용</td></tr>
+        <tr><td>미결사항 DeepSeek 구현</td><td>256턴 · 3600초</td><td class="pass">lock·2세션 race·reverse 409·current addendum</td></tr>
+        <tr><td>미결사항 Grok 수정</td><td>256턴 · 3600초</td><td class="pass">kind mutation·generated TS drift 수정</td></tr>
+        <tr><td>DeepSeek 2차 검수</td><td>256턴 · 3600초</td><td class="warn">static PASS, provider runtime 도구 부재로 BLOCKED 보고</td></tr>
+        <tr><td>Grok 최종 2라운드 검수</td><td>256턴 · 3600초</td><td class="pass">제품 finding 없음 · governance는 NO-SEAL</td></tr>
+        <tr><td>공용 runtime 복구</td><td>offline lock sync · preflight</td><td class="pass">`SSWCENTER_RUNTIME_GREEN`</td></tr>
+        <tr><td>Grok FIX uncommitted parent lock</td><td>직접 수정 · 실 PG16 12노드</td><td class="pass">empty-edge parent-domain lock · race 2건 + ABI live PASS</td></tr>
+        <tr><td>DeepSeek 기술 검수</td><td>read-only</td><td class="pass">제품 PASS · trim/npm LOW · governance note</td></tr>
+        <tr><td>Grok FIX canonical trim + npm sibling</td><td>직접 수정 · 실 PG/targeted 재실행</td><td class="warn">제품 F10/F08 반영 · FINAL_SOL_PENDING · NO_SEAL</td></tr>
+        <tr><td>DeepSeek FIX multi-edge lock + sequence/ABI</td><td>직접 수정 · 격리 PG 15노드</td><td class="pass">F11/F12 반영 · 봉인 아님</td></tr>
+        <tr><td>Grok 상대검증+수정 SemVer/backup ACL</td><td>직접 수정 · Linux harness 15노드</td><td class="warn">F13·erp_backup·SemVer 2.0.0 · FINAL_SOL_PENDING · NO_SEAL</td></tr>
+        <tr><td>기존 최종 독립검수</td><td>별도 worktree · Sol ultra</td><td class="pass">수정·검수 완료 (추가 API 수정 전)</td></tr>
+        <tr><td>DeepSeek FIX Sol Ultra F14-F17</td><td>직접 수정 · 수동 PG 17노드</td><td class="pass">helper/FAMILY/catalog/seq ACL 반영 · 봉인 아님</td></tr>
+        <tr><td>Grok 상대검증+수정 F14-F17</td><td>직접 재검수·수정 · Linux harness 17노드</td><td class="warn">exact lock wait·grantor/exact-set·proretset · FINAL_SOL_PENDING · NO_SEAL</td></tr>
+        <tr><td>DeepSeek FIX F18 global mutex</td><td>직접 수정 · 수동 PG 18노드</td><td class="pass">transaction-wide mutex · 봉인 아님</td></tr>
+        <tr><td>Grok 상대검증+수정 F18/F19</td><td>직접 재검수·수정 · 수동 PG 18노드</td><td class="warn">40P01→409 · granted-key live · FINAL_SOL_PENDING · NO_SEAL</td></tr>
+        <tr><td>이 FIX 이후 Sol 독립검수</td><td>새 worktree · gpt-5.6-sol ultra</td><td class="warn">아직 시작 전 · 봉인 보류</td></tr>
+        <tr><td>Grok COMPLETE_CANDIDATE_MUTUAL_VERIFICATION</td><td>기본 128 · 상한 256턴 · 3600초</td><td class="warn">F22/F23/F24 수정 · 21-node live PASS · FINAL_SOL_PENDING · NO_SEAL</td></tr>
+        <tr><td>DeepSeek REVERSE_MUTUAL_VERIFICATION</td><td>직접 수정 · 수동 PG 22노드</td><td class="pass">F25/F26 · G02 HTTP live · 봉인 아님</td></tr>
+        <tr><td>Grok CLOSING_MUTUAL_VERIFICATION</td><td>직접 재검수·수정 · 수동 PG 22노드</td><td class="warn">F27~F30 수정 · 22-node live PASS · FINAL_SOL_PENDING · NO_SEAL</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>설정·실패·재시도·변경 경로의 원장: <a href="../handovers/W1E_20260816_PROVIDER_ROUND_LEDGER.md">W1E_20260816_PROVIDER_ROUND_LEDGER.md</a></p>
+  <div class="note">
+    <strong>턴 상한 운용 기준:</strong> 단일·국소 작업은 128턴을 유지하고, 다중 파일 구현,
+    DB/API/실 PostgreSQL, DeepSeek↔Grok 상호검수 또는 새 worktree 독립검수가 포함된
+    넓은 작업은 처음부터 DeepSeek와 Grok 모두 256턴·3600초로 시작한다. 256턴은 상한이며,
+    3600초 초과는 timeout/failure로 기록한다.
+  </div>
+
+  <h2>추가 API 계약 수정 후 현재 바이트 재검증 (추가 postcheck 보강 전)</h2>
+  <div class="card ok">
+    <ul>
+      <li>계약·행동·단위 pytest: <strong>27 passed, 1 warning</strong></li>
+      <li><code>get_w1e_service</code> export, W1E router 등록, <code>RecipientSexCodeRead</code>, generated client drift를 수정했습니다.</li>
+      <li>Ruff check/format, W1E-only mypy 7 source files, OpenAPI check: exit 0</li>
+      <li>현재 바이트 실 PostgreSQL 0026→0025→0026: <strong>5 passed</strong>, live/seal green, cleanup 전부 0</li>
+    </ul>
+  </div>
+
+  <h2>미결사항 보강 후 현재 바이트 검증</h2>
+  <div class="card ok">
+    <ul>
+      <li>canonical 저장소 <code>backend/.venv</code>를 Python 3.12.3 + lock 104개 패키지로 offline 복구했습니다.</li>
+      <li>공용 preflight <code>scripts/verify-runtime.ps1</code>: Python·pytest·Ruff·mypy·Node/npm·pwsh·PostgreSQL 모두 GREEN</li>
+      <li>W1E/recipient targeted pytest: <strong>94 passed, 1 skipped, 1 warning</strong></li>
+      <li>W1E scoped mypy: <strong>Success: no issues found in 8 source files</strong></li>
+      <li>OpenAPI exact check: <code>OPENAPI_TYPES_UP_TO_DATE</code></li>
+      <li>실 PG 0026→0025→0026: <strong>10 passed</strong>, cleanup listener/process/temp/git_delta/manifest_delta 모두 0</li>
+    </ul>
+  </div>
+  <p>현재 계약·finding-ID 기준 계획: <a href="../plans/W1E_0026_CURRENT_CANDIDATE_PLAN.md">W1E_0026_CURRENT_CANDIDATE_PLAN.md</a></p>
+
+  <h2>추가 구현 후 Codex 현재 바이트 검증</h2>
+  <div class="card ok">
+    <ul>
+      <li>W0 readiness + W1E postcheck/phase1 targeted pytest: <strong>44 passed, 1 warning</strong></li>
+      <li>Ruff format/check와 W1E scoped mypy 8 source files: <strong>exit 0</strong></li>
+      <li>실 PostgreSQL 16 하니스 0026→0025→0026: <strong>8 passed</strong>, live/seal green</li>
+      <li>cleanup: <code>listener=0 process=0 temp=0 git_delta=0 manifest_delta=0</code></li>
+      <li>OpenAPI 재생성 exact check: <code>OPENAPI_TYPES_UP_TO_DATE</code></li>
+      <li>DeepSeek FIX 후 Grok read-only 재검수: <strong>STATUS=PASS</strong>; 요청 범위 High/Medium finding 없음</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <strong>검수 과정 정정:</strong> 중간 Sol 검수에서 보고된 0025 readiness blocker는 새
+    독립 worktree 복제 시 현재 dirty인 <code>backend/app/core/readiness.py</code>와 W0 게이트
+    테스트가 빠져 HEAD 바이트를 읽은 동기화 누락이었다. 원본과 보충 후 target은
+    <code>ACTIVE_REVISION/verify_current_0026</code>이며 W0 readiness gate는
+    <strong>9 passed</strong>다. 제품 finding으로는 철회했다.
+  </div>
+
+  <h2>이전 current-byte Sol 독립검수 판정 (추가 구현 전)</h2>
+  <div class="card fail">
+    <p><strong>STATUS=FAIL · SEAL=NO-SEAL</strong></p>
+    <ul>
+      <li>Linux 0026 하니스 5개 노드는 핵심 contract/employment/position/qualification forward·reverse guard와 실제 HTTP→service→repository→erp_app→PostgreSQL→audit 경로를 검증하지 않습니다.</li>
+      <li>하니스의 <code>git_delta=0</code>은 porcelain 문자열만 비교해 후보의 사전 dirty 상태에서 바이트 변경을 놓칠 수 있습니다. 경로별 SHA 비교가 필요합니다.</li>
+      <li>현재 3.0 FAMILY/API/service/live-PG를 승인하는 packet/plan이 없고, FAMILY 범위와 422/409 계약이 역사 문서와 불일치합니다.</li>
+      <li>운영표준의 R2 교대 순서·SHA manifest/finding-ID 증거 요건과 실제 ledger가 일치하지 않습니다.</li>
+      <li>역순 날짜의 실제 <code>422 / VALIDATION_ERROR</code>가 OpenAPI 422 설명에서 빠져 있습니다.</li>
+    </ul>
+  </div>
+
+  <h2>Grok FIX: canonical FAMILY trim set and npm sibling identity</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li>정본 trim 집합은 ASCII 6문자 <code>SPACE/HT/LF/CR/FF/VT</code>다. Python 기본
+        <code>str.strip()</code>과 PostgreSQL 기본 <code>btrim</code>은 쓰지 않는다.</li>
+      <li>API/service, ORM metadata, 0026 precheck/CHECK, postcheck exact CHECK,
+        contract/live 적대 테스트가 같은 집합을 쓴다. Unicode whitespace는 내용이다.</li>
+      <li>npm 신원은 basename + <code>node</code> sibling + semver다. 경로/lock 해시는
+        현재 계약이 아니며 Linux/Windows 공식 Node wrapper를 깨지 않기 위해 넣지 않았다.</li>
+      <li>R2 opener 편차와 fresh Sol Ultra 미실행은 거버넌스 기록이며 봉인 근거가 아니다.</li>
+      <li>targeted W0+W1E <strong>61 passed, 1 skipped, 1 warning</strong>; live PG 12-node
+        <strong>12 passed</strong>; Ruff 22파일·mypy 13소스 exit 0; official OpenAPI
+        <code>-Check</code>는 이 sandbox에서 <code>pwsh</code>/<code>npm</code> 실행 불가로 미실행.</li>
+    </ul>
+  </div>
+
+  <h2>Grok FIX: uncommitted assignment parent-lock gap</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL</strong></p>
+    <ul>
+      <li>DeepSeek helper가 committed edge만 lock해서 uncommitted assignment INSERT와 parent reverse가 <code>success/success</code>로 레이스했습니다.</li>
+      <li>현재 helper는 committed edge가 있으면 <code>contract → employment</code>만 잡고, 없으면 해당 parent-domain lock을 유지합니다. 교차 domain-first 순서는 deadlock이므로 쓰지 않습니다.</li>
+      <li>targeted pytest: <strong>60 passed, 1 skipped, 1 warning</strong></li>
+      <li>실 PostgreSQL 16.14 격리 cluster <code>0026 → 0025 → 0026</code>: postcheck OK, exact 12-node <strong>12 passed</strong></li>
+      <li>assignment-vs-contract, assignment-vs-employment, contract service A→B vs qualification invalidation은 각각 1 success + SQLSTATE 23514, orphan=0</li>
+      <li>ABI live: integer overload <code>overloads:count=2</code>, missing bigint, renamed argument 거부</li>
+      <li>Ruff check/format exit 0, scoped mypy 8·9 source success, <code>git diff --check</code> exit 0</li>
+      <li>이 sandbox에서 canonical <code>pwsh</code> preflight/하니스/OpenAPI <code>-Check</code>는 실행하지 못했습니다. Python OpenAPI extract는 경로 76개입니다.</li>
+    </ul>
+  </div>
+
+  <h2>추가 구현 후 최종 독립검수 상태</h2>
+  <div class="card warn">
+    <p><strong>GROK_FIX_PASS · FINAL_SOL_PENDING · SEAL=NO-SEAL</strong></p>
+    <p>uncommitted assignment write-skew는 현재 바이트에서 실 PG로 닫혔습니다.
+      persistent candidate manifest는 이 FIX 후 재생성합니다. 실제 HTTP→real PG→audit
+      통합, repository-wide/full mypy/3.11, canonical pwsh wrapper 재실행은
+      acceptance follow-up입니다. 새 독립 worktree에서 gpt-5.6-sol ultra 검수가
+      끝나기 전까지 정본 승격·봉인은 보류합니다.</p>
+  </div>
+
+  <h2>이전 독립검수 증거 (추가 구현 전)</h2>
+  <div class="card ok">
+    <ul>
+      <li>W1E/readiness pytest: <strong>36 passed, 5 skipped</strong></li>
+      <li>집중 behavior/audit/no-side-effect probe: <strong>7 passed</strong></li>
+      <li>PostgreSQL 16.14 live harness: <strong>5 passed</strong></li>
+      <li>migration <code>0026 → 0025 → 0026</code>, grant → postcheck → exact 5-node pytest: exit 0</li>
+      <li>Ruff 18파일, scoped mypy 10소스, OpenAPI check: exit 0</li>
+      <li>trigger replica 우회, exclusion, ACL REFERENCES/TRIGGER/grant-option drift: fail-closed 확인</li>
+      <li>cleanup: listener=0, process=0, temp=0, git_delta=0</li>
+    </ul>
+  </div>
+
+  <h2>DeepSeek FIX: multi-edge lock ordering + sequence/ABI postcheck</h2>
+  <div class="card ok">
+    <ul>
+      <li>P1 multi-edge lock order: distinct contract-domain lock ascending first, then distinct employment-domain lock ascending; empty-edge parent-domain fallback preserved.</li>
+      <li>P2 sequence ACL: <code>erp.care_assignment_id_seq</code> owner == care_assignment owner, <code>erp_app</code> USAGE+SELECT only; missing <code>erp_app</code> fails closed.</li>
+      <li>P2 lock helper ABI: <code>proretset</code>, <code>provolatile</code>, <code>proisstrict</code>, <code>proparallel</code>, <code>proleakproof</code>, <code>proacl</code>, EXECUTE ACL/grant-option added to exact postcheck.</li>
+      <li>targeted pytest: <strong>59 passed, 1 warning</strong></li>
+      <li>Ruff check/format: exit 0; scoped mypy 6 source: <code>Success: no issues found</code></li>
+      <li>isolated PostgreSQL 16.14 manual harness: upgrade head → grant → postcheck OK → live pytest <strong>15 passed</strong></li>
+      <li>new adversarial live nodes: multi-edge deadlock regression, sequence ACL mutation 3건, lock helper property/ACL mutation 6건</li>
+      <li>cleanup: cluster/temp listener=0, process=0 (manual harness), git_delta/manifest_delta 재생성 전</li>
+    </ul>
+  </div>
+
+  <h2>Grok 상대검증+수정: SemVer 2.0.0 and 0012 backup sequence ACL</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li>DeepSeek lock 순서를 현재 바이트로 재검증했다. contract-domain ascending first + empty-edge parent fallback이 유지됐고, 격리 PG 15-node에서 multi-edge <code>40P01</code>이 없었다.</li>
+      <li>sequence ACL은 0012와 같이 <code>erp_app</code> USAGE+SELECT, <code>erp_backup</code> SELECT-only를 fail-closed한다. identity sequence owner live mutation은 PostgreSQL이 거부한다.</li>
+      <li>lock helper live mutation에 SECURITY DEFINER, <code>SET search_path</code>, EXECUTE WITH GRANT OPTION을 추가했다.</li>
+      <li>npm SemVer는 2.0.0 문법이다. <code>01.2.3</code>, <code>1.2.3-01</code>, <code>alpha..1</code>과 <code>/usr/bin/printf</code>를 거부한다.</li>
+      <li>targeted: <strong>66 passed, 15 skipped, 1 warning</strong>; live harness 15-node <strong>15 passed</strong>; cleanup 전부 0</li>
+      <li>Ruff 32파일, scoped mypy 24소스, <code>git diff --check</code> exit 0. 공식 OpenAPI <code>-Check</code>와 <code>verify-runtime.ps1</code> GREEN은 이 샌드박스의 node Permission denied로 미실행.</li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged. HTTP→real PG 통합, full suite/3.11, R2 opener 편차는 숨기지 않는다.</li>
+    </ul>
+  </div>
+
+  <h2>DeepSeek FIX: Sol Ultra target-only findings</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li><strong>F14 (HIGH/P1)</strong> employment helper transient-edge write-skew:
+        distinct contract id를 ascending으로 선취한 뒤 항상 <code>p_employment_id</code>
+        employment-domain lock을 잡도록 단순화. 빈 edge와 첫 snapshot 후 edge
+        disappearance를 advisory-lock interleaving으로 재현하는 live 회귀 추가.</li>
+      <li><strong>F15 (MEDIUM)</strong> FAMILY exact-check: PostgreSQL display cast
+        <code>::text</code>만 제거하고 <code>::date</code> 등 다른 type cast는 보존.
+        unit + live date-cast mutation으로 fail-closed.</li>
+      <li><strong>F16 (MEDIUM)</strong> W1E trigger function exact catalog:
+        <code>provolatile v</code>/strict false/<code>proparallel u</code>/leakproof
+        false/<code>proacl</code> null/security invoker/no proconfig/table owner와
+        <code>erp_app</code> EXECUTE grant-option까지 fail-closed. live mutation 추가.</li>
+      <li><strong>F17 (MEDIUM)</strong> sequence ACL exact relacl/aclexplode:
+        owner entry + 조건부 <code>erp_app</code>(USAGE+SELECT)/<code>erp_backup</code>
+        (SELECT only) 외 grantee/privilege/grant-option drift(PUBLIC·제3 role) 거부.
+        live PUBLIC/third-role grant/revoke mutation 추가.</li>
+      <li>targeted W0+W1E pytest: <strong>62 passed, 1 warning</strong></li>
+      <li>Ruff check/format, scoped mypy, <code>git diff --check</code>: exit 0</li>
+      <li>OpenAPI exact compare: <code>OPENAPI_TYPES_UP_TO_DATE</code></li>
+      <li>격리 PostgreSQL 16.14 수동 하니스: <code>0026 → 0025 → 0026</code>, postcheck OK,
+        exact 17-node <strong>17 passed</strong>, cleanup listener/process/temp/git_delta/
+        manifest_delta 모두 0</li>
+      <li>이 sandbox에는 <code>pwsh</code>가 없어 canonical <code>verify-runtime.ps1</code>/
+        <code>test-w1e-0026-postgres-linux.ps1</code>/공식 OpenAPI <code>-Check</code>는
+        직접 실행하지 못했습니다. HTTP→real PG→audit 통합, full suite/3.11은 이전과
+        동일하게 미검증이며 R2 opener 편차도 보존합니다.</li>
+    </ul>
+  </div>
+
+  <h2>Grok 상대검증+수정: F14-F17 현재 바이트</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li>DeepSeek F14-F17 보고를 믿지 않고 현재 바이트를 재읽었다. employment helper는
+        contract id ascending 후 항상 <code>p_employment_id</code>를 잠근다.</li>
+      <li>F14 live 관측을 임의 ungranted lock에서
+        <code>hashtextextended(domain, key)</code> exact advisory lock으로 바꿨다.</li>
+      <li>F15는 <code>::text</code>만 제거한다. <code>::date</code>/<code>::varchar</code>/
+        <code>::pg_catalog.text</code> unit과 live date-cast mutation fail-closed.</li>
+      <li>F16 trigger catalog에 <code>proretset</code> false를 추가했다. 기존
+        volatility/strict/parallel/leakproof/proacl/EXECUTE mutation은 유지.</li>
+      <li>F17 sequence ACL은 grantor=owner와
+        <code>erp_app</code>/<code>erp_backup</code> exact privilege set을 요구한다.
+        effective privilege만으로 exact ACL을 우회하지 않는다.</li>
+      <li>targeted: <strong>68 passed, 17 skipped, 1 warning</strong></li>
+      <li>Ruff 31파일, scoped mypy 22소스, <code>git diff --check</code> exit 0</li>
+      <li>canonical harness <code>0026→0025→0026</code>, postcheck OK, 17-node
+        <strong>17 passed</strong>, cleanup 전부 0,
+        <code>W1E_0026_POSTGRES_SEAL_GREEN</code></li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged.</li>
+      <li>공식 <code>verify-runtime.ps1</code> GREEN과 OpenAPI <code>-Check</code>는
+        이 샌드박스의 <code>/usr/local/bin/node</code> Permission denied 및 기본
+        uv cache 경로 거부로 미도달. runtime GREEN으로 선언하지 않는다.</li>
+      <li>HTTP→real PG 통합, full suite/3.11, R2 opener 편차(Grok→DeepSeek)는
+        숨기지 않는다.</li>
+    </ul>
+  </div>
+
+  <h2>DeepSeek FIX: multi-row assignment transaction-wide global mutex (F18)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li>최신 Sol Ultra 독립검수에서 재현된 <strong>W1E-0026-F18 (P1)</strong>:
+        기존 <code>fn_w1e_lock_assignment_path</code>는 호출 1건에서는
+        <code>C→E</code>지만, DEFERRABLE FOR EACH ROW trigger가 한
+        transaction의 여러 assignment row를 처리하면 row별
+        <code>C1,E</code> 후 <code>C2,E</code>가 되어 transaction-wide
+        <code>C1,E,C2</code> 순서가 된다. 상대가 <code>C2→E</code>를
+        처리하면 PostgreSQL 16 SQLSTATE <code>40P01</code> deadlock이
+        재현됐다.</li>
+      <li>모든 W1E write path는 어떤 domain lock보다 먼저 단일 공통
+        transaction mutex <code>erp.w1e.global</code>을 잡는다.
+        <code>fn_w1e_lock_contract_path</code>/
+        <code>fn_w1e_lock_employment_path</code>도 global mutex를 선취하므로
+        도메인 helper를 직접 호출하는 미래 경로도 우회하지 못한다. mutex
+        안에서는 contract-domain ascending-first → employment-domain 순서를
+        유지하고, empty-edge fallback과 F14 transient disappearance 동작을
+        보존한다.</li>
+      <li>동시성 tradeoff를 기록한다: W1E write는 저빈도 period-fact
+        생성·정정이므로 병렬 W1E write보다 deadlock/orphan/write-skew 원천
+        차단을 우선한다. 읽기 전용 SELECT는 영향을 받지 않는다.</li>
+      <li>F17 sequence verifier는 owner-grantee ACL row를 skip하지 않고
+        <code>grantee=sequence_owner</code>일 때
+        <code>grantor=sequence_owner</code>와 no grant option을 요구한다.
+        owner-grantor/owner-grant-option mutation을 fail-closed로 거부하고,
+        identity sequence <code>ALTER SEQUENCE ... OWNER</code> 제한은
+        유지한다.</li>
+      <li>새 live 노드는 T1이 raw blocker로 C2를 막힌 채 <code>C1,E</code>를
+        들고 C2를 기다리는 것을 <code>pg_locks</code>의 exact contract key로
+        관측하고, T2가 <code>erp.w1e.global</code>에서 막히는 것을 exact
+        global key로 관측한 뒤 blocker를 풀어 두 transaction이
+        <code>40P01</code> 없이 직렬 성공하는지 확인한다.</li>
+      <li>실 PostgreSQL 16.14 Linux 수동 하니스:
+        <code>0026→0025→0026</code>, grant, current postcheck OK,
+        18-node pytest <strong>18 passed</strong>; 새 multi-row live 노드 포함.
+        cleanup listener(port free)/process/temp를 0으로 확인했다.</li>
+      <li>targeted W0/W1E pytest <strong>65 passed, 3 skipped, 1 warning</strong>;
+        Ruff check/format exit 0; scoped mypy 9 source
+        <code>Success: no issues found</code>; OpenAPI exact compare
+        <code>OPENAPI_TYPES_UP_TO_DATE</code>; <code>git diff --check</code> exit 0.</li>
+      <li>이 DeepSeek sandbox에는 <code>pwsh</code>가 없어 공식
+        <code>verify-runtime.ps1</code>/<code>test-w1e-0026-postgres-linux.ps1</code>/
+        <code>generate-openapi-types.ps1 -Check</code>는 직접 실행하지 못했다.
+        Python·Ruff·mypy·Node/npm·psql 버전을 확인했고 PostgreSQL lifecycle은
+        수동 동등 절차로 대체했다. canonical runtime GREEN으로 선언하지 않는다.</li>
+      <li>historical 0012 sha
+        <code>95ea8be02d2f14aea394dfc3d7fe95905046c51110863232dfcafff5c910d158</code>
+        unchanged.</li>
+    </ul>
+  </div>
+
+  <h2>Grok 상대검증+수정: F18 global mutex and leftover 40P01 500</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li>DeepSeek F18 보고를 믿지 않고 현재 바이트를 재읽었다. 모든 W1E
+        write helper가 domain lock 전에 <code>erp.w1e.global</code> mutex를
+        잡는다. assignment path는 contract→employment helper를 통해 global을
+        선취한다.</li>
+      <li>contract parent는 C들 다음 E들, employment parent는 C들 다음 항상
+        <code>p_employment_id</code>. empty-edge/F14 transient와 F15–F17
+        catalog/ACL exactness는 유지된다.</li>
+      <li>전역 직렬화 tradeoff는 packet에 기록되어 있다. 읽기 전용 SELECT는
+        advisory lock을 잡지 않는다.</li>
+      <li><strong>F19</strong>: W1E leftover <code>40P01</code>은
+        OperationalError라 IntegrityError 매핑을 우회하고 500이 됐다.
+        현재는 <code>409 CARE_ASSIGNMENT_CONCURRENT_CONFLICT</code>다.
+        W1D/Staff는 W1E code로 재표시하지 않았다. OpenAPI 스키마 변경 없음.</li>
+      <li>multi-row live 회귀는 T1 granted global/C1/E와 C2 wait, T2 global
+        wait와 C2/E 미보유를 exact advisory key로 관측한다.</li>
+      <li>targeted: <strong>69 passed, 3 skipped, 1 warning</strong></li>
+      <li>Ruff 변경 파일 exit 0, scoped mypy 20소스,
+        <code>git diff --check</code> exit 0</li>
+      <li>수동 격리 PG 16.14: <code>0026→0025→0026</code>, postcheck OK,
+        18-node <strong>18 passed</strong>, cleanup 전부 0</li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged.</li>
+      <li>공식 <code>pwsh verify-runtime.ps1</code> GREEN과 OpenAPI
+        <code>-Check</code>는 이 sandbox의 <code>pwsh</code> 부재 및
+        <code>/usr/local/bin/node</code> Permission denied로 미실행.
+        runtime GREEN으로 선언하지 않는다.</li>
+      <li>HTTP→real PG 통합, full suite/3.11, R2 opener 편차(Grok→DeepSeek)는
+        숨기지 않는다.</li>
+    </ul>
+  </div>
+
+  <h2>DeepSeek FIX: global mutex → fine-grained optimistic/fail-fast protocol (2026-08-16 최신 지시)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · SOL_PENDING</strong></p>
+    <ul>
+      <li><strong>설계:</strong> <code>erp.w1e.global</code> 단일 transaction mutex를 제거하고,
+        contract/employment 도메인별 <code>pg_try_advisory_xact_lock</code> non-waiting
+        transaction-scoped advisory lock으로 교체했다. lock loss는 SQLSTATE
+        <code>55P03</code> + <code>CARE_ASSIGNMENT_CONCURRENT_CONFLICT</code>로 즉시
+        fail-fast한다. lock 취득 후 각 guard가 최신 committed state를 재검증하므로
+        READ COMMITTED 재검증 시점이 정확하다.</li>
+      <li><strong>순서:</strong> 모든 경로가 contract-domain ascending-first → employment-domain
+        순서를 유지하고, non-waiting try-lock이므로 partial set을 든 채 대기하지 않아
+        multi-row/multi-edge에서 <code>40P01</code> cycle이 생기지 않는다.</li>
+      <li><strong>HTTP 계약:</strong> W1E assignment guard의 deferred <code>23514</code> race
+        loser는 이제 <code>409 CARE_ASSIGNMENT_CONCURRENT_CONFLICT</code>로 매핑하고,
+        parent reverse guard의 <code>55P03</code>도 W1D/Staff에서 같은 409로 매핑한다.
+        기존 precheck 422와 orphan 409 계약은 유지한다.</li>
+      <li><strong>row_version/audit/OpenAPI/readiness/restore:</strong> 변경 없음.
+        replacement <code>expected_row_version</code>는 기존 <code>FOR UPDATE</code> 경로를 유지한다.</li>
+      <li><strong>증거:</strong>
+        <ul>
+          <li>targeted W0+W1E unit/contract/behavior/postcheck/readiness: <strong>70 passed, 1 warning</strong></li>
+          <li>Linux PostgreSQL 16.14 isolated harness <code>0026 → 0025 → 0026</code>, grant, current postcheck OK, exact <strong>19-node pytest 19 passed</strong> in 3.50s</li>
+          <li>Ruff check/format: 변경 Python 파일 exit 0; scoped mypy 5 source files <code>Success: no issues found</code></li>
+          <li>OpenAPI exact compare: <code>OPENAPI_TYPES_UP_TO_DATE</code> (Python extract + <code>npm exec openapi-typescript</code> + byte compare)</li>
+          <li>새 live 노드: unrelated write는 old <code>erp.w1e.global</code> key를 든 blocker와 무관하게 commit; multi-row assignment는 C2를 든 blocker 앞에서 즉시 <code>55P03</code>; employment helper empty/with-edge는 exact employment key에서 <code>55P03</code>로 fail-fast</li>
+          <li>barrier race 4종(assignment↔contract, assignment↔employment, contract↔qualification, multi-edge)은 각각 1 success + 1 loser(<code>55P03</code> 또는 final validation <code>23514</code>), orphan 0, 40P01 0</li>
+        </ul>
+      </li>
+      <li><strong>미검증:</strong> canonical <code>pwsh ensure/verify-runtime.ps1</code>와
+        <code>test-w1e-0026-postgres-linux.ps1</code>는 이 sandbox에 <code>pwsh</code>가
+        없어 미실행. 위 PG16 절차는 동등 bash/Python 수동 harness로 재현했다.
+        HTTP→real PG→audit 단일 E2E, repository-wide suite/full mypy/canonical 3.11,
+        fresh Sol Ultra worktree review는 계속 follow-up이다.</li>
+    </ul>
+  </div>
+
+  <h2>Grok FIX: COMPLETE_CANDIDATE_MUTUAL_VERIFICATION (2026-08-16)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li><strong>DESIGN_VERDICT:</strong> PostgreSQL 16 READ COMMITTED + deferred
+        row constraint trigger + exact contract/employment
+        <code>pg_try_advisory_xact_lock</code>는 현재 W1E 도메인에서 안전하다.
+        폐기된 <code>erp.w1e.global</code> mutex는 필요하지 않다.</li>
+      <li><strong>F22:</strong> 두 실제 assignment INSERT를 disjoint C/E에서
+        barrier로 overlap시키고 exact advisory key 동시 보유·ungranted wait 0·
+        both commit를 live 관측. old global key 한쪽 통과는 충분 증거가 아니다.</li>
+      <li><strong>F23:</strong> W1E lock loss는 SQLSTATE <code>55P03</code> +
+        message <code>CARE_ASSIGNMENT_CONCURRENT_CONFLICT</code>만 409.
+        application <code>lock_timeout=5s</code>와 <code>FOR UPDATE NOWAIT</code>의
+        다른 55P03은 500. nested orig/diag/cause를 본다. W1D/Staff/batch-deferred
+        commit도 같다.</li>
+      <li><strong>F24:</strong> postcheck가 resurrected
+        <code>fn_w1e_lock_global</code>/<code>erp.w1e.global</code> remnant를
+        <code>CURRENT_0026_W1E_FORBIDDEN_LOCK_REMNANT</code>로 fail-closed.</li>
+      <li>targeted: <strong>76 passed, 3 skipped, 1 warning</strong></li>
+      <li>Ruff check/format exit 0; scoped mypy 12 source success;
+        <code>git diff --check</code> exit 0</li>
+      <li>수동 격리 PG 16.14: <code>0026→0025→0026</code>, postcheck OK,
+        21-node <strong>21 passed</strong> in 3.76s, cleanup cluster=0</li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged.</li>
+      <li>이 sandbox에는 <code>pwsh</code>가 없고
+        <code>/usr/local/bin/node</code>는 Permission denied라 canonical
+        runtime GREEN과 공식 OpenAPI <code>-Check</code>는 선언하지 않는다.</li>
+    </ul>
+  </div>
+
+  <h2>DeepSeek FIX: REVERSE_MUTUAL_VERIFICATION_AFTER_GROK (2026-08-16)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li><strong>F25:</strong> Ubuntu에서 <code>npm.cmd</code> hardcode로
+        <code>test_w1d_03_openapi_routes_and_named_models_are_registered</code>가
+        실패하는 harness 결함을 수정. Linux-only canonical npm은
+        <code>/usr/local/bin/npm</code>이며, cross-platform
+        <code>shutil.which</code> resolver로 교체하고 TypeScript 생성·byte/contract
+        단언은 유지. 회귀 test 추가.</li>
+      <li><strong>F26:</strong> real HTTP integration이 발견한 제품 결함.
+        <code>assignment_overlaps_active</code>가
+        <code>exclude_assignment_id=None</code>을 untyped parameter로 보내
+        PostgreSQL <code>AmbiguousParameter</code> 500이 발생.
+        <code>CAST(:exclude_assignment_id AS bigint)</code>로 수정.</li>
+      <li><strong>G02 closed:</strong>
+        <code>test_w1e_0026_pg_http_create_replace_through_real_service_and_audit</code>
+        를 exact 22-node live PG harness node로 추가. 실제 FastAPI route/
+        dependency/service/repository를 통과하고 authentication identity만
+        override. <code>erp_app</code> role로 create 201, replacement 200 lineage/
+        row_version, exact audit actions, version-conflict 409 rollback 검증.</li>
+      <li>targeted W0+W1D+W1E: <strong>98 passed, 3 skipped, 1 warning</strong></li>
+      <li>W1D contract 단독: <strong>11 passed</strong></li>
+      <li>W1E behavior에 batch-deferred commit flush-only 회귀 추가</li>
+      <li>Ruff check/format exit 0; scoped mypy 12 source success;
+        OpenAPI exact <code>OPENAPI_TYPES_UP_TO_DATE</code></li>
+      <li>격리 PG 16.14 수동 하니스: <code>0026→0025→0026</code>, postcheck OK,
+        exact 22-node <strong>22 passed</strong> in 4.70s,
+        cleanup <code>listener=0 process=0 temp=0 git_delta=0 manifest_delta=0</code></li>
+      <li><code>git diff --check</code> exit 0; historical 0012 sha unchanged</li>
+      <li>이 sandbox에는 <code>pwsh</code>가 없어 canonical
+        <code>ensure/verify-runtime.ps1</code>와 공식 pwsh harness는 직접
+        실행하지 못했고, 동등 bash/Python 수동 절차로 재현했다.</li>
+    </ul>
+  </div>
+
+  <h2>Grok FIX: CLOSING_MUTUAL_VERIFICATION (2026-08-16)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li><strong>F27:</strong> deferred assignment <code>23514</code>를
+        constraint 이름 없이 메시지 폴백만 보면 422로 남아 현재 409 race
+        계약과 어긋남. flush/commit 폴백을
+        <code>CARE_ASSIGNMENT_CONCURRENT_CONFLICT</code> 409로 고정.</li>
+      <li><strong>F28:</strong> <code>55P03</code> 식별이
+        <code>str(layer)</code> 부분문자열을 보면 wrapper/SQL에 코드가 섞인
+        lock timeout을 409로 재표시할 수 있음. exact
+        <code>message_primary</code> 또는 SQLAlchemy 첫 줄만 인정.
+        W1D/Staff IntegrityError 경로도 같은 식별자.</li>
+      <li><strong>F29:</strong> HTTP live node가 settings/engine username
+        <code>erp_app</code>, service/session override 부재,
+        <code>current_user</code>와 app-role readback을 단언하도록 강화.</li>
+      <li><strong>F30:</strong> CAST None/실 id 결정적 회귀 추가. Linux npm
+        resolver는 실제 <code>openapi-typescript</code> 생성을 skip하지
+        않음을 AST로 고정.</li>
+      <li>targeted W0+W1D+W1E: <strong>94 passed, 3 skipped, 1 deselected, 1 warning</strong>
+        (3개는 pwsh skip; 1개는 npm Permission denied로 OpenAPI TS 생성 미실행)</li>
+      <li>Ruff check/format exit 0; scoped mypy 9 source success;
+        <code>git diff --check</code> exit 0</li>
+      <li>OpenAPI Python extract 경로 76개, W1E assignment 경로 5개.
+        공식 <code>-Check</code>는 node Permission denied로 미실행.</li>
+      <li>격리 PG 16.14 수동 하니스: <code>0026→0025→0026</code>,
+        postcheck OK as <code>erp_app</code>, exact 22-node
+        <strong>22 passed</strong> in 4.65s,
+        cleanup <code>listener=0 process=0 temp=0 git_delta=0 manifest_delta=0</code></li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged.</li>
+      <li>이 sandbox에는 <code>pwsh</code>가 없고
+        <code>/usr/local/bin/node</code>는 Permission denied라 canonical
+        runtime GREEN과 공식 OpenAPI <code>-Check</code>는 선언하지 않는다.</li>
+    </ul>
+  </div>
+
+  <h2>DeepSeek FIX: F14_TRANSIENT_DISAPPEARANCE_LIVE_PROOF (2026-08-16)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li>SOURCE_REVIEW: <code>/home/codexctl/worktrees/sswcenter-3-0-final-current-8-20260816</code>
+        (fresh gpt-5.6-sol ultra Grade 5 review <code>STATUS=FAIL/NO-SEAL</code>,
+        P2 F14 evidence/governance blocker)</li>
+      <li>fresh Sol Ultra Grade 5 review가 제기한 F14 evidence/governance
+        blocker를 수정. 기존 F14 test는 empty-edge/ordinary with-edge만
+        prehold E + immediate 55P03로 관측했고 DELETE/transient window를
+        실제로 강제하지 않았다.</li>
+      <li>새 live node
+        <code>test_w1e_0026_pg_employment_helper_transient_disappearance_still_locks_employment</code>
+        를 exact 23-node harness에 추가. production employment helper body는
+        수정하지 않고 <code>fn_w1e_lock_contract_path</code>에만 test-only
+        explicit advisory gate를 주입한다.</li>
+      <li>exact sequence: production helper 첫 contract-edge SELECT가 committed
+        C1을 관측 → C1 contract-lock 호출 지점 gate에서 정지(pg_locks exact
+        ungranted key) → 별도 transaction이 edge DELETE commit → gate 해제 후
+        helper 재개 → edge 부재에도 exact <code>p_employment_id</code> E key를
+        요청하며 별도 exact E blocker가 stable
+        <code>55P03</code>/<code>CARE_ASSIGNMENT_CONCURRENT_CONFLICT</code>를
+        관측 → 40P01/orphan/residue 0.</li>
+      <li>test-only <code>CREATE OR REPLACE</code> instrumentation은
+        <code>finally</code>에서 <code>pg_get_functiondef</code> 원본으로
+        byte-exact 복원하고 catalog/ACL을 비교한 뒤
+        <code>verify_current_0026</code>을 통과시킨다.</li>
+      <li>targeted W0+W1D+W1E: <strong>98 passed, 3 skipped, 1 warning</strong></li>
+      <li>Ruff check/format exit 0; scoped mypy 15 source success;
+        OpenAPI exact <code>OPENAPI_TYPES_UP_TO_DATE</code></li>
+      <li>격리 PG 16.14 수동 하니스: <code>0026→0025→0026</code>, postcheck OK,
+        exact 23-node <strong>23 passed</strong> in 5.33s,
+        cleanup <code>listener=0 process=0 temp=0 git_delta=0 manifest_delta=0</code></li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged.</li>
+      <li>이 sandbox에는 <code>pwsh</code>가 없어 canonical
+        <code>ensure/verify-runtime.ps1</code>와 공식 pwsh harness는 직접
+        실행하지 못했고, 동등 bash/Python 수동 절차로 재현했다.</li>
+    </ul>
+  </div>
+
+  <h2>Grok FIX: F14_TRANSIENT_DISAPPEARANCE_CLOSING_MUTUAL_VERIFICATION (2026-08-16)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING · MODEL=grok-4.6 · REASONING_EFFORT=xhigh</strong></p>
+    <ul>
+      <li>DeepSeek F14 live-proof 완료 후보를 untrusted로 TEST→REVIEW→FIX.
+        DeepSeek PASS를 신뢰하지 않았다. 이전 30초 Grok 실행은 파일 변경이 없어
+        pass로 세지 않는다.</li>
+      <li>catalog: <code>pg_get_functiondef</code> +
+        <code>to_jsonb(pg_proc)::text</code>로 전체 identity 비교.
+        CREATE OR REPLACE 복원 후 DDL과 whole <code>pg_proc</code> row가
+        원본과 일치했다. PostgreSQL 16.14 identity arguments는
+        <code>p_contract_id bigint</code>.</li>
+      <li>cleanup fail-safe: instrumentation을 restoration-guaranteed scope로
+        이동. assertion이 복원/<code>verify_current_0026</code>을 건너뛰지 않음.
+        gate/E blocker 항상 해제, cancel, isolated
+        <code>/tmp/sswcenter-w1e-0026-pg-*</code>에서만 terminate.</li>
+      <li>sequence 강화: gate에서 committed edge 존재, helper는 production
+        C/E 미보유, DELETE 후에도 exact gate wait, conflict 시 exact E
+        blocker 유지, 무관 C blocker 부재, domain hash 비충돌.
+        empty-edge/with-edge와 23-node binding은 유지.</li>
+      <li>Codex가 pre-settings manifest 이후 갱신한 정책 문서 4종
+        (기본 128 / 장시간 256 / hard max 256 / timeout 3600,
+        Grok 기본 모델+명시 xhigh, 2026-08-16 CLI 기본
+        <code>grok-4.6</code>)은 이 세션 관찰과 일치. 문서 바이트는 수정하지
+        않고 재생성 manifest에 현재 hash를 넣는다. 이 sandbox에는
+        <code>ssw-agent</code>가 없어 runner 바이너리는 미대조.</li>
+      <li>targeted W0+W1D+W1E: <strong>94 passed, 1 failed, 26 skipped, 1 warning</strong>
+        (23 PG skip + 3 pwsh skip + npm Permission denied
+        <code>test_w1d_03</code>; skip/xfail 없음)</li>
+      <li>Ruff check/format exit 0; scoped mypy 16 source success;
+        <code>git diff --check</code> exit 0</li>
+      <li>격리 PG 16.14 수동 하니스: <code>0026→0025→0026</code>,
+        postcheck OK as <code>erp_app</code>, exact 23-node
+        <strong>23 passed</strong> in 5.10s,
+        cleanup <code>listener=0 process=0 temp=0 git_delta=0</code></li>
+      <li>historical 0012 sha <code>95ea8be0...</code> unchanged.</li>
+      <li>이 sandbox에는 <code>pwsh</code>가 없고
+        <code>/usr/local/bin/node</code>·<code>npm</code>은 Permission denied라
+        canonical runtime GREEN과 공식 OpenAPI <code>-Check</code>는 선언하지
+        않는다.</li>
+    </ul>
+  </div>
+
+  <h2>Codex FIX: F14 cleanup SystemExit 보존 (2026-08-16)</h2>
+  <div class="card ok">
+    <p><strong>STATUS=PASS · SEAL=NO-SEAL · FINAL_SOL_PENDING</strong></p>
+    <ul>
+      <li><code>verify_current_0026</code>이 postcheck 실패에 쓰는
+        <code>SystemExit</code>를 기존 <code>except Exception</code>이 잡지 못해
+        primary/cleanup 원인을 가릴 수 있던 evidence 결함을 수정했다.</li>
+      <li>postcheck의 <code>SystemExit</code> 타입·메시지와 일반 primary 오류의
+        타입·메시지를 함께 보존한다. <code>KeyboardInterrupt</code>는 모든 복구
+        시도 뒤 다시 전달한다.</li>
+      <li>공식 Linux PG lifecycle exact <strong>23 passed</strong>, cleanup
+        <code>listener=0 process=0 temp=0 git_delta=0 manifest_delta=0</code>.</li>
+      <li>첫 Ruff format-check 한 줄 실패는 즉시 수정 후 PASS. pytest capture
+        임시파일 <code>FileNotFoundError</code>의 0-test 실행은 <code>/tmp</code>
+        고정+capture off로 재실행해 <strong>51 passed</strong>.</li>
+      <li>제품 코드·migration·historical 0012는 바꾸지 않았다.</li>
+    </ul>
+  </div>
+
+  <h2>최종 worktree와 변경 경계</h2>
+  <p>기존 검수: <code>/home/codexctl/worktrees/sswcenter-3-0-final-review-20260816</code><br />이전 current 검수: <code>/home/codexctl/worktrees/sswcenter-3-0-final-current-20260816</code><br />추가 구현 후 독립 검수: <code>/home/codexctl/worktrees/sswcenter-3-0-final-current-2-20260816</code></p>
+  <p>모든 provider와 Sol 검수는 원본 <code>/home/codexctl/workspace/sswcenter-3-0</code>의 stage/commit/push 없이 수행합니다.</p>
+
+  <h2>남은 범위와 주의사항</h2>
+  <div class="note">
+    <ul>
+      <li>전체 backend pytest는 <strong>422 passed, 148 skipped, 13 failed</strong>이며 기존 restore-drill/W1D/W1F 등 범위 밖 실패입니다.</li>
+      <li>canonical 3.12.3 scoped mypy는 W1E·W1D·Staff·recipient 관련 8파일에서 통과했습니다. repository-wide mypy는 별도 범위입니다.</li>
+      <li>HTTP 요청부터 service/repository/실 PostgreSQL/audit까지 연결한 단일 E2E는 이제 exact 23-node live harness에서 <code>test_w1e_0026_pg_http_create_replace_through_real_service_and_audit</code>로 검증했습니다.</li>
+      <li>FAMILY position/qualification 범위의 canonical ambiguity는 임의 결정하지 않고 현재 GENERAL-only 동작을 유지했습니다.</li>
+      <li>persistent candidate SHA/finding-ID manifest는 Sol 독립검수 직전 현재 바이트로 생성합니다.</li>
+    </ul>
+  </div>
+
+  <h2>결론</h2>
+  <p>DeepSeek 지적 F11/F12, Grok 상대검증의 F13·erp_backup ACL·SemVer 2.0.0,
+      Sol Ultra target-only F14~F17, DeepSeek F18 global mutex, leftover 40P01
+      500 매핑(F19), 그리고 최신 지시의 fine-grained fail-fast protocol을
+      현재 바이트에 반영했습니다. 이번 Grok 상호검증은 F22 disjoint two-write
+      overlap 증명, F23 정밀 55P03 식별, F24 global remnant postcheck를
+      추가하고 실 PG16 21-node와 targeted 76 passed로 재검증했습니다.
+      이어서 DeepSeek REVERSE_MUTUAL_VERIFICATION은 F25 Ubuntu npm.cmd harness
+      결함, F26 repository NULL parameter 제품 결함을 수정하고 G02 HTTP→
+      service→repository→real PG→audit 통합을 exact 22-node live node로
+      닫았습니다. 이번 Grok CLOSING_MUTUAL_VERIFICATION은 F27 deferred
+      23514 메시지 폴백 409, F28 exact 55P03 식별, F29 HTTP erp_app
+      단언, F30 CAST None/실 id 회귀를 추가하고 실 PG16 22-node
+      <strong>22 passed</strong>로 재검증했습니다. 이어서 fresh Sol Ultra
+      Grade 5 review가 지적한 F14 transient-disappearance live evidence
+      공백은 DeepSeek FIX가 exact sequence를 강제하는 전용 live node를
+      추가하고 23-node <strong>23 passed</strong>로 재검증했습니다.
+      이어서 이 Grok closing mutual verification은 catalog를
+      <code>pg_get_functiondef</code>+<code>to_jsonb(pg_proc)::text</code>로
+      강화하고 cleanup를 fail-safe로 고친 뒤 동일 23-node
+      <strong>23 passed</strong>로 재검증했습니다.
+      test-only instrumentation은 byte-exact 복원과
+      <code>verify_current_0026</code>으로 확인했습니다. fresh Sol Ultra 독립
+      worktree 검수와 형님 승인 전에는 정본 승격·seal을 선언하지 않습니다.
+      운영표준 R2 opener 교대와 실제 ledger 순서 편차는 이미 발생한
+      거버넌스 기록으로 유지합니다.</p>
+  <footer>이 보고서는 현재 후보의 증거를 요약한 문서이며, 원본 작업 트리의 기존 dirty WIP를 정리하거나 승격하지 않습니다.</footer>
+</main>
+</body>
+</html>

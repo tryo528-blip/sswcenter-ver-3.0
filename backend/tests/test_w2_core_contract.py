@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any, Protocol, cast
 
 import pytest
+from fastapi.routing import APIRoute
 from pydantic import ValidationError
-from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import ForeignKeyConstraint, Table
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine import Dialect
 from sqlalchemy.schema import CreateTable
 
 from app.api.w2 import router
@@ -35,7 +39,9 @@ from app.domains.w2.policies import (
 from app.domains.w2.repository import W2Repository
 from app.domains.w2.schemas import (
     OfficialWorkCardDisplay,
+    OfficialWorkCardItem,
     OfficialWorkCardKind,
+    OfficialWorkCardReassignRequest,
     PersonalTodoUpdateRequest,
     ScheduleCreateRequest,
     ScheduleStaffInput,
@@ -43,20 +49,25 @@ from app.domains.w2.schemas import (
 from app.domains.w2.service import W2Service
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = (
-    BACKEND_ROOT
-    / "alembic"
-    / "versions"
-    / "20260813_0023_w2_core_ledgers.py"
-)
+MIGRATION = BACKEND_ROOT / "alembic" / "versions" / "20260813_0023_w2_core_ledgers.py"
 
 
-def _migration_module():
+class _MigrationModule(Protocol):
+    revision: str
+    down_revision: str
+
+
+def _migration_module() -> _MigrationModule:
     spec = importlib.util.spec_from_file_location("w2_core_0023", MIGRATION)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module
+    return cast(_MigrationModule, module)
+
+
+def _postgresql_dialect() -> Dialect:
+    dialect_factory = cast(Callable[[], Dialect], postgresql.dialect)
+    return dialect_factory()
 
 
 def test_0023_is_forward_child_and_contains_period_and_schedule_guards() -> None:
@@ -83,8 +94,8 @@ def test_0023_is_forward_child_and_contains_period_and_schedule_guards() -> None
 
 
 def test_monthly_assignment_model_is_period_fact_with_composite_employment_fk() -> None:
-    dialect = postgresql.dialect()
-    table = MonthlyProfessionalAssignment.__table__
+    dialect = _postgresql_dialect()
+    table = cast(Table, MonthlyProfessionalAssignment.__table__)
     ddl = str(CreateTable(table).compile(dialect=dialect))
     assert ddl
     assert table.name == "monthly_professional_assignment"
@@ -123,13 +134,13 @@ def test_monthly_assignment_model_is_period_fact_with_composite_employment_fk() 
 
 
 def test_schedule_body_and_staff_join_compile_with_one_shared_schedule_pk() -> None:
-    dialect = postgresql.dialect()
+    dialect = _postgresql_dialect()
     for table in (
-        W2ScheduleMonthControl.__table__,
-        W2Schedule.__table__,
-        W2ScheduleStaff.__table__,
-        W2PersonalTodo.__table__,
-        W2OfficialWorkCard.__table__,
+        cast(Table, W2ScheduleMonthControl.__table__),
+        cast(Table, W2Schedule.__table__),
+        cast(Table, W2ScheduleStaff.__table__),
+        cast(Table, W2PersonalTodo.__table__),
+        cast(Table, W2OfficialWorkCard.__table__),
     ):
         assert str(CreateTable(table).compile(dialect=dialect))
 
@@ -142,9 +153,10 @@ def test_schedule_body_and_staff_join_compile_with_one_shared_schedule_pk() -> N
         W2ScheduleStaff.__table__.columns.keys()
     )
 
+    schedule_table = cast(Table, W2Schedule.__table__)
     exclusion_names = {
         constraint.name
-        for constraint in W2Schedule.__table__.constraints
+        for constraint in schedule_table.constraints
         if constraint.__class__.__name__ == "ExcludeConstraint"
     }
     assert exclusion_names == {"ex_w2_schedule_recipient_overlap"}
@@ -230,14 +242,16 @@ def test_official_card_kind_and_five_display_fields_are_sealed() -> None:
         "due_date",
         "d_day",
     )
+    assert "assignee_staff_id" in OfficialWorkCardItem.model_fields
+    assert "assignee_staff_name" in OfficialWorkCardItem.model_fields
+    assert "assignee_staff_id" not in OfficialWorkCardDisplay.model_fields
     assert display_target_name(None) == "미입력"
     assert display_target_name("  ") == "미입력"
 
 
 def test_renewal_due_dates_priority_and_closed_dominant_history_are_exact() -> None:
-    common = {
+    common: dict[str, Any] = {
         "renewal_key": "recipient:7:renewal:2027-12-31",
-        "assignee_staff_id": 11,
         "target_name": None,
         "detail": "세부 업무",
         "recipient_id": 7,
@@ -277,7 +291,6 @@ def test_nonrenewal_source_interface_does_not_create_a_generator() -> None:
         kind=OfficialWorkCardKind.STAFF_REPLACEMENT_CONSULTATION,
         occurrence_key="staff-replacement:1",
         renewal_key=None,
-        assignee_staff_id=1,
         work_title="직원교체상담",
         target_name="대상자",
         detail="상담 준비",
@@ -293,17 +306,22 @@ def test_nonrenewal_source_interface_does_not_create_a_generator() -> None:
 def test_router_has_period_assignment_and_no_unapproved_schedule_commands() -> None:
     methods_by_path: dict[str, set[str]] = {}
     for route in router.routes:
+        if not isinstance(route, APIRoute):
+            continue
         methods_by_path.setdefault(route.path, set()).update(route.methods or set())
 
     assert methods_by_path["/api/v1/professional-assignments/{recipient_id}"] == {"GET"}
-    assert methods_by_path[
-        "/api/v1/professional-assignments/{recipient_id}/{service_month}"
-    ] == {"POST"}
+    assert methods_by_path["/api/v1/professional-assignments/{recipient_id}/{service_month}"] == {
+        "POST"
+    }
     assert methods_by_path[
         "/api/v1/professional-assignments/{recipient_id}/{service_month}/{assignment_id}"
     ] == {"PUT"}
     assert methods_by_path["/api/v1/official-work-cards"] == {"GET"}
+    assert methods_by_path["/api/v1/official-work-cards/eligible-assignees"] == {"GET"}
     assert methods_by_path["/api/v1/official-work-cards/{card_id}/close"] == {"POST"}
+    assert methods_by_path["/api/v1/official-work-cards/{card_id}/reassign"] == {"POST"}
+    OfficialWorkCardReassignRequest(expected_row_version=2, assignee_staff_id=11)
     assert "/api/v1/schedule-months/{schedule_month}/finalize" in methods_by_path
     assert all("unfinal" not in path and "warning" not in path for path in methods_by_path)
     assert all("bulk" not in path for path in methods_by_path)

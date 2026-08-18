@@ -6,13 +6,14 @@ import hashlib
 import os
 import re
 import subprocess
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+from sqlalchemy.engine import Connection
 
 from app.db import postcheck_w1a_vs1 as postcheck
 
@@ -246,10 +247,7 @@ def test_r0_w2_read_only_contract_01_chain_and_single_forward_head() -> None:
     heads = tuple(script.get_heads())
     if len(heads) != 1:
         pytest.fail("W2_CHAIN_MULTI_HEAD")
-    forward_lineage = {
-        revision.revision
-        for revision in script.iterate_revisions(heads[0], "base")
-    }
+    forward_lineage = {revision.revision for revision in script.iterate_revisions(heads[0], "base")}
     assert R0_REVISION in forward_lineage
 
 
@@ -443,7 +441,7 @@ class _FakeRow:
     def __getitem__(self, index: int) -> Any:
         return self._values[index]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return iter(self._values)
 
 
@@ -480,7 +478,7 @@ class _FakeResult:
     def scalars(self) -> list[Any]:
         return [row[0] for row in self._rows]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[_FakeRow]:
         return iter(self._rows)
 
 
@@ -600,52 +598,58 @@ class _FakeConnection:
         if "has_table_privilege(" in sql_text:
             role = params.get("role_name")
             if role == "erp_app":
-                return _FakeResult([
-                    _FakeRow(
-                        (
-                            "select",
-                            "insert",
-                            "update",
-                            "delete",
-                            "truncate",
-                            "references",
-                            "trigger",
-                            "maintain",
-                        ),
-                        self.app_table_privileges,
-                    )
-                ])
-            if role == "erp_backup":
-                return _FakeResult([
-                    _FakeRow(
-                        (
-                            "select",
-                            "insert",
-                            "update",
-                            "delete",
-                            "truncate",
-                            "references",
-                            "trigger",
-                            "maintain",
-                        ),
-                        self.backup_table_privileges,
-                    )
-                ])
-            return _FakeResult([
-                _FakeRow(
-                    (
-                        "select",
-                        "insert",
-                        "update",
-                        "delete",
-                        "truncate",
-                        "references",
-                        "trigger",
-                        "maintain",
-                    ),
-                    (False,) * 8,
+                return _FakeResult(
+                    [
+                        _FakeRow(
+                            (
+                                "select",
+                                "insert",
+                                "update",
+                                "delete",
+                                "truncate",
+                                "references",
+                                "trigger",
+                                "maintain",
+                            ),
+                            self.app_table_privileges,
+                        )
+                    ]
                 )
-            ])
+            if role == "erp_backup":
+                return _FakeResult(
+                    [
+                        _FakeRow(
+                            (
+                                "select",
+                                "insert",
+                                "update",
+                                "delete",
+                                "truncate",
+                                "references",
+                                "trigger",
+                                "maintain",
+                            ),
+                            self.backup_table_privileges,
+                        )
+                    ]
+                )
+            return _FakeResult(
+                [
+                    _FakeRow(
+                        (
+                            "select",
+                            "insert",
+                            "update",
+                            "delete",
+                            "truncate",
+                            "references",
+                            "trigger",
+                            "maintain",
+                        ),
+                        (False,) * 8,
+                    )
+                ]
+            )
 
         if "a.attacl is not null" in sql_text:
             rows = [_FakeRow(("attname",), (name,)) for name in self.columns_with_iur_priv]
@@ -669,7 +673,7 @@ class _FakeW1CConnection(_FakeConnection):
         self,
         *,
         trigger_pairs: set[tuple[str, str]] | None = None,
-        trigger_states: Mapping[str, tuple[bool, bool]] | None = None,
+        trigger_states: Mapping[tuple[str, str], tuple[bool, bool]] | None = None,
     ) -> None:
         self.w1c_trigger_states = dict(W1C_CONTAINMENT_TRIGGER_STATES)
         if trigger_states:
@@ -707,10 +711,7 @@ class _FakeW1CConnection(_FakeConnection):
             ]
             return _FakeResult(rows)
 
-        if (
-            "information_schema.columns" in sql_text
-            and "is_generated = 'always'" in sql_text
-        ):
+        if "information_schema.columns" in sql_text and "is_generated = 'always'" in sql_text:
             table_names = {str(table_name) for table_name in params.get("table_names", ())}
             rows = [
                 _FakeRow(
@@ -725,10 +726,7 @@ class _FakeW1CConnection(_FakeConnection):
             ]
             return _FakeResult(rows)
 
-        if (
-            "information_schema.columns" in sql_text
-            and "table_name = :table_name" in sql_text
-        ):
+        if "information_schema.columns" in sql_text and "table_name = :table_name" in sql_text:
             table_name = str(params.get("table_name"))
             rows = [
                 _FakeRow(("column_name", "data_type", "is_nullable"), (name, dtype, nullable))
@@ -775,13 +773,9 @@ class _FakeW1CConnection(_FakeConnection):
 
         if "pg_get_functiondef(" in sql_text:
             if "fn_w1c_assert_grade_containment" in sql_text:
-                return _FakeResult(
-                    [_FakeRow(("pg_get_functiondef",), (W1C_GRADE_CONT_FUNCTION,))]
-                )
+                return _FakeResult([_FakeRow(("pg_get_functiondef",), (W1C_GRADE_CONT_FUNCTION,))])
             if "fn_recipient_certification_number_immutable" in sql_text:
-                return _FakeResult(
-                    [_FakeRow(("pg_get_functiondef",), (W1C_IDENTITY_FN,))]
-                )
+                return _FakeResult([_FakeRow(("pg_get_functiondef",), (W1C_IDENTITY_FN,))])
 
         if (
             "pg_get_triggerdef(oid)" in sql_text
@@ -805,8 +799,7 @@ class _FakeW1CConnection(_FakeConnection):
                     ),
                 )
                 for name, table in sorted(self.trigger_pairs)
-                if (not names or name in names)
-                and (not in_clause or name in in_clause)
+                if (not names or name in names) and (not in_clause or name in in_clause)
             ]
             return _FakeResult(rows)
 
@@ -815,23 +808,27 @@ class _FakeW1CConnection(_FakeConnection):
 
 def _expected_table_privileges(read_only: bool) -> tuple[bool, ...]:
     return (
-        True,
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
-    ) if read_only else (
-        True,
-        True,
-        True,
-        False,
-        False,
-        False,
-        False,
-        False,
+        (
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        )
+        if read_only
+        else (
+            True,
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+        )
     )
 
 
@@ -895,12 +892,23 @@ def _default_catalog(
 def _default_w1c_catalog(
     *,
     trigger_pairs: set[tuple[str, str]] | None = None,
-    trigger_states: Mapping[str, tuple[bool, bool]] | None = None,
+    trigger_states: Mapping[tuple[str, str], tuple[bool, bool]] | None = None,
 ) -> _FakeW1CConnection:
     return _FakeW1CConnection(
         trigger_pairs=trigger_pairs or set(W1C_CONTAINMENT_TRIGGER_PAIRS),
         trigger_states=trigger_states,
     )
+
+
+def _verify_w2_fake(connection: _FakeConnection, *, read_only: bool) -> None:
+    postcheck._verify_w2_service_plan_notice_contract(
+        cast(Connection, connection),
+        read_only=read_only,
+    )
+
+
+def _verify_w1c_fake(connection: _FakeW1CConnection) -> None:
+    postcheck._verify_w1c_contract(cast(Connection, connection))
 
 
 def _mutate_value(value: Any) -> Any:
@@ -919,16 +927,16 @@ def _mutate_value(value: Any) -> Any:
 
 def test_r0_w2_read_only_contract_08_fake_catalog_verifier_hardened() -> None:
     baseline = _default_catalog(read_only=True)
-    postcheck._verify_w2_service_plan_notice_contract(baseline, read_only=True)
+    _verify_w2_fake(baseline, read_only=True)
 
     for field_index in range(len(_expected_ownership())):
-        mutated = list(_expected_ownership())
-        mutated[field_index] = _mutate_value(mutated[field_index])
+        mutated_ownership = list(_expected_ownership())
+        mutated_ownership[field_index] = _mutate_value(mutated_ownership[field_index])
         with pytest.raises(SystemExit):
-            postcheck._verify_w2_service_plan_notice_contract(
+            _verify_w2_fake(
                 _default_catalog(
                     read_only=True,
-                    ownership=tuple(mutated),
+                    ownership=cast(tuple[str, str, str], tuple(mutated_ownership)),
                 ),
                 read_only=True,
             )
@@ -941,38 +949,40 @@ def test_r0_w2_read_only_contract_08_fake_catalog_verifier_hardened() -> None:
         for index in range(len(constraint_snapshot)):
             if not is_fk and index in (6, 7, 8):
                 continue
-            mutated = dict(postcheck._W2_SERVICE_PLAN_NOTICE_CONSTRAINTS)
+            mutated_constraints: dict[str, tuple[Any, ...]] = dict(
+                postcheck._W2_SERVICE_PLAN_NOTICE_CONSTRAINTS
+            )
             values = list(constraint_snapshot)
             values[index] = _mutate_value(values[index])
-            mutated[constraint_name] = tuple(values)
+            mutated_constraints[constraint_name] = tuple(values)
             with pytest.raises(SystemExit):
-                postcheck._verify_w2_service_plan_notice_contract(
-                    _default_catalog(read_only=True, constraints=mutated),
+                _verify_w2_fake(
+                    _default_catalog(read_only=True, constraints=mutated_constraints),
                     read_only=True,
                 )
 
     baseline_table = _expected_table_privileges(True)
     for index in range(len(baseline_table)):
-        mutated = list(baseline_table)
-        mutated[index] = _mutate_value(mutated[index])
+        mutated_table = list(baseline_table)
+        mutated_table[index] = _mutate_value(mutated_table[index])
         with pytest.raises(SystemExit):
-            postcheck._verify_w2_service_plan_notice_contract(
+            _verify_w2_fake(
                 _default_catalog(
                     read_only=True,
-                    app_table_privileges=tuple(mutated),
+                    app_table_privileges=tuple(mutated_table),
                 ),
                 read_only=True,
             )
 
     baseline_backup = (True, False, False, False, False, False, False, False)
     for index in range(len(baseline_backup)):
-        mutated = list(baseline_backup)
-        mutated[index] = _mutate_value(mutated[index])
+        mutated_backup = list(baseline_backup)
+        mutated_backup[index] = _mutate_value(mutated_backup[index])
         with pytest.raises(SystemExit):
-            postcheck._verify_w2_service_plan_notice_contract(
+            _verify_w2_fake(
                 _default_catalog(
                     read_only=True,
-                    backup_table_privileges=tuple(mutated),
+                    backup_table_privileges=tuple(mutated_backup),
                 ),
                 read_only=True,
             )
@@ -985,33 +995,33 @@ def test_r0_w2_read_only_contract_08_fake_catalog_verifier_hardened() -> None:
 
     for _ in ("insert", "update", "references"):
         with pytest.raises(SystemExit):
-            postcheck._verify_w2_service_plan_notice_contract(
+            _verify_w2_fake(
                 _default_catalog(read_only=True, columns_with_iur_priv=("notification_date",)),
                 read_only=True,
             )
 
     baseline_seq = _expected_sequence_privileges(True)
     for index in range(len(baseline_seq)):
-        mutated = list(baseline_seq)
-        mutated[index] = _mutate_value(mutated[index])
+        mutated_sequence = list(baseline_seq)
+        mutated_sequence[index] = _mutate_value(mutated_sequence[index])
         with pytest.raises(SystemExit):
-            postcheck._verify_w2_service_plan_notice_contract(
+            _verify_w2_fake(
                 _default_catalog(
                     read_only=True,
-                    app_sequence_privileges=tuple(mutated),
+                    app_sequence_privileges=tuple(mutated_sequence),
                 ),
                 read_only=True,
             )
 
     baseline_backup_seq = (False, True, False)
     for index in range(len(baseline_backup_seq)):
-        mutated = list(baseline_backup_seq)
-        mutated[index] = _mutate_value(mutated[index])
+        mutated_backup_sequence = list(baseline_backup_seq)
+        mutated_backup_sequence[index] = _mutate_value(mutated_backup_sequence[index])
         with pytest.raises(SystemExit):
-            postcheck._verify_w2_service_plan_notice_contract(
+            _verify_w2_fake(
                 _default_catalog(
                     read_only=True,
-                    backup_sequence_privileges=tuple(mutated),
+                    backup_sequence_privileges=tuple(mutated_backup_sequence),
                 ),
                 read_only=True,
             )
@@ -1026,7 +1036,7 @@ def test_r0_w2_read_only_contract_09_trigger_pair_matching_allows_same_name_othe
         ("ct_recipient_contract_service_plan_reverse_guard", "recipient_service_plan_notice")
     )
 
-    postcheck._verify_w2_service_plan_notice_contract(
+    _verify_w2_fake(
         _default_catalog(read_only=False, trigger_pairs=trigger_pairs),
         read_only=False,
     )
@@ -1038,7 +1048,7 @@ def test_r0_w2_read_only_contract_10_w1c_containment_trigger_contract_is_targete
         ("ct_service_plan_notice_within_contract", "recipient_service_plan_notice"),
         ("ct_recipient_contract_service_plan_reverse_guard", "recipient_contract"),
     }
-    postcheck._verify_w1c_contract(_default_w1c_catalog(trigger_pairs=unrelated_pairs))
+    _verify_w1c_fake(_default_w1c_catalog(trigger_pairs=unrelated_pairs))
 
     missing_pairs = {
         pair
@@ -1046,18 +1056,18 @@ def test_r0_w2_read_only_contract_10_w1c_containment_trigger_contract_is_targete
         if pair != ("ct_recipient_grade_period_containment", "recipient_grade_period")
     }
     with pytest.raises(SystemExit):
-        postcheck._verify_w1c_contract(_default_w1c_catalog(trigger_pairs=missing_pairs))
+        _verify_w1c_fake(_default_w1c_catalog(trigger_pairs=missing_pairs))
 
     wrong_table_pairs = {
         ("ct_recipient_grade_period_containment", "recipient_contract"),
         ("ct_recipient_certification_grade_containment", "recipient_grade_period"),
     }
     with pytest.raises(SystemExit):
-        postcheck._verify_w1c_contract(_default_w1c_catalog(trigger_pairs=wrong_table_pairs))
+        _verify_w1c_fake(_default_w1c_catalog(trigger_pairs=wrong_table_pairs))
 
     for trigger in W1C_CONTAINMENT_TRIGGER_STATES:
         bad_states = dict(W1C_CONTAINMENT_TRIGGER_STATES)
         baseline_state = W1C_CONTAINMENT_TRIGGER_STATES[trigger]
         bad_states[trigger] = (False, baseline_state[1])
         with pytest.raises(SystemExit):
-            postcheck._verify_w1c_contract(_default_w1c_catalog(trigger_states=bad_states))
+            _verify_w1c_fake(_default_w1c_catalog(trigger_states=bad_states))

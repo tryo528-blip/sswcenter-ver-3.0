@@ -1,6 +1,6 @@
 import re
 from datetime import UTC, date, datetime
-from typing import cast
+from typing import Self, cast
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -23,7 +23,7 @@ def build_unicode_rrn(*, formatted: bool, mixed: bool) -> str:
     raw = "".join(("900101", "1123456"))
     if mixed:
         raw = raw.translate(
-            str.maketrans({"1": "١"}),
+            str.maketrans("1", "١"),
         )
     else:
         raw = raw.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
@@ -424,7 +424,7 @@ def test_f1_kst_current_employment_status_matches_projection_date(
 ) -> None:
     from app.db.models import Staff, StaffEmployment
     from app.domains.staff.repository import StaffRepository
-    from app.domains.staff.schemas import EmploymentStatus
+    from app.domains.staff.schemas import EmploymentStatus, StaffDetailResponse
     from app.domains.staff.service import StaffService
 
     server_today = date(2026, 7, 27)
@@ -433,8 +433,8 @@ def test_f1_kst_current_employment_status_matches_projection_date(
 
     class ServerDate(date):
         @classmethod
-        def today(cls) -> date:
-            return server_today
+        def today(cls) -> Self:
+            return cls(server_today.year, server_today.month, server_today.day)
 
     monkeypatch.setattr("app.domains.staff.service.date", ServerDate)
 
@@ -482,6 +482,7 @@ def test_f1_kst_current_employment_status_matches_projection_date(
     service.repository = cast(StaffRepository, Repository())
     result = service._response_for_staff(staff, detail=True)
 
+    assert isinstance(result, StaffDetailResponse)
     assert result.current_employment is not None
     assert result.current_employment.status == EmploymentStatus.ACTIVE, (
         "F1_CURRENT_EMPLOYMENT_STATUS_MISMATCH"

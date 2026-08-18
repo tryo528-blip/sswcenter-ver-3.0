@@ -1,8 +1,13 @@
+from collections.abc import Callable
+from typing import cast
+
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine import Dialect
 from sqlalchemy.schema import CreateIndex, CreateTable
 
 from app.db import models as wave0_models  # noqa: F401
 from app.db import w2_models as current_w2_models  # noqa: F401
+from app.db import w3_models as current_w3_models  # noqa: F401
 from app.db.base import Base
 
 EXPECTED_CURRENT_TABLES = {
@@ -54,6 +59,12 @@ EXPECTED_CURRENT_TABLES = {
     "erp.w2_schedule_month_control",
     "erp.w2_schedule_staff",
     "erp.w2_service_plan_notice",
+    "erp.w3_import_attempt",
+    "erp.w3_import_run",
+    "erp.w3_private_content",
+    "erp.w3_source_receipt",
+    "erp.w3_source_row",
+    "erp.w3_source_snapshot",
 }
 
 
@@ -62,7 +73,8 @@ def test_current_metadata_contains_expected_tables() -> None:
 
 
 def test_current_schema_compiles_for_postgresql() -> None:
-    dialect = postgresql.dialect()
+    dialect_factory = cast(Callable[[], Dialect], postgresql.dialect)
+    dialect = dialect_factory()
 
     for table in Base.metadata.sorted_tables:
         create_table_sql = str(CreateTable(table).compile(dialect=dialect))

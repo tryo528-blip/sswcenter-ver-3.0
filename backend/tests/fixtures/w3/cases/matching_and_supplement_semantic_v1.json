@@ -1,0 +1,17 @@
+{
+  "fixture_version": "w3-matching-supplement-cases-v1",
+  "contains_pii": false,
+  "matching_cases": [
+    {"case_id": "W3-MATCH-ZERO", "valid_candidate_ids": []},
+    {"case_id": "W3-MATCH-ONE", "valid_candidate_ids": ["SYNTHETIC-SCHEDULE-001"]},
+    {"case_id": "W3-MATCH-MANY", "valid_candidate_ids": ["SYNTHETIC-SCHEDULE-002", "SYNTHETIC-SCHEDULE-003"]},
+    {"case_id": "W3-STAFF-KEY-REUSED", "stable_mapping_count": 2, "employment_valid_count": 1, "position_valid_count": 1}
+  ],
+  "supplement_cases": [
+    {"case_id": "W3-SUPPLEMENT-CREATE", "source_event_state": "START_ONLY", "row_version": 1},
+    {"case_id": "W3-SUPPLEMENT-CANCEL", "source_event_state": "START_ONLY", "row_version": 2},
+    {"case_id": "W3-SUPPLEMENT-REPLACE", "source_event_state": "START_ONLY", "row_version": 3},
+    {"case_id": "W3-SUPPLEMENT-STALE", "source_event_state": "START_ONLY", "row_version": 2, "current_row_version": 3},
+    {"case_id": "W3-SUPPLEMENT-FINALIZED", "source_event_state": "START_ONLY", "month_state": "FINALIZED"}
+  ]
+}

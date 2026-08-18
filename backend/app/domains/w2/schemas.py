@@ -89,10 +89,7 @@ class ServicePlanNoticeCreateRequest(StrictModel):
 
     @model_validator(mode="after")
     def _ordered(self) -> ServicePlanNoticeCreateRequest:
-        if (
-            self.applied_end_date is not None
-            and self.applied_start_date > self.applied_end_date
-        ):
+        if self.applied_end_date is not None and self.applied_start_date > self.applied_end_date:
             raise ValueError("applied_start_date must be on or before applied_end_date")
         return self
 
@@ -281,6 +278,8 @@ class OfficialWorkCardItem(StrictModel):
     id: PositiveId
     row_version: PositiveVersion
     kind: OfficialWorkCardKind
+    assignee_staff_id: PositiveId
+    assignee_staff_name: str
     display: OfficialWorkCardDisplay
 
 
@@ -297,3 +296,18 @@ class OfficialWorkCardListResponse(StrictModel):
 
 class OfficialWorkCardCloseRequest(StrictModel):
     expected_row_version: PositiveVersion
+
+
+class OfficialWorkCardReassignRequest(StrictModel):
+    expected_row_version: PositiveVersion
+    assignee_staff_id: PositiveId
+
+
+class OfficialWorkCardEligibleAssignee(StrictModel):
+    staff_id: PositiveId
+    staff_name: str
+
+
+class OfficialWorkCardEligibleAssigneeListResponse(StrictModel):
+    as_of_date: date
+    items: list[OfficialWorkCardEligibleAssignee]

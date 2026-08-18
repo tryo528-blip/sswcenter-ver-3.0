@@ -12,11 +12,7 @@ HISTORICAL_MIGRATION = (
     REPO_ROOT / "backend" / "alembic" / "versions" / "20260728_0006_w1a_staff_health_check.py"
 )
 CORRECTION_MIGRATION = (
-    REPO_ROOT
-    / "backend"
-    / "alembic"
-    / "versions"
-    / "20260813_0020_w1_staff_contract_correction.py"
+    REPO_ROOT / "backend" / "alembic" / "versions" / "20260813_0020_w1_staff_contract_correction.py"
 )
 
 

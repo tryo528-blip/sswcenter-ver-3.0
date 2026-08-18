@@ -52,6 +52,8 @@ def _fail_closed_preflight() -> None:
         $$;
         """
     )
+
+
 def _correct_recipient_columns() -> None:
     op.alter_column(
         "recipient",
@@ -136,6 +138,7 @@ def _correct_guardians() -> None:
         EXECUTE FUNCTION erp.fn_recipient_guardian_max_two();
         """
     )
+
 
 def _remove_retired_ledgers_and_fields() -> None:
     op.drop_table("recipient_payer_snapshot", schema="erp")

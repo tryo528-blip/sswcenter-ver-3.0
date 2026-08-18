@@ -8,7 +8,10 @@ from sqlalchemy import create_engine, pool
 from alembic import context
 from app.core.settings import assert_migration_database_url, get_settings
 from app.db import models as wave0_models  # noqa: F401
-from app.db import w2_models  # noqa: F401
+from app.db import (
+    w2_models,  # noqa: F401
+    w3_models,  # noqa: F401
+)
 from app.db.base import Base
 
 config = context.config

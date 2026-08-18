@@ -594,11 +594,13 @@ def test_search_and_stable_name_id_ordering(
         )
         names = [item.name for item in response.items]
         ids = [item.id for item in response.items]
-        assert names == sorted(names)
-        paired = list(zip(names, ids, strict=True))
+        assert all(name is not None for name in names)
+        required_names = [name for name in names if name is not None]
+        assert required_names == sorted(required_names)
+        paired = list(zip(required_names, ids, strict=True))
         assert paired == sorted(paired, key=lambda pair: (pair[0], pair[1]))
         assert response.total == len(response.items)
-        assert all(label in name for name in names)
+        assert all(label in name for name in required_names)
 
 
 def test_patch_recipient_status_update_and_invalid_status(

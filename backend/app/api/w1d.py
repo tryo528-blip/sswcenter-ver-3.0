@@ -28,7 +28,8 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
         "description": (
             "CONTRACT_SERVICE_PERIOD_CONFLICT, "
             "CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, "
-            "CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT"
+            "CONTRACT_REACTIVATION_FORBIDDEN, "
+            "CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT"
         ),
     },
     422: {"model": RecipientErrorEnvelope},

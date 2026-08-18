@@ -70,9 +70,7 @@ W2_GUARD_TRIGGERS = {
 }
 W2_IMMUTABLE_TRIGGERS = {
     "ct_recipient_contract_recipient_id_immutable": "recipient_contract",
-    "ct_recipient_certification_period_recipient_id_immutable": (
-        "recipient_certification_period"
-    ),
+    "ct_recipient_certification_period_recipient_id_immutable": ("recipient_certification_period"),
 }
 W2_CONSTRAINTS = frozenset(
     {
@@ -178,8 +176,7 @@ def _database_urls() -> dict[str, dict[str, str]]:
             }[role_name]
             if parsed.username != expected_user:
                 pytest.fail(
-                    f"R0_ROOM2_ROLE_MISMATCH: {path_name}/{role_name} "
-                    f"role={parsed.username!r}"
+                    f"R0_ROOM2_ROLE_MISMATCH: {path_name}/{role_name} role={parsed.username!r}"
                 )
     if urls["current"]["owner"] == urls["fresh"]["owner"]:
         pytest.fail("R0_ROOM2_CURRENT_FRESH_TARGET_COLLISION")
@@ -191,8 +188,7 @@ def _database_environment(database_url: str) -> Iterator[None]:
     from app.core.settings import get_settings
 
     previous = {
-        key: os.environ.get(key)
-        for key in ("SSWCENTER_DATABASE_URL", "SSWCENTER_ENVIRONMENT")
+        key: os.environ.get(key) for key in ("SSWCENTER_DATABASE_URL", "SSWCENTER_ENVIRONMENT")
     }
     os.environ["SSWCENTER_DATABASE_URL"] = database_url
     os.environ["SSWCENTER_ENVIRONMENT"] = "test"
@@ -368,9 +364,7 @@ def _seed_current_path(engine: Engine) -> None:
             },
         )
         connection.execute(
-            text(
-                f"SELECT setval('{SERVICE_PLAN_SEQUENCE}', :value, true)"
-            ),
+            text(f"SELECT setval('{SERVICE_PLAN_SEQUENCE}', :value, true)"),
             {"value": HISTORY_ACTIVE_ID},
         )
         connection.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
@@ -638,9 +632,7 @@ def _capture_catalog(engine: Engine) -> dict[str, Any]:
             effective_acl["table"][role_name] = tuple(
                 bool(
                     connection.execute(
-                        text(
-                            "SELECT has_table_privilege(:role_name, :table_name, :privilege)"
-                        ),
+                        text("SELECT has_table_privilege(:role_name, :table_name, :privilege)"),
                         {
                             "role_name": role_name,
                             "table_name": SERVICE_PLAN_TABLE,
@@ -684,8 +676,7 @@ def _capture_catalog(engine: Engine) -> dict[str, Any]:
 
 def _assert_catalog_contract(snapshot: dict[str, Any], *, read_only: bool) -> None:
     columns = tuple(
-        (str(row[1]), str(row[2]), str(row[3]), str(row[4]))
-        for row in snapshot["columns"]
+        (str(row[1]), str(row[2]), str(row[3]), str(row[4])) for row in snapshot["columns"]
     )
     assert columns == EXPECTED_COLUMNS
     assert len(snapshot["columns"]) == 12
@@ -823,9 +814,7 @@ def _assert_runtime_role(
     try:
         with engine.connect() as connection:
             identity = connection.execute(
-                text(
-                    f"SELECT current_user, count(*)::integer FROM {SERVICE_PLAN_TABLE}"
-                )
+                text(f"SELECT current_user, count(*)::integer FROM {SERVICE_PLAN_TABLE}")
             ).one()
             assert identity[0] == role_name
             assert int(identity[1]) == expected_count
@@ -938,9 +927,10 @@ def scenario() -> Scenario:
         assert current_catalog_before["columns"] == current_catalog_after["columns"]
         assert current_catalog_before["constraints"] == current_catalog_after["constraints"]
         assert current_catalog_before["pk_index"] == current_catalog_after["pk_index"]
-        assert current_catalog_before["identity_dependency"] == current_catalog_after[
-            "identity_dependency"
-        ]
+        assert (
+            current_catalog_before["identity_dependency"]
+            == current_catalog_after["identity_dependency"]
+        )
         assert current_catalog_before["pg_sequence"] == current_catalog_after["pg_sequence"]
         assert current_catalog_before["sequence_state"] == current_catalog_after["sequence_state"]
         assert current_catalog_before["functions"] == current_catalog_after["functions"]
@@ -1025,8 +1015,7 @@ def test_current_path_exact_preservation_contract(scenario: Scenario) -> None:
     ):
         assert scenario.current_before[key] == scenario.current_after[key], key
     assert (
-        scenario.current_before["raw_acl"]["schema"]
-        == scenario.current_after["raw_acl"]["schema"]
+        scenario.current_before["raw_acl"]["schema"] == scenario.current_after["raw_acl"]["schema"]
     )
     assert (
         scenario.current_before["raw_acl"]["columns"]

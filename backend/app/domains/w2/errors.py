@@ -21,6 +21,7 @@ MESSAGES: dict[str, str] = {
     "SERVICE_PLAN_NOTICE_NOT_FOUND": "급여계획서 통보 기록을 찾을 수 없습니다.",
     "SERVICE_PLAN_CONTRACT_NOT_FOUND": "연결할 수급자 계약을 찾을 수 없습니다.",
     "SERVICE_PLAN_CONTRACT_MISMATCH": "해당 수급자의 계약만 연결할 수 있습니다.",
+    "SERVICE_PLAN_REPLACEMENT_CROSS_RECIPIENT": "같은 수급자의 계획서만 서로 대체할 수 있습니다.",
     "SERVICE_PLAN_OUTSIDE_CONTRACT": "적용기간이 유효 계약기간을 벗어납니다.",
     "SERVICE_PLAN_OUTSIDE_CERTIFICATION": "적용기간을 보장하는 인정기간이 없습니다.",
     "SERVICE_PLAN_NOTICE_REPLACED": "이미 정정된 급여계획서 통보 기록입니다.",
@@ -44,6 +45,13 @@ MESSAGES: dict[str, str] = {
     "CARD_ALREADY_CLOSED": "이미 닫힌 업무카드는 다시 열 수 없습니다.",
     "ADMIN_CARD_MUTATION_FORBIDDEN": "관리자는 업무카드를 대신 처리할 수 없습니다.",
     "ADMIN_CARD_ASSIGNEE_FORBIDDEN": "관리자에게는 업무카드를 배정할 수 없습니다.",
+    "CARD_ASSIGNEE_UNRESOLVED": "카드 기준일에 유효한 월 전문직 담당을 확정할 수 없습니다.",
+    "CARD_REASSIGN_FORBIDDEN": "관리자만 담당자를 변경할 수 있습니다.",
+    "CARD_REASSIGN_SAME_ASSIGNEE": "현재 담당자와 다른 직원을 선택하세요.",
+    "CARD_ASSIGNEE_INELIGIBLE": "현재 재직 중인 사회복지사 또는 간호사만 담당할 수 있습니다.",
+    "CARD_ASSIGNEE_OVERRIDE_INELIGIBLE": (
+        "수동 지정된 담당자를 유지할 수 없어 상위 카드로 교체하지 못했습니다."
+    ),
     "CARD_OCCURRENCE_CONFLICT": "같은 원천의 업무카드가 이미 존재합니다.",
     "VALIDATION_ERROR": "입력값을 확인하세요.",
     "UNEXPECTED_SERVER_ERROR": "요청을 처리하지 못했습니다.",

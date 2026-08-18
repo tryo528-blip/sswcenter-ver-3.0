@@ -89,7 +89,10 @@ $TrackedEnvironmentNames = @(
     "SSWCENTER_DATA_ROOT",
     "SSWCENTER_W0_POSTGRES_LIVE",
     "PYTHONDONTWRITEBYTECODE",
-    "PGCLIENTENCODING"
+    "PGCLIENTENCODING",
+    "TMPDIR",
+    "TMP",
+    "TEMP"
 )
 $PreviousEnvironment = @{}
 foreach ($EnvironmentName in $TrackedEnvironmentNames) {
@@ -177,6 +180,14 @@ CREATE ROLE erp_backup LOGIN;
     $env:SSWCENTER_W0_POSTGRES_LIVE = "1"
     $env:PYTHONDONTWRITEBYTECODE = "1"
     $env:PGCLIENTENCODING = "UTF8"
+    # Windows-hosted Codex sessions can leak TEMP/TMP values such as
+    # /mnt/c/WINDOWS/TEMP into Linux.  Python's tempfile module then rejects
+    # this harness's deliberately isolated /tmp data root as being outside its
+    # operating-system temporary directory.  Pin all Linux temp selectors for
+    # child processes and restore them in the existing finally block.
+    $env:TMPDIR = $TempParent
+    $env:TMP = $TempParent
+    $env:TEMP = $TempParent
 
     Push-Location $BackendRoot
     try {

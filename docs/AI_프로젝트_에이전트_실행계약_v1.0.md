@@ -18,6 +18,11 @@ ssw-agent run <grok|deepseek> <implement|review|fix>
 
 작업 prompt는 기본적으로 UTF-8 stdin으로 전달한다. 한 실행은 한 actor와 한 action만 가지며 다음 실행으로 역할이나 memory를 자동 승계하지 않는다.
 
+provider tool-turn 예산은 기본 `128`턴이며 요청값은 `1`~`256`턴으로 제한한다. `256`턴은
+DeepSeek tool-call loop와 Grok CLI의 공통 hard cap이다.
+오래 걸릴 것으로 예상되는 migration·PostgreSQL·동시성·복구·cross-layer 범위는 처음부터
+`256`턴과 `timeout=3600초`를 사용한다.
+
 ## 2. 인증
 
 | provider | 방식 | 설정 명령 | 저장 위치 |
@@ -35,6 +40,9 @@ ssw-agent run <grok|deepseek> <implement|review|fix>
 
 - 공식 Linux Grok CLI를 형님의 월구독 로그인으로 사용한다.
 - 현재 설치 release는 `grok 1.0.4 (d846eb93d9)`, binary SHA-256은 `79f49625f153923db491a5c290e9b04c3444da488b6b9d6aac533ccb5bff2455`로 pin한다. 자동 update는 끈다.
+- 모델 ID는 runner가 고정하지 않고 월구독 CLI가 표시하는 현재 기본 모델을 사용한다.
+  2026-08-16 확인값은 `grok-4.6`이다. 모든 Grok 실행은 모델 기본값과 별개로
+  `--reasoning-effort xhigh`를 명시하며 결과 JSON에 `reasoning_effort=xhigh`를 기록한다.
 - CLI는 고정 repository root에서 headless fresh session으로 실행한다.
 - `IMPLEMENT`·`FIX`: custom profile `sswcenter_work`를 사용한다.
 - `REVIEW`: custom profile `sswcenter_review`를 사용한다.

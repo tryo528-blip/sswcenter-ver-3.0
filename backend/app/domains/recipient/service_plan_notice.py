@@ -37,11 +37,7 @@ def deadline_date(
         year += 1
     last_day = monthrange(year, month)[1]
     result = date(year, month, min(notification_date.day, last_day))
-    caps = [
-        value
-        for value in (contract_end_date, certification_end_date)
-        if value is not None
-    ]
+    caps = [value for value in (contract_end_date, certification_end_date) if value is not None]
     if caps:
         result = min(result, *caps)
     return result

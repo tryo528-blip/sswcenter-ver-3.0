@@ -11,12 +11,13 @@ const recipient = {
   name: 'W1C 브라우저 수급자',
   birth_date: '1950-01-01',
   sex_code: 'FEMALE',
+  recipient_status: 'ACTIVE',
   recipient_no: null,
   memo: null,
   postal_code: null,
   address: null,
   home_phone: null,
-  mobile_phone: null,
+  mobile_phone: '010-1234-5678',
   row_version: 1,
 };
 
@@ -159,6 +160,56 @@ async function installW1cApi(page: Page): Promise<BrowserState> {
       });
       return;
     }
+    if (url.pathname === `${base}/detail-batch` && method === 'POST') {
+      const rawBody = request.postData() ?? '';
+      const parsedBody = JSON.parse(
+        rawBody.replace(/"amount_krw":([0-9]+)/, '"amount_krw":"$1"'),
+      ) as {
+        certification_identity?: Record<string, unknown>;
+        benefit_period?: { payload: Record<string, unknown> };
+        approval_amount_period?: { payload: Record<string, unknown> };
+      };
+      const savedSections: string[] = [];
+      if (parsedBody.certification_identity) {
+        state.identity = {
+          recipient_id: 42,
+          certification_number: 'L1234567890',
+          row_version: 1,
+        };
+        savedSections.push('certification_identity');
+      }
+      if (parsedBody.benefit_period) {
+        state.benefits = [
+          {
+            id: 1,
+            recipient_id: 42,
+            ...parsedBody.benefit_period.payload,
+            invalidated_at_utc: null,
+            replacement_benefit_period_id: null,
+            row_version: 1,
+          },
+        ];
+        savedSections.push('benefit_period');
+      }
+      if (parsedBody.approval_amount_period) {
+        const amount = String(parsedBody.approval_amount_period.payload.amount_krw);
+        const createdJson = JSON.stringify({
+          id: 9,
+          recipient_id: 42,
+          ...parsedBody.approval_amount_period.payload,
+          amount_krw: null,
+          invalidated_at_utc: null,
+          replacement_local_approval_amount_period_id: null,
+          row_version: 1,
+        }).replace('"amount_krw":null', `"amount_krw":${amount}`);
+        state.approvalListJson = `{"items":[${createdJson}]}`;
+        savedSections.push('approval_amount_period');
+      }
+      await route.fulfill({
+        json: { recipient_id: 42, saved_sections: savedSections },
+      });
+      return;
+    }
     await route.fulfill({
       status: 404,
       json: { error: { code: 'NOT_FOUND', message: 'not found' } },
@@ -170,6 +221,7 @@ async function installW1cApi(page: Page): Promise<BrowserState> {
 async function openW1cPanel(page: Page): Promise<void> {
   await page.goto('/recipients');
   await page.getByTestId('recipient-name-option').click();
+  await page.getByTestId('recipient-detail-toggle').click();
   await expect(page.getByTestId('w1c-panel')).toBeVisible();
 }
 
@@ -180,7 +232,7 @@ test('W1C browser surface preserves exact options and forbidden absences', async
   await openW1cPanel(page);
 
   const gradeValues = await page
-    .getByTestId('w1c-grade-select')
+    .getByTestId('w1c-certification-grade-select')
     .locator('option')
     .evaluateAll((options) => options.map((option) => option.getAttribute('value')));
   expect(gradeValues).toEqual(['1', '2', '3', '4', '5']);
@@ -216,42 +268,41 @@ test('W1C browser submits suffix input and an explicitly selected benefit', asyn
 }) => {
   const state = await installW1cApi(page);
   await openW1cPanel(page);
+  await page.getByTestId('recipient-basic-edit').click();
+  await expect(page.getByTestId('recipient-detail-batch-toolbar')).toBeVisible();
 
   await page.getByTestId('w1c-certification-input').fill('l1234567890-100');
   await expect(page.getByTestId('w1c-certification-preview')).toContainText(
     'L1234567890',
   );
-  await page.getByRole('button', { name: '인정 본번호 등록' }).click();
+  await page.getByTestId('w1c-benefit-select').selectOption('MEDICAL_9');
+  await page.getByTestId('w1c-benefit-start-text').fill('2026-07-15');
+  await page
+    .getByTestId('recipient-detail-batch-toolbar')
+    .getByRole('button', { name: '저장' })
+    .click();
   await expect(page.getByTestId('w1c-certification-section')).toContainText(
     'L1234567890',
   );
-
-  await page.getByTestId('w1c-benefit-select').selectOption('MEDICAL_9');
-  await page.getByTestId('w1c-benefit-start-date').fill('2026-07-15');
-  await page.getByRole('button', { name: '혜택기간 등록' }).click();
   await expect(page.getByTestId('w1c-benefit-history')).toContainText('MEDICAL_9');
 
-  const identityPost = state.requests.find((request) => {
+  const detailBatchPost = state.requests.find((request) => {
     const url = new URL(request.url());
     return (
       request.method() === 'POST' &&
-      url.pathname === '/api/v1/recipients/42/certification-identity'
+      url.pathname === '/api/v1/recipients/42/detail-batch'
     );
   });
-  expect(identityPost?.postDataJSON()).toEqual({
-    certification_number: 'l1234567890-100',
-  });
-  const benefitPost = state.requests.find((request) => {
-    const url = new URL(request.url());
-    return (
-      request.method() === 'POST' &&
-      url.pathname === '/api/v1/recipients/42/benefit-periods'
-    );
-  });
-  expect(benefitPost?.postDataJSON()).toEqual({
-    benefit_code: 'MEDICAL_9',
-    start_date: '2026-07-15',
-    end_date: null,
+  expect(detailBatchPost?.postDataJSON()).toEqual({
+    certification_identity: {
+      certification_number: 'l1234567890-100',
+    },
+    benefit_period: {
+      payload: {
+        benefit_code: 'MEDICAL_9',
+        start_text: '2026-07-15',
+      },
+    },
   });
 });
 
@@ -264,6 +315,8 @@ test('W1C browser preserves bigint maximum through GET, POST, and UI', async ({
     '"start_date":"2026-07-01","end_date":null,"invalidated_at_utc":null,' +
     '"replacement_local_approval_amount_period_id":null,"row_version":1}]}';
   await openW1cPanel(page);
+  await page.getByTestId('recipient-basic-edit').click();
+  await expect(page.getByTestId('recipient-detail-batch-toolbar')).toBeVisible();
 
   await expect(page.getByTestId('w1c-approval-history')).toContainText(
     '9,223,372,036,854,775,807원',
@@ -272,19 +325,22 @@ test('W1C browser preserves bigint maximum through GET, POST, and UI', async ({
     .getByTestId('w1c-approval-amount-input')
     .fill('9223372036854775807');
   await page.getByTestId('w1c-approval-start-date').fill('2026-08-01');
-  await page.getByRole('button', { name: '승인금액 기간 등록' }).click();
+  await page
+    .getByTestId('recipient-detail-batch-toolbar')
+    .getByRole('button', { name: '저장' })
+    .click();
 
-  const approvalPost = state.requests.find((request) => {
+  const detailBatchPost = state.requests.find((request) => {
     const url = new URL(request.url());
     return (
       request.method() === 'POST' &&
-      url.pathname === '/api/v1/recipients/42/approval-amount-periods'
+      url.pathname === '/api/v1/recipients/42/detail-batch'
     );
   });
-  expect(approvalPost?.postData()).toContain(
+  expect(detailBatchPost?.postData()).toContain(
     '"amount_krw":9223372036854775807',
   );
-  expect(approvalPost?.postData()).not.toContain(
+  expect(detailBatchPost?.postData()).not.toContain(
     '"amount_krw":"9223372036854775807"',
   );
   await expect(page.getByTestId('w1c-approval-history')).toContainText(

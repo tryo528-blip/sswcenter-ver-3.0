@@ -1,5 +1,5 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.api.auth import BootstrapRequest, LoginRequest
 from app.core.security import (
@@ -21,7 +21,7 @@ def test_invalid_pin_is_rejected(pin: str) -> None:
 
 
 def test_server_pin_request_schemas_require_exactly_six_ascii_digits() -> None:
-    request_specs = (
+    request_specs: tuple[tuple[type[BaseModel], dict[str, object], str], ...] = (
         (
             BootstrapRequest,
             {

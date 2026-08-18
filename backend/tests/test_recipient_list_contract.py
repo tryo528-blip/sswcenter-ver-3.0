@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from datetime import date
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import DefaultClause, Table
 
 from app.domains.recipient import service as recipient_service_module
 from app.domains.recipient.repository import (
@@ -23,6 +24,7 @@ from app.domains.recipient.schemas import (
     RecipientListStatusFilter,
     RecipientResponse,
     RecipientSexCode,
+    RecipientSexCodeRead,
     RecipientStatus,
     RecipientUpdateRequest,
 )
@@ -138,7 +140,7 @@ def test_list_item_schema_forbids_extra_and_requires_summary_fields() -> None:
             id=1,
             name="홍",
             birth_date=date(1950, 1, 1),
-            sex_code=RecipientSexCode.MALE,
+            sex_code=RecipientSexCodeRead.MALE,
             recipient_no=None,
             postal_code=None,
             address=None,
@@ -155,7 +157,7 @@ def test_list_item_schema_forbids_extra_and_requires_summary_fields() -> None:
         id=1,
         name="홍",
         birth_date=date(1950, 1, 1),
-        sex_code=RecipientSexCode.FEMALE,
+        sex_code=RecipientSexCodeRead.FEMALE,
         recipient_no=None,
         postal_code=None,
         address=None,
@@ -338,7 +340,7 @@ def test_list_recipients_has_no_write_or_notification_side_effects() -> None:
     service._commit = MagicMock()  # type: ignore[method-assign]
     service._flush = MagicMock()  # type: ignore[method-assign]
     service._audit = MagicMock()  # type: ignore[method-assign]
-    service.create_plan_notification = MagicMock()  # type: ignore[method-assign]
+    assert not hasattr(service, "create_plan_notification")
 
     service.list_recipients(search=None, page=1, page_size=10)
 
@@ -346,7 +348,7 @@ def test_list_recipients_has_no_write_or_notification_side_effects() -> None:
     service._commit.assert_not_called()
     service._flush.assert_not_called()
     service._audit.assert_not_called()
-    service.create_plan_notification.assert_not_called()
+    assert not hasattr(service, "create_plan_notification")
     session.commit.assert_not_called()
     session.add.assert_not_called()
 
@@ -409,7 +411,7 @@ def test_list_response_allows_null_copayment_rate_without_formula() -> None:
         id=1,
         name="율",
         birth_date=date(1940, 5, 5),
-        sex_code=RecipientSexCode.FEMALE,
+        sex_code=RecipientSexCodeRead.FEMALE,
         recipient_no="000001",
         postal_code=None,
         address=None,
@@ -548,19 +550,18 @@ def test_postcheck_0015_rejects_noncanonical_default_and_check_expressions() -> 
 def test_model_recipient_status_check_name_matches_convention_and_migration() -> None:
     from app.db.models import Recipient
 
+    recipient_table = cast(Table, Recipient.__table__)
     check_names = {
-        constraint.name
-        for constraint in Recipient.__table__.constraints
-        if constraint.name is not None
+        constraint.name for constraint in recipient_table.constraints if constraint.name is not None
     }
     # Convention token "recipient_status" must emit exactly this final name.
     assert "ck_recipient_recipient_status" in check_names
     # Must not double-prefix under ck_%(table_name)s_%(constraint_name)s.
     assert "ck_recipient_ck_recipient_recipient_status" not in check_names
 
-    column = Recipient.__table__.c.recipient_status
+    column = recipient_table.c.recipient_status
     assert column.nullable is False
-    assert column.server_default is not None
+    assert isinstance(column.server_default, DefaultClause)
     default_text = str(column.server_default.arg)
     assert "ACTIVE" in default_text
 
@@ -622,14 +623,14 @@ def test_create_recipient_forces_active_without_status_input() -> None:
     response = service.create_recipient(payload, account)  # type: ignore[arg-type]
     instance = next(item for item in captured if hasattr(item, "recipient_status"))
     general = next(item for item in captured if hasattr(item, "benefit_code"))
-    assert instance.recipient_status == RecipientStatus.ACTIVE.value  # type: ignore[attr-defined]
+    assert instance.recipient_status == RecipientStatus.ACTIVE.value
     assert instance.id == 10_015  # type: ignore[attr-defined]
     assert instance.row_version == 1  # type: ignore[attr-defined]
     assert response.recipient_status == RecipientStatus.ACTIVE
     assert response.id == 10_015
     assert response.row_version == 1
     assert general.recipient_id == 10_015  # type: ignore[attr-defined]
-    assert general.benefit_code == "GENERAL"  # type: ignore[attr-defined]
+    assert general.benefit_code == "GENERAL"
     assert general.start_text == ""  # type: ignore[attr-defined]
 
 
@@ -684,6 +685,7 @@ def test_migration_0015_lifecycle_upgrade_downgrade_reupgrade() -> None:
     from uuid import uuid4
 
     from sqlalchemy import create_engine, text
+    from sqlalchemy.engine import Connection
     from sqlalchemy.engine.url import make_url
     from sqlalchemy.exc import IntegrityError
 
@@ -771,15 +773,16 @@ def test_migration_0015_lifecycle_upgrade_downgrade_reupgrade() -> None:
                 os.environ["SSWCENTER_ENVIRONMENT"] = previous_env
             get_settings.cache_clear()
 
-    def _revision(connection) -> str | None:  # type: ignore[no-untyped-def]
+    def _revision(connection: Connection) -> str | None:
         has_erp = connection.execute(
             text("SELECT to_regclass('erp.alembic_version') IS NOT NULL")
         ).scalar()
         if not has_erp:
             return None
-        return connection.execute(text("SELECT version_num FROM erp.alembic_version")).scalar()
+        value = connection.execute(text("SELECT version_num FROM erp.alembic_version")).scalar()
+        return None if value is None else str(value)
 
-    def _has_status_column(connection) -> bool:  # type: ignore[no-untyped-def]
+    def _has_status_column(connection: Connection) -> bool:
         return (
             connection.execute(
                 text(

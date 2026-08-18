@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import ast
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -68,6 +71,54 @@ STABLE_ERROR_CODES = {
 
 def _fail(marker: str) -> NoReturn:
     pytest.fail(marker, pytrace=False)
+
+
+def _npm_executable() -> str:
+    """Resolve the current runtime npm launcher without assuming Windows.
+
+    The repository is Linux-only in canonical execution and ships npm at
+    ``/usr/local/bin/npm``.  ``npm.cmd`` only exists on the retired Windows
+    desktop copies, so the historical hard-coded value makes the OpenAPI
+    TypeScript generation fail on Ubuntu before any byte assertion runs.
+    """
+
+    if os.name == "nt":
+        candidates: tuple[str, ...] = ("npm.cmd", "npm.exe", "npm")
+    else:
+        candidates = ("npm",)
+    for candidate in candidates:
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    if os.name != "nt":
+        canonical_npm = Path("/usr/local/bin/npm")
+        if canonical_npm.is_file():
+            return str(canonical_npm)
+    return candidates[-1]
+
+
+def test_w1d_npm_launcher_resolution_never_assumes_windows() -> None:
+    """Regression: Linux OpenAPI generation must resolve npm, not npm.cmd."""
+
+    if os.name == "nt":
+        pytest.skip("Windows-specific npm launcher resolution is out of canonical scope")
+    resolved = _npm_executable()
+    assert resolved
+    assert Path(resolved).name == "npm"
+    assert not resolved.endswith("npm.cmd")
+    assert Path(resolved).is_file()
+    source = Path(__file__).read_text(encoding="utf-8")
+    generate_fn = next(
+        node
+        for node in ast.parse(source).body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "test_w1d_03_openapi_routes_and_named_models_are_registered"
+    )
+    generate_body = ast.get_source_segment(source, generate_fn) or ""
+    assert "openapi-typescript" in generate_body
+    assert "W1D_OPENAPI_TEMP_GENERATE_FAILED" in generate_body
+    assert "_npm_executable()" in generate_body
+    assert "pytest.skip" not in generate_body
 
 
 def _down_revision_ids(value: object) -> tuple[str, ...]:
@@ -217,7 +268,7 @@ def test_w1d_01_offline_sql_mentions_recipient_contract() -> None:
 def test_w1d_02_domain_module_and_schemas_are_fixed() -> None:
     """The contract domain and its named schemas must exist without retired fields."""
     try:
-        from app.domains.w1d import schemas as w1d_schemas  # type: ignore
+        from app.domains.w1d import schemas as w1d_schemas
     except Exception:
         _fail("W1D_DOMAIN_MODULE_MISSING: app.domains.w1d.schemas is absent")
 
@@ -350,7 +401,7 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
 
     # J-M07 / J-W1D-R3-M01: exact success status + request/response $ref per op.
     # list 200, item GET 200, create 201, and end 200.
-    op_bindings = {
+    op_bindings: dict[str, dict[str, tuple[str | None, str, str]]] = {
         CONTRACT_COLLECTION: {
             "get": (None, "ContractListResponse", "200"),
             "post": ("ContractCreateRequest", "ContractResponse", "201"),
@@ -445,7 +496,7 @@ def test_w1d_03_openapi_routes_and_named_models_are_registered() -> None:
             try:
                 gen = subprocess.run(
                     [
-                        "npm.cmd",
+                        _npm_executable(),
                         "exec",
                         "--",
                         "openapi-typescript",
@@ -516,7 +567,7 @@ def test_w1d_04_sqlalchemy_metadata_has_recipient_contract() -> None:
 def test_w1d_05_service_exports_contract_operations_only() -> None:
     """Service must expose contract CRUD and omit retired transition operations."""
     try:
-        from app.domains.w1d.service import W1DService  # type: ignore
+        from app.domains.w1d.service import W1DService
     except Exception:
         _fail("W1D_SERVICE_MODULE_MISSING: W1DService")
 
@@ -547,7 +598,7 @@ def test_w1d_abs_08_contract_no_surface_is_absent() -> None:
             _fail("W1D_ABS08_CONTRACT_NO_PRESENT: " + name)
     # ORM: if model missing, product RED owns that; ABS only fails if present+forbidden.
     try:
-        from app.db.models import RecipientContract  # type: ignore
+        from app.db.models import RecipientContract
 
         columns = {c.name for c in RecipientContract.__table__.columns}
         if "contract_no" in columns or "contract_sequence" in columns:
@@ -598,7 +649,7 @@ def test_w1d_abs_10_service_start_not_gated() -> None:
 def test_w1d_stable_error_code_constants_are_exported() -> None:
     """Domain error map should export only the current contract conflict codes."""
     try:
-        from app.domains.w1d import errors as w1d_errors  # type: ignore
+        from app.domains.w1d import errors as w1d_errors
     except Exception:
         _fail("W1D_ERRORS_MODULE_MISSING")
 

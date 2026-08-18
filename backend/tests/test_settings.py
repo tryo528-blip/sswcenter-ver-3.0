@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from app.core.settings import (
     Environment,
@@ -29,9 +29,7 @@ _VALID_B64_32_B: str = base64.b64encode(
 
 _VALID_DB_PASSWORD: str = strong_secret("sswcenter:database-password")
 _PRODUCTION_DATA_ROOT = (
-    Path("C:/ProgramData/SSWCenter/data")
-    if os.name == "nt"
-    else Path("/var/lib/sswcenter/data")
+    Path("C:/ProgramData/SSWCenter/data") if os.name == "nt" else Path("/var/lib/sswcenter/data")
 )
 
 
@@ -49,7 +47,7 @@ def _prod_kwargs(**overrides: object) -> dict[str, object]:
         "resident_number_lookup_key": _VALID_B64_32_B,
         "transition_token_key": strong_secret("sswcenter:transition-token-key"),
     }
-    base.update(overrides)  # type: ignore[typeddict-item]
+    base.update(overrides)
     return base
 
 
@@ -92,9 +90,9 @@ def test_production_refuses_development_login_bypass() -> None:
             data_root=_PRODUCTION_DATA_ROOT,
             dev_login_bypass=True,
             cookie_secure=True,
-            pin_pepper="pepper",
-            pin_lookup_key="lookup",
-            csrf_signing_key="csrf",
+            pin_pepper=SecretStr("pepper"),
+            pin_lookup_key=SecretStr("lookup"),
+            csrf_signing_key=SecretStr("csrf"),
         )
 
 

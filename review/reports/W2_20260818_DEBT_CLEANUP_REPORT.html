@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSWCenter W2 DEBT 정리 보고서 · 2026-08-18</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6f9;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #5e6a7d;
+      --line: #d8deea;
+      --good: #087a55;
+      --warn: #a45b00;
+      --bad: #b42318;
+      --accent: #2557d6;
+      --code: #eef2f8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(980px, calc(100% - 28px)); margin: 28px auto 48px; }
+    header, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgb(20 35 65 / 7%);
+    }
+    header { padding: 28px; }
+    section { margin-top: 16px; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 5vw, 38px); line-height: 1.2; }
+    h2 { margin: 0 0 14px; font-size: 20px; }
+    h3 { margin: 20px 0 8px; font-size: 16px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 0; padding-left: 22px; }
+    li + li { margin-top: 6px; }
+    code {
+      background: var(--code);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .meta { color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 15px;
+      background: color-mix(in srgb, var(--panel) 94%, var(--accent));
+    }
+    .metric strong { display: block; font-size: 23px; line-height: 1.25; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding: 10px 14px;
+      background: color-mix(in srgb, var(--panel) 92%, var(--accent));
+      border-radius: 8px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 620px; }
+    th, td { padding: 10px 9px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      main { width: min(100% - 16px, 980px); margin-top: 8px; }
+      header, section { border-radius: 12px; padding: 18px; }
+      .grid { grid-template-columns: 1fr; }
+      .metric strong { font-size: 20px; }
+      .table-wrap { overflow: visible; }
+      table { min-width: 0; }
+      thead { display: none; }
+      tbody, tr, td { display: block; width: 100%; }
+      tbody tr { padding: 11px 0; border-bottom: 1px solid var(--line); }
+      tbody tr:last-child { border-bottom: 0; }
+      td { padding: 2px 0; border-bottom: 0; }
+      td:first-child { font-weight: 700; }
+      td:nth-child(3) { color: var(--muted); font-size: 13px; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1420;
+        --panel: #171e2c;
+        --text: #edf2ff;
+        --muted: #a9b4c7;
+        --line: #344056;
+        --good: #5bd5a8;
+        --warn: #ffbd66;
+        --bad: #ff8b80;
+        --accent: #7ea2ff;
+        --code: #242e41;
+      }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="meta">SSWCenter 3.0 · W2 DEBT cleanup · 2026-08-18</div>
+    <h1>W2 DEBT 후보를 최종 봉인 직전까지 닫았습니다.</h1>
+    <p>
+      지원/과거 계약 프로필을 명시적으로 나누고, 타입·lint·format 부채를 원인별로 정리했습니다.
+      W3 부모 증거는 역사 봉인을 보존하는 3단계 체인으로 고쳤고, W1C 브라우저 smoke에서 발견한
+      상세 일괄저장과 PostgreSQL bigint 회귀까지 수정했습니다.
+    </p>
+    <div class="grid">
+      <div class="metric"><strong class="good">Backend 0 fail</strong><span>583 passed · 200 skipped</span></div>
+      <div class="metric"><strong class="good">Frontend 0 fail</strong><span>unit 267 · E2E 9</span></div>
+      <div class="metric"><strong class="good">Static 0 issue</strong><span>mypy 195 · Ruff 201 files</span></div>
+      <div class="metric"><strong class="good">Live PG 0 fail</strong><span>W2 · W3 restore/seal green</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>결론</h2>
+    <div class="callout">
+      이번 DEBT 완료조건인 지원 백엔드 0 fail, W1C smoke 0 fail, 정적 검사 0 issue,
+      W2/W3 live PostgreSQL 0 fail, 현재 작업트리 증거 0 drift를 충족했습니다.
+      최종 봉인 확정은 수행하지 않았고 과거 W2/W3 manifest도 덮어쓰지 않았습니다.
+    </div>
+    <ul>
+      <li><code>scripts/test.ps1</code>에 과거 백엔드 계약 5개를 한 배열로 선언하고 기본 지원 프로필에서 제외했습니다.</li>
+      <li>전체 <code>mypy --no-incremental .</code> 통과. 바이트 봉인된 과거 마이그레이션 5개만 설정에서 명시적으로 제외했습니다.</li>
+      <li><code>ruff check app tests alembic</code> 및 <code>ruff format --check app tests alembic</code> 통과.</li>
+      <li>봉인 마이그레이션은 원문 바이트를 복원했고, W1D/W1E 과거 계약 묶음은 <code>18 passed</code>로 재확인했습니다.</li>
+      <li>W1C E2E를 현재의 <code>상세 → 수정 → 일괄 저장</code> 동선에 맞추고, 일괄 저장에서도 PostgreSQL bigint 최대값을 손실 없이 전송하도록 수정했습니다.</li>
+      <li>W2 봉인 98행과 W3 후보 141행을 역사 증거로 유지하고, 현재 DEBT 후보 188행을 별도 manifest로 고정했습니다.</li>
+      <li>W2 live PostgreSQL은 역사 계약 29건, current-head HTTP 1건, 실제 Chromium 1건과 백업·복구를 통과했습니다.</li>
+      <li>W3 live PostgreSQL은 34건, migration 왕복, 적대적 catalog·ACL 검사와 백업·복구를 통과했습니다.</li>
+      <li>Git 브랜치는 <code>codex/debt-preseal-20260818</code>, 기준 HEAD는 <code>059ecf3dbfb54ac0a896303702d74ef190f8d984</code>입니다. 이 pre-seal snapshot 뒤의 Git 처리는 형님의 별도 명시 지시와 원격 branch ref로 기록합니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>검증 결과</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>검증</th><th>결과</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>Runtime preflight</td><td class="good">PASS</td><td><code>SSWCENTER_RUNTIME_GREEN</code></td></tr>
+          <tr><td>mypy 전체</td><td class="good">PASS</td><td>195 source files, 0 issues</td></tr>
+          <tr><td>Ruff lint / format</td><td class="good">PASS</td><td>201 files already formatted</td></tr>
+          <tr><td>Backend 지원 pytest</td><td class="good">PASS</td><td>583 passed, 200 skipped, 2 known warnings</td></tr>
+          <tr><td>W0 release gate</td><td class="good">PASS</td><td>3 passed</td></tr>
+          <tr><td>OpenAPI types</td><td class="good">PASS</td><td><code>OPENAPI_TYPES_UP_TO_DATE</code></td></tr>
+          <tr><td>Frontend lint</td><td class="good">PASS</td><td>exit 0, 기존 경고 5개</td></tr>
+          <tr><td>Frontend unit</td><td class="good">PASS</td><td>26 files, 267 tests</td></tr>
+          <tr><td>Frontend build</td><td class="good">PASS</td><td>Vite build 성공, 500 kB chunk 경고</td></tr>
+          <tr><td>Frontend E2E smoke</td><td class="good">PASS</td><td>3 viewports · 9/9 passed</td></tr>
+          <tr><td>W2 live PostgreSQL</td><td class="good">PASS</td><td>29 historical · 1 current HTTP · 1 Chromium · restore · cleanup 0</td></tr>
+          <tr><td>W3 live PostgreSQL</td><td class="good">PASS</td><td>34 passed · migration round-trip · restore · cleanup 0</td></tr>
+          <tr><td>DEBT candidate manifest</td><td class="good">PASS</td><td>188/188 status·SHA-256·bytes exact</td></tr>
+          <tr><td>Staged whitespace</td><td class="good">PASS</td><td>역사 handoff 2개 byte-exact 예외 후 전체 PASS</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>닫은 회귀</h2>
+    <h3>1. W3 부모 W2 해시 증거</h3>
+    <p>
+      기존 계약 테스트는 역사 W3 delta의 해시를 계속 움직이는 현재 작업트리에 직접 비교했습니다. W3 후보
+      manifest에는 W2 98행이 전부 있고 당시 <code>85 exact + 13 approved W3 changes</code>가 정확히 남아 있으므로,
+      검증 기준을 그 불변 중간 후보로 교정했습니다. 현재 바이트는 새 DEBT manifest에서 별도로 검증합니다.
+    </p>
+    <ul>
+      <li>W2 봉인: 98행, 당시 98/98 exact</li>
+      <li>W3 후보: 141행, W2 대비 85 exact + 13 의도 변경</li>
+      <li>DEBT 후보: 188행, 현재 Git dirty 경로·status·SHA-256·bytes exact</li>
+    </ul>
+
+    <h3>2. W1C 브라우저와 bigint</h3>
+    <p>
+      오래된 smoke는 행 선택만으로 W1C 패널이 열리고 개별 저장 버튼이 작동한다고 가정했습니다. 현재 UI 계약에 맞게
+      상세를 펼치고 일괄 수정 모드에서 저장하도록 고쳤습니다. 이 과정에서 일괄 저장이 승인금액을 JavaScript
+      <code>Number</code>로 바꿔 bigint 최대값을 거부하는 실제 제품 회귀를 발견해, 문자열 정규화 후 JSON 정수 토큰으로
+      직렬화하도록 수정했습니다. 단위 2건과 3개 화면크기 E2E 9건이 이를 고정합니다.
+    </p>
+  </section>
+
+  <section>
+    <h2>중간 문제 기록</h2>
+    <ul>
+      <li>호스트 <code>TEMP/TMP=/mnt/c/WINDOWS/TEMP</code> 때문에 pytest 캡처 정리 오류가 발생해 <code>/tmp</code>로 고정 후 재실행했습니다.</li>
+      <li><code>backend</code> 안에서 <code>backend/.venv</code>를 다시 붙인 검증 명령 2개가 경로 중복으로 실패했고 즉시 <code>.venv</code> 경로로 수정했습니다.</li>
+      <li>OpenAPI 체크에 존재하지 않는 <code>/usr/bin/npm</code>을 넘겨 사전 차단됐고 실제 <code>/usr/local/bin/npm</code>으로 재실행해 통과했습니다.</li>
+      <li>초기 Vitest 265건 실행이 30초를 넘겨 세션을 이어 받아 종료 코드를 확인했고, 회귀검사 2건 추가 뒤 최종 267건을 다시 통과했습니다.</li>
+      <li>Playwright 첫 실행은 로컬 공유 라이브러리 경로 누락으로 9건 모두 실행 전 종료됐고, 경로 보정 후 실제 UI/테스트 계약 문제로 재분류했습니다.</li>
+      <li>상세 목업의 필수 <code>recipient_status</code>·휴대전화 누락, 접힌 상세 패널, 오래된 test id·혜택 payload, 개별 저장에서 일괄 저장으로 바뀐 동선을 순서대로 확인했습니다.</li>
+      <li>일괄 저장에서 PostgreSQL bigint 최대값이 <code>Number.isSafeInteger</code>에 막히는 제품 회귀를 수정하고 raw JSON 숫자 토큰을 검증했습니다.</li>
+      <li>과거 W1D 바이트 봉인 마이그레이션을 타입 정리로 건드려 2건이 추가 실패한 것을 발견해 원문 복원 후 <code>18 passed</code>로 되돌렸습니다.</li>
+      <li>동일 시각에 포맷된 W2 제품 파일 4개는 최초 작성자를 추정하지 않고 현재 DEBT 후보에 포함해 테스트와 manifest로 채택했습니다.</li>
+      <li>새 manifest 테스트의 import block에서 Ruff 1건이 발생했고, 실제 제안 diff를 확인해 빈 줄을 정리한 뒤 PASS로 되돌렸습니다.</li>
+      <li>마지막 병렬 정리 점검을 하위 디렉터리에서 실행해 manifest 상대경로를 두 차례 잘못 조회했고, 프로세스 필터가 함께 실행 중인 자체 pytest·캡처 셸을 잡았습니다. 제품 실패로 계산하지 않고 루트 절대경로·순차 실행으로 다시 확인했습니다.</li>
+      <li>첫 W3 live 재검증은 34건 중 2건이 실패했습니다. identity 제거가 sequence까지 삭제하는 동작과 rollback 뒤에도 sequence 값은 소비된다는 동작을 테스트가 고려하지 않은 것이 원인이었습니다.</li>
+      <li>identity drift 테스트는 예상 sequence를 재생성해 column 검증을 고립했고, 잘못된 FK metadata 테스트는 <code>NOT VALID</code>로 DDL을 성립시킨 뒤 검증기가 거절하도록 고쳤습니다. 재실행은 34/34와 restore/seal green이었습니다.</li>
+      <li>첫 후보 manifest 재확인은 셸의 정리된 임시경로를 물고 있어 <code>no tests ran</code>으로 끝났고, <code>TEMP/TMP/TMPDIR=/tmp</code> 고정 후 통과했습니다.</li>
+      <li>수정 시작 전에 작업 브랜치가 <code>main</code>임을 확인했습니다. 형님 지시에 따라 새 코드 수정 전에 <code>codex/debt-preseal-20260818</code>을 생성했고 HEAD와 dirty 후보 hash가 동일함을 확인했습니다.</li>
+      <li>최종 stage 뒤 전체 <code>git diff --cached --check</code>는 역사 handoff 2개의 Markdown hard-break 공백 3개와 EOF 빈 줄 1개를 보고했습니다. 두 파일은 W1E/W2/W3 manifest와 byte exact이므로 수정하지 않았고, 두 경로를 제외한 staged 전체 검사는 PASS, 두 역사 SHA는 exact로 확인했습니다.</li>
+      <li>고신호 credential 스캔은 역사 보고서의 <code>task-…</code> 식별자 안 <code>sk-</code> 부분문자열 2건을 잡았습니다. 마스킹 문맥으로 task ID false positive임을 확인했고 private-key·AWS-key 패턴은 0건이었습니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>프로필 경계</h2>
+    <p>기본 지원 프로필에서 분리한 과거 계약 파일:</p>
+    <ul>
+      <li><code>tests/test_r0_w2_read_only_contract.py</code></li>
+      <li><code>tests/test_w1b_red.py</code></li>
+      <li><code>tests/test_w1d_contract.py</code></li>
+      <li><code>tests/test_w1e_contract.py</code></li>
+      <li><code>tests/test_w1f_contract.py</code></li>
+    </ul>
+    <p>
+      남은 경고는 Starlette TestClient deprecation 1건, SQLAlchemy 순환 FK 정렬 경고 1건,
+      프런트 Fast Refresh/exhaustive-deps 5건, 500 kB chunk 경고입니다. 이번 DEBT 게이트의 오류나 실패는 아닙니다.
+    </p>
+    <p>
+      공식 실행 프로필은 <code>backend=supported frontend=supported e2e=smoke postgres=0 historical=0</code>입니다.
+      200건의 skip은 이 기본 프로필의 PostgreSQL·선택 통합검사이며 실패가 아닙니다. 현재 브랜치에서는 별도
+      Grade 5 하네스로 W2와 W3 live PostgreSQL을 모두 재실행했고, 역사 manifest는 수정하지 않았습니다.
+    </p>
+    <p class="meta">PRE-SEAL SNAPSHOT · ACTOR=CODEX · ACTION=FIX · REMOTE Ubuntu Linux · Git disposition follows explicit user command · provider dispatch 없음</p>
+  </section>
+</main>
+</body>
+</html>

@@ -6,11 +6,11 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.core.settings import Settings
-from app.db.postcheck_current_0025 import verify_current_0025
-from app.db.postcheck_dispatch import CURRENT_REVISION
+from app.db.postcheck_current_0028 import verify_current_0028
+from app.db.postcheck_dispatch import ACTIVE_REVISION
 from app.db.session import create_postgres_engine
 
-CURRENT_ALEMBIC_REVISION = CURRENT_REVISION
+CURRENT_ALEMBIC_REVISION = ACTIVE_REVISION
 
 
 def required_data_paths_ready(data_root: Path | None) -> tuple[bool, str | None]:
@@ -59,7 +59,7 @@ def database_catalog_is_ready(
 
                 if require_postcheck:
                     try:
-                        verify_current_0025(connection)
+                        verify_current_0028(connection)
                     except SystemExit:
                         return False, "current_postcheck_failed"
         finally:

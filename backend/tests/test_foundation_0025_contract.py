@@ -17,7 +17,7 @@ RESTORE_PATH = REPO_ROOT / "scripts" / "restore-drill.ps1"
 HARNESS_PATH = REPO_ROOT / "scripts" / "test-foundation-0025-postgres.ps1"
 
 CURRENT_REVISION = "20260813_0025_w1_relationship_lock_contract_correction"
-CURRENT_MARKER = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
+HISTORICAL_DIRECT_MARKER = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
 HEAD_MARKER = "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"
 
 
@@ -47,19 +47,15 @@ class _RevisionConnection:
         return _RevisionResult(self.values)
 
 
-def test_dispatcher_module_and_exact_revision_contract(capsys: pytest.CaptureFixture[str]) -> None:
+def test_dispatcher_rejects_historical_0025_revision(capsys: pytest.CaptureFixture[str]) -> None:
     dispatcher = _load_dispatcher()
     assert DISPATCHER_PATH.is_file()
-    assert dispatcher.CURRENT_REVISION == CURRENT_REVISION
-
-    # Isolate revision routing from the large current catalog checker here.
-    dispatcher.verify_current_0025 = lambda _connection: None
-    revision = dispatcher.dispatch_current_head(_RevisionConnection([CURRENT_REVISION]))
-
-    assert revision == CURRENT_REVISION
+    assert dispatcher.ACTIVE_REVISION != CURRENT_REVISION
+    with pytest.raises(SystemExit, match="FOUNDATION_0028_UNSUPPORTED_REVISION"):
+        dispatcher.dispatch_current_head(_RevisionConnection([CURRENT_REVISION]))
     output = capsys.readouterr().out
-    assert CURRENT_MARKER in output
-    assert HEAD_MARKER in output
+    assert HISTORICAL_DIRECT_MARKER not in output
+    assert HEAD_MARKER not in output
 
 
 @pytest.mark.parametrize("values", [[], [CURRENT_REVISION, CURRENT_REVISION], ["future_revision"]])
@@ -67,12 +63,11 @@ def test_dispatcher_fails_closed_for_missing_multiple_or_future_revision(
     values: list[str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     dispatcher = _load_dispatcher()
-    dispatcher.verify_current_0025 = lambda _connection: None
 
     with pytest.raises(SystemExit):
         dispatcher.dispatch_current_head(_RevisionConnection(values))
 
-    assert CURRENT_MARKER not in capsys.readouterr().out
+    assert HISTORICAL_DIRECT_MARKER not in capsys.readouterr().out
     assert HEAD_MARKER not in capsys.readouterr().out
 
 
@@ -86,7 +81,7 @@ def test_development_init_routes_to_current_dispatcher() -> None:
 def test_restore_drill_has_exact_0025_branch_and_markers() -> None:
     source = RESTORE_PATH.read_text(encoding="utf-8")
     assert CURRENT_REVISION in source
-    assert CURRENT_MARKER in source
+    assert HISTORICAL_DIRECT_MARKER in source
     assert HEAD_MARKER in source
     assert "20260812_0019_r0_w2_read_only" in source
     assert "20260813_0020_w1_staff_contract_correction" not in source

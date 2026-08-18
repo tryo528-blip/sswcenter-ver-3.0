@@ -10,7 +10,7 @@ import {
   type BasicGuardianMutation,
   type RecipientDetailBatchRequest,
 } from '../services/recipientDetailBatchApi';
-import { listBenefitPeriods } from '../services/w1cApi';
+import { listBenefitPeriods, normalizeApprovalAmountKrw } from '../services/w1cApi';
 import '../styles/recipients.css';
 import { ApiError } from '../services/api';
 import {
@@ -1435,9 +1435,11 @@ export const RecipientsPage = () => {
       const approvalStart = input('w1c-approval-start-date');
       const approvalEnd = input('w1c-approval-end-date');
       if (approvalAmount?.value.trim() && approvalStart?.value) {
-        const amount = Number(approvalAmount.value.trim());
-        if (!Number.isSafeInteger(amount) || amount < 0) {
-          throw new Error('승인금액은 안전한 정수 원 단위로 입력해주세요.');
+        const amount = normalizeApprovalAmountKrw(approvalAmount.value);
+        if (amount === null) {
+          throw new Error(
+            '승인금액은 0 이상 9,223,372,036,854,775,807 이하의 정수 원 단위로 입력해주세요.',
+          );
         }
         payload.approval_amount_period = mutation(approvalStart, {
           amount_krw: amount,

@@ -1,0 +1,62 @@
+{
+  "fixture_version": "w3-source-intake-expected-v1",
+  "receipt_behavior": "PRESERVE_APPEND_ONLY_RECEIPT",
+  "cases": [
+    {
+      "case_id": "W3-INTAKE-DUPLICATE-SUCCESS",
+      "classification": "DUPLICATE_SUCCESS_NOOP",
+      "snapshot_identity": "REUSE",
+      "new_parse_count": 0,
+      "new_apply_count": 0
+    },
+    {
+      "case_id": "W3-INTAKE-FAILED-RETRY",
+      "classification": "RETRY_SAME_SNAPSHOT",
+      "snapshot_identity": "REUSE",
+      "retry_attempt_allowed": true,
+      "apply_idempotency_key": "STABLE_ACROSS_RETRY",
+      "confirm_required": true
+    },
+    {
+      "case_id": "W3-INTAKE-BLOCKED-REUPLOAD",
+      "classification": "BLOCKED_REUPLOAD_REJECTED",
+      "snapshot_identity": "REUSE",
+      "same_bytes_profile_bypass_allowed": false,
+      "new_apply_count": 0
+    },
+    {
+      "case_id": "W3-INTAKE-NEW-PROFILE",
+      "classification": "REPARSE_SAME_SNAPSHOT",
+      "snapshot_identity": "REUSE",
+      "superseded_before_confirm_count": 0,
+      "new_apply_count_before_confirm": 0
+    },
+    {
+      "case_id": "W3-INTAKE-NEW-DIGEST",
+      "classification": "CANDIDATE_NEW_SNAPSHOT",
+      "snapshot_identity": "NEW",
+      "active_snapshot_before_apply": "PRESERVE",
+      "superseded_before_successful_apply_count": 0
+    }
+  ],
+  "raw_row_cases": [
+    {
+      "case_id": "W3-NHIS-240-480",
+      "raw_rows_preserved": 3,
+      "automatic_row_deletes": 0,
+      "duration_only_grouping_allowed": false
+    },
+    {
+      "case_id": "W3-RFID-SAME-TIME-OCCURRENCE",
+      "raw_rows_preserved": 2,
+      "occurrence_count": 2,
+      "business_signature_collapse_allowed": false
+    }
+  ],
+  "global": {
+    "blocked_partial_apply_count": 0,
+    "generic_target_type_target_id_allowed": false,
+    "automatic_gc_enabled": false,
+    "quarantine_and_legal_hold_precede_gc": true
+  }
+}

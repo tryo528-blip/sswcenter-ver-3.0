@@ -14,6 +14,33 @@ REVOKE UPDATE, DELETE, TRUNCATE ON TABLE
     erp.system_run_event
 FROM erp_app;
 
+DO $$
+BEGIN
+    IF to_regclass('erp.w3_private_content') IS NOT NULL THEN
+        REVOKE UPDATE, DELETE, TRUNCATE ON TABLE
+            erp.w3_private_content,
+            erp.w3_source_receipt,
+            erp.w3_source_snapshot,
+            erp.w3_import_run,
+            erp.w3_import_attempt,
+            erp.w3_source_row
+        FROM erp_app;
+        GRANT UPDATE (status) ON TABLE
+            erp.w3_source_snapshot,
+            erp.w3_import_run
+        TO erp_app;
+        GRANT SELECT ON SEQUENCE
+            erp.w3_private_content_id_seq,
+            erp.w3_source_receipt_id_seq,
+            erp.w3_source_snapshot_id_seq,
+            erp.w3_import_run_id_seq,
+            erp.w3_import_attempt_id_seq,
+            erp.w3_source_row_id_seq
+        TO erp_backup;
+    END IF;
+END
+$$;
+
 -- These compatibility tables were superseded by the current W2 ledger.  Keep
 -- them read-only even though the broad baseline grant above covers all tables.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE

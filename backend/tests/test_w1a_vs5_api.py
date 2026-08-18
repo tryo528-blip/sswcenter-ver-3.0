@@ -44,9 +44,7 @@ class FakeStaffService:
             row_version=row_version,
         )
 
-    def list_quarterly_consultations(
-        self, staff_id: int
-    ) -> StaffQuarterlyConsultationListResponse:
+    def list_quarterly_consultations(self, staff_id: int) -> StaffQuarterlyConsultationListResponse:
         assert staff_id == 3
         return StaffQuarterlyConsultationListResponse(
             items=[self._response(completed=False, row_version=1)]

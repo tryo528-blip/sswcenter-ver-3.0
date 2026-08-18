@@ -98,6 +98,7 @@ from app.domains.staff.schemas import (
     TrainingCourseListResponse,
     TrainingCourseResponse,
 )
+from app.domains.w1e.errors import is_w1e_advisory_lock_loss, sqlstate_of_dbapi_error
 
 
 class MutablePeriod(Protocol):
@@ -123,6 +124,13 @@ _MESSAGES = {
     "STAFF_EMPLOYMENT_PERIOD_CONFLICT": "재직기간이 기존 재직기간과 겹칩니다.",
     "STAFF_PERIOD_CONFLICT": "직종 또는 업무역할 기간이 기존 기간과 겹칩니다.",
     "STAFF_PERIOD_OUTSIDE_EMPLOYMENT": "직종 또는 업무역할 기간은 재직기간 안에 있어야 합니다.",
+    "CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN": ("유효 배정을 고아로 만드는 직종 변경입니다."),
+    "CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN": (
+        "유효 배정을 고아로 만드는 서비스 제공자격 변경입니다."
+    ),
+    "CARE_ASSIGNMENT_CONCURRENT_CONFLICT": (
+        "다른 요청과 배정기간이 충돌했습니다. 최신 정보를 다시 확인하세요."
+    ),
     "ROW_VERSION_CONFLICT": "다른 사용자가 먼저 변경했습니다. 최신 정보를 다시 불러오세요.",
     "RESIDENT_NUMBER_DUPLICATE": "이미 등록된 주민등록번호입니다.",
     "RESIDENT_NUMBER_INVALID": "주민등록번호와 생년월일 또는 성별을 확인하세요.",
@@ -219,6 +227,8 @@ class StaffService:
         )
 
     def _map_integrity_error(self, error: IntegrityError) -> StaffDomainError:
+        if is_w1e_advisory_lock_loss(error):
+            return _domain_error("CARE_ASSIGNMENT_CONCURRENT_CONFLICT", 409)
         quarterly_error = self._map_quarterly_integrity_error(error)
         if quarterly_error is not None:
             return quarterly_error
@@ -248,16 +258,37 @@ class StaffService:
             "ex_staff_operational_role_period",
         }:
             return _domain_error("STAFF_PERIOD_CONFLICT", 409)
+        if constraint_name == "ct_staff_position_care_assignment_reverse_guard":
+            return _domain_error("CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN", 409)
+        if constraint_name == "ct_staff_service_qualification_assignment_reverse_guard":
+            return _domain_error("CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN", 409)
         if constraint_name == "fk_staff_service_qualification_period_source_license":
             return _domain_error("STAFF_QUALIFICATION_SOURCE_LICENSE_MISMATCH", 422)
         if "STAFF_QUALIFICATION_SOURCE_LICENSE_MISMATCH" in safe_message:
             return _domain_error("STAFF_QUALIFICATION_SOURCE_LICENSE_MISMATCH", 422)
         if "STAFF_PERIOD_OUTSIDE_EMPLOYMENT" in safe_message:
             return _domain_error("STAFF_PERIOD_OUTSIDE_EMPLOYMENT", 409)
+        if "CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN" in safe_message:
+            return _domain_error("CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN", 409)
+        if "CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN" in safe_message:
+            return _domain_error("CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN", 409)
         if "STAFF_TRAINING_INVALID_CYCLE" in safe_message:
             return _domain_error("STAFF_TRAINING_INVALID_CYCLE", 409)
         if "STAFF_TRAINING_PERIOD_INVALID" in safe_message:
             return _domain_error("STAFF_TRAINING_PERIOD_INVALID", 422, field="period_key")
+        return _domain_error("UNEXPECTED_SERVER_ERROR", 500)
+
+    @staticmethod
+    def _sqlstate_of(error: BaseException) -> str | None:
+        return sqlstate_of_dbapi_error(error)
+
+    def _map_sqlalchemy_error(self, error: SQLAlchemyError) -> StaffDomainError:
+        # Only the W1E helper RAISE (55P03 + stable message) is a care-assignment
+        # conflict.  lock_timeout and other 55P03 outcomes stay unmapped.
+        if is_w1e_advisory_lock_loss(error):
+            return _domain_error("CARE_ASSIGNMENT_CONCURRENT_CONFLICT", 409)
+        if isinstance(error, IntegrityError):
+            return self._map_integrity_error(error)
         return _domain_error("UNEXPECTED_SERVER_ERROR", 500)
 
     def _commit(self) -> None:
@@ -266,9 +297,9 @@ class StaffService:
         except IntegrityError as exc:
             self.database_session.rollback()
             raise self._map_integrity_error(exc) from None
-        except SQLAlchemyError:
+        except SQLAlchemyError as exc:
             self.database_session.rollback()
-            raise _domain_error("UNEXPECTED_SERVER_ERROR", 500) from None
+            raise self._map_sqlalchemy_error(exc) from None
 
     def _flush(self) -> None:
         try:
@@ -276,9 +307,9 @@ class StaffService:
         except IntegrityError as exc:
             self.database_session.rollback()
             raise self._map_integrity_error(exc) from None
-        except SQLAlchemyError:
+        except SQLAlchemyError as exc:
             self.database_session.rollback()
-            raise _domain_error("UNEXPECTED_SERVER_ERROR", 500) from None
+            raise self._map_sqlalchemy_error(exc) from None
 
     @staticmethod
     def _require_version(actual: int, expected: int) -> None:

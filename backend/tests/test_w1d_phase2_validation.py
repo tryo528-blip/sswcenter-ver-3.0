@@ -25,9 +25,11 @@ def test_service_type_catalog_is_strict() -> None:
         "BARO_CARE",
     }
     with pytest.raises(ValidationError):
-        ContractCreateRequest(
-            service_type_code="UNKNOWN",
-            start_date=date(2026, 1, 1),
+        ContractCreateRequest.model_validate(
+            {
+                "service_type_code": "UNKNOWN",
+                "start_date": date(2026, 1, 1),
+            }
         )
 
 
@@ -71,9 +73,9 @@ def test_contract_end_expected_row_version_rejects_bool() -> None:
 
 def test_contract_dates_and_free_text_remain_independent_fields() -> None:
     created = ContractCreateRequest(
-        service_type_code="HOME_BATH",
-        start_date="2026-01-01",
-        end_date="2026-12-31",
+        service_type_code=ServiceTypeCode.HOME_BATH,
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 12, 31),
         service_start_date=None,
         end_reason_text="자유 입력",
     )

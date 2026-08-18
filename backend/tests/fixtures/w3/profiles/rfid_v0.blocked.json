@@ -1,0 +1,12 @@
+{
+  "fixture_id": "W3-PROFILE-RFID-001",
+  "declared_filename": "실시간전송내용.xlsx",
+  "format": "xlsx",
+  "sheet_names": null,
+  "headers": null,
+  "required_columns": null,
+  "status": "BLOCKED_HEADER_PROFILE_MISSING",
+  "reason": "canonical documents do not authorize workbook sheet, header, or column type names",
+  "macro_execution": false,
+  "contains_pii": false
+}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -42,7 +42,7 @@ from app.domains.recipient.schemas import (
     RecipientListServiceTypeItem,
     RecipientListStatusFilter,
     RecipientResponse,
-    RecipientSexCode,
+    RecipientSexCodeRead,
     RecipientStatus,
     RecipientUpdateRequest,
 )
@@ -76,6 +76,18 @@ _MESSAGES = {
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _read_sex_code(value: str | None) -> RecipientSexCodeRead | None:
+    if value is None:
+        return None
+    return RecipientSexCodeRead(value)
+
+
+def _iso_date(value: date | None) -> str | None:
+    if value is None:
+        return None
+    return value.isoformat()
 
 
 def _domain_error(
@@ -213,11 +225,7 @@ class RecipientService:
             id=recipient.id,
             name=recipient.name,
             birth_date=recipient.birth_date,
-            sex_code=(
-                RecipientSexCode(recipient.sex_code)
-                if recipient.sex_code is not None
-                else None
-            ),
+            sex_code=_read_sex_code(recipient.sex_code),
             recipient_status=RecipientStatus(recipient.recipient_status),
             recipient_no=recipient.recipient_no,
             postal_code=recipient.postal_code,
@@ -230,10 +238,12 @@ class RecipientService:
 
     @staticmethod
     def _guardian_response(guardian: RecipientGuardian) -> GuardianResponse:
+        if guardian.slot_no not in (1, 2):
+            raise ValueError("recipient guardian slot is outside the database contract")
         return GuardianResponse(
             id=guardian.id,
             recipient_id=guardian.recipient_id,
-            slot_no=guardian.slot_no,
+            slot_no=cast(Literal[1, 2], guardian.slot_no),
             name=guardian.name,
             phone=guardian.phone,
             email=guardian.email,
@@ -299,11 +309,7 @@ class RecipientService:
             id=recipient.id,
             name=recipient.name,
             birth_date=recipient.birth_date,
-            sex_code=(
-                RecipientSexCode(recipient.sex_code)
-                if recipient.sex_code is not None
-                else None
-            ),
+            sex_code=_read_sex_code(recipient.sex_code),
             recipient_no=recipient.recipient_no,
             postal_code=recipient.postal_code,
             address=recipient.address,
@@ -362,6 +368,7 @@ class RecipientService:
         self.repository.add(general_benefit)
         self._flush()
 
+        birth_date_value = _iso_date(recipient.birth_date)
         self._audit(
             account_id=current_account.id,
             action_code="RECIPIENT_CREATE",
@@ -370,11 +377,7 @@ class RecipientService:
             before=None,
             after={
                 "name": recipient.name,
-                "birth_date": (
-                    recipient.birth_date.isoformat()
-                    if recipient.birth_date is not None
-                    else None
-                ),
+                "birth_date": birth_date_value,
                 "sex_code": recipient.sex_code,
                 "mobile_phone": recipient.mobile_phone,
                 "row_version": recipient.row_version,
@@ -661,55 +664,55 @@ class RecipientService:
         ).all()
 
         items: list[RecipientDeadlineItem] = []
-        for row in certification_rows:
+        for certification_row in certification_rows:
             items.append(
                 RecipientDeadlineItem(
-                    recipient_id=row.recipient_id,
-                    recipient_name=row.name,
+                    recipient_id=certification_row.recipient_id,
+                    recipient_name=certification_row.name,
                     kind=RecipientDeadlineKind.CERTIFICATION_EXPIRY,
-                    source_id=row.id,
-                    source_date=row.end_date,
-                    due_date=row.end_date,
+                    source_id=certification_row.id,
+                    source_date=certification_row.end_date,
+                    due_date=certification_row.end_date,
                 )
             )
-        for row in contract_rows:
+        for contract_row in contract_rows:
             items.append(
                 RecipientDeadlineItem(
-                    recipient_id=row.recipient_id,
-                    recipient_name=row.name,
+                    recipient_id=contract_row.recipient_id,
+                    recipient_name=contract_row.name,
                     kind=RecipientDeadlineKind.CONTRACT_EXPIRY,
-                    source_id=row.id,
-                    source_date=row.end_date,
-                    due_date=row.end_date,
+                    source_id=contract_row.id,
+                    source_date=contract_row.end_date,
+                    due_date=contract_row.end_date,
                 )
             )
         seen_recipient_ids: set[int] = set()
-        for row in plan_rows:
-            if row.recipient_id in seen_recipient_ids:
+        for plan_row in plan_rows:
+            if plan_row.recipient_id in seen_recipient_ids:
                 continue
             certification = next(
                 (
                     item
                     for item in certification_rows
-                    if item.recipient_id == row.recipient_id
-                    and item.start_date <= row.applied_start_date
-                    and item.end_date >= row.applied_end_date
+                    if item.recipient_id == plan_row.recipient_id
+                    and item.start_date <= plan_row.applied_start_date
+                    and item.end_date >= plan_row.applied_end_date
                 ),
                 None,
             )
             if certification is None:
                 continue
-            seen_recipient_ids.add(row.recipient_id)
+            seen_recipient_ids.add(plan_row.recipient_id)
             items.append(
                 RecipientDeadlineItem(
-                    recipient_id=row.recipient_id,
-                    recipient_name=row.name,
+                    recipient_id=plan_row.recipient_id,
+                    recipient_name=plan_row.name,
                     kind=RecipientDeadlineKind.PLAN_RENEWAL,
-                    source_id=row.id,
-                    source_date=row.notification_date,
+                    source_id=plan_row.id,
+                    source_date=plan_row.notification_date,
                     due_date=deadline_date(
-                        row.notification_date,
-                        contract_end_date=row.contract_end_date,
+                        plan_row.notification_date,
+                        contract_end_date=plan_row.contract_end_date,
                         certification_end_date=certification.end_date,
                     ),
                 )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import (
@@ -20,6 +20,7 @@ from sqlalchemy import (
     PrimaryKeyConstraint,
     SmallInteger,
     String,
+    Table,
     Text,
     UniqueConstraint,
     func,
@@ -31,6 +32,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.elements import TextClause, conv
 
 from app.db.base import Base
+from app.db.w1e_family_relationship import family_relationship_present_predicate_sql
 
 
 class _TrainingPartialPredicate(TextClause):
@@ -1671,6 +1673,13 @@ class RecipientContract(Base):
             name="fk_recipient_contract_updated_by_account",
             ondelete="RESTRICT",
         ),
+        # 0027 references this exact non-partial key from the W2 operating
+        # ledger to make the recipient-local contract edge declarative.
+        UniqueConstraint(
+            "recipient_id",
+            "id",
+            name="uq_recipient_contract_recipient_id_id",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -1837,3 +1846,14 @@ class CareAssignment(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     row_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+
+
+# Metadata mirror for the 0026 forward DB constraint.  The real enforcement is
+# the erp.care_assignment CHECK created by migration
+# 20260814_0026_w1e_care_assignment_family_relationship_lock.  The ORM
+# __table_args__ keep the historical 0012 constraint set so sealed 0012 tests
+# stay exact; this info key is the current-head FAMILY blank-check predicate
+# and must use the same explicit ASCII trim set as API/service/postcheck.
+cast(Table, CareAssignment.__table__).info["ck_care_assignment_family_relationship_present"] = (
+    family_relationship_present_predicate_sql()
+)

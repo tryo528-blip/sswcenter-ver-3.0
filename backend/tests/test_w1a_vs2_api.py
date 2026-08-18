@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from typing import NoReturn
+from typing import NoReturn, cast
 
 import pytest
 from fastapi import HTTPException
@@ -98,9 +98,9 @@ def _captured_field(service: FakeVS2Service, field: str) -> object | None:
         values = (*args, *kwargs.values())
         for value in values:
             if isinstance(value, dict) and field in value:
-                return value[field]
+                return cast(object, value[field])
             if hasattr(value, field):
-                return getattr(value, field)
+                return cast(object, getattr(value, field))
     return None
 
 

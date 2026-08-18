@@ -20,7 +20,6 @@ class OfficialCardSource:
     kind: OfficialWorkCardKind
     occurrence_key: str
     renewal_key: str | None
-    assignee_staff_id: int
     work_title: str
     target_name: str | None
     detail: str
@@ -63,7 +62,6 @@ def recognition_expiry_source(
     *,
     occurrence_key: str,
     renewal_key: str,
-    assignee_staff_id: int,
     recognition_end_date: date,
     target_name: str | None,
     detail: str,
@@ -73,7 +71,6 @@ def recognition_expiry_source(
         kind=OfficialWorkCardKind.RECOGNITION_EXPIRY,
         occurrence_key=occurrence_key,
         renewal_key=renewal_key,
-        assignee_staff_id=assignee_staff_id,
         work_title="인정만료",
         target_name=target_name,
         detail=detail,
@@ -86,7 +83,6 @@ def contract_expiry_source(
     *,
     occurrence_key: str,
     renewal_key: str,
-    assignee_staff_id: int,
     contract_end_date: date,
     target_name: str | None,
     detail: str,
@@ -96,7 +92,6 @@ def contract_expiry_source(
         kind=OfficialWorkCardKind.CONTRACT_EXPIRY,
         occurrence_key=occurrence_key,
         renewal_key=renewal_key,
-        assignee_staff_id=assignee_staff_id,
         work_title="계약만료",
         target_name=target_name,
         detail=detail,
@@ -109,7 +104,6 @@ def plan_notice_source(
     *,
     occurrence_key: str,
     renewal_key: str,
-    assignee_staff_id: int,
     writing_deadline: date,
     target_name: str | None,
     detail: str,
@@ -119,7 +113,6 @@ def plan_notice_source(
         kind=OfficialWorkCardKind.PLAN_NOTICE,
         occurrence_key=occurrence_key,
         renewal_key=renewal_key,
-        assignee_staff_id=assignee_staff_id,
         work_title="계획서통보",
         target_name=target_name,
         detail=detail,
@@ -129,8 +122,6 @@ def plan_notice_source(
 
 
 def validate_official_source(source: OfficialCardSource) -> OfficialCardSource:
-    if source.assignee_staff_id <= 0:
-        raise ValueError("assignee_staff_id must be positive")
     if source.recipient_id is not None and source.recipient_id <= 0:
         raise ValueError("recipient_id must be positive")
     occurrence_key = clean_required_text(source.occurrence_key, field="occurrence_key")
@@ -145,7 +136,6 @@ def validate_official_source(source: OfficialCardSource) -> OfficialCardSource:
         kind=source.kind,
         occurrence_key=occurrence_key,
         renewal_key=renewal_key,
-        assignee_staff_id=source.assignee_staff_id,
         work_title=clean_required_text(source.work_title, field="work_title"),
         target_name=display_target_name(source.target_name),
         detail=clean_required_text(source.detail, field="detail"),

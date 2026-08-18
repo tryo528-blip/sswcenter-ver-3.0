@@ -1057,6 +1057,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipients/{recipient_id}/contracts/{contract_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Care Assignments */
+        get: operations["listCareAssignments"];
+        put?: never;
+        /** Create Care Assignment */
+        post: operations["createCareAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipients/{recipient_id}/contracts/{contract_id}/assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Care Assignment */
+        get: operations["getCareAssignment"];
+        /** Replace Care Assignment */
+        put: operations["replaceCareAssignment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/professional-assignments/{recipient_id}": {
         parameters: {
             query?: never;
@@ -1266,6 +1302,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/official-work-cards/eligible-assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Official Work Card Eligible Assignees */
+        get: operations["listW2OfficialWorkCardEligibleAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/official-work-cards/{card_id}/close": {
         parameters: {
             query?: never;
@@ -1277,6 +1330,23 @@ export interface paths {
         put?: never;
         /** Close Official Work Card */
         post: operations["closeW2OfficialWorkCard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/official-work-cards/{card_id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reassign Official Work Card */
+        post: operations["reassignW2OfficialWorkCard"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1361,6 +1431,11 @@ export interface components {
             /** Row Version */
             row_version: number;
         };
+        /**
+         * AssignmentKind
+         * @enum {string}
+         */
+        AssignmentKind: "GENERAL" | "FAMILY";
         /** BasicGuardianMutation */
         BasicGuardianMutation: {
             /**
@@ -1456,6 +1531,103 @@ export interface components {
          * @enum {string}
          */
         BootstrapSexCode: "MALE" | "FEMALE" | "TEST";
+        /** CareAssignmentCreateRequest */
+        CareAssignmentCreateRequest: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            assignment_kind: components["schemas"]["AssignmentKind"];
+            /** Family Relationship Text */
+            family_relationship_text?: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date?: string | null;
+        };
+        /** CareAssignmentListResponse */
+        CareAssignmentListResponse: {
+            /** Items */
+            items: components["schemas"]["CareAssignmentResponse"][];
+        };
+        /** CareAssignmentReplacementRequest */
+        CareAssignmentReplacementRequest: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            assignment_kind: components["schemas"]["AssignmentKind"];
+            /** Family Relationship Text */
+            family_relationship_text?: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date?: string | null;
+            /** Expected Row Version */
+            expected_row_version: number;
+        };
+        /** CareAssignmentReplacementResponse */
+        CareAssignmentReplacementResponse: {
+            original: components["schemas"]["CareAssignmentResponse"];
+            replacement: components["schemas"]["CareAssignmentResponse"];
+        };
+        /** CareAssignmentResponse */
+        CareAssignmentResponse: {
+            /**
+             * Id
+             * Format: int64
+             */
+            id: number;
+            /**
+             * Recipient Contract Id
+             * Format: int64
+             */
+            recipient_contract_id: number;
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /**
+             * Employment Id
+             * Format: int64
+             */
+            employment_id: number;
+            assignment_kind: components["schemas"]["AssignmentKind"];
+            /** Family Relationship Text */
+            family_relationship_text: string | null;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+            /** Invalidated At Utc */
+            invalidated_at_utc: string | null;
+            /** Replacement Assignment Id */
+            replacement_assignment_id: number | null;
+            /** Row Version */
+            row_version: number;
+        };
         /** CertificationIdentityCreateRequest */
         CertificationIdentityCreateRequest: {
             /**
@@ -1816,6 +1988,26 @@ export interface components {
             /** D Day */
             d_day: number;
         };
+        /** OfficialWorkCardEligibleAssignee */
+        OfficialWorkCardEligibleAssignee: {
+            /**
+             * Staff Id
+             * Format: int64
+             */
+            staff_id: number;
+            /** Staff Name */
+            staff_name: string;
+        };
+        /** OfficialWorkCardEligibleAssigneeListResponse */
+        OfficialWorkCardEligibleAssigneeListResponse: {
+            /**
+             * As Of Date
+             * Format: date
+             */
+            as_of_date: string;
+            /** Items */
+            items: components["schemas"]["OfficialWorkCardEligibleAssignee"][];
+        };
         /** OfficialWorkCardGroup */
         OfficialWorkCardGroup: {
             /**
@@ -1838,6 +2030,13 @@ export interface components {
             /** Row Version */
             row_version: number;
             kind: components["schemas"]["OfficialWorkCardKind"];
+            /**
+             * Assignee Staff Id
+             * Format: int64
+             */
+            assignee_staff_id: number;
+            /** Assignee Staff Name */
+            assignee_staff_name: string;
             display: components["schemas"]["OfficialWorkCardDisplay"];
         };
         /**
@@ -1854,6 +2053,16 @@ export interface components {
             as_of_date: string;
             /** Groups */
             groups: components["schemas"]["OfficialWorkCardGroup"][];
+        };
+        /** OfficialWorkCardReassignRequest */
+        OfficialWorkCardReassignRequest: {
+            /** Expected Row Version */
+            expected_row_version: number;
+            /**
+             * Assignee Staff Id
+             * Format: int64
+             */
+            assignee_staff_id: number;
         };
         /** PersonalTodoCreateRequest */
         PersonalTodoCreateRequest: {
@@ -2146,7 +2355,7 @@ export interface components {
             name: string | null;
             /** Birth Date */
             birth_date: string | null;
-            sex_code: components["schemas"]["RecipientSexCode"] | null;
+            sex_code: components["schemas"]["RecipientSexCodeRead"] | null;
             /** Recipient No */
             recipient_no: string | null;
             /** Postal Code */
@@ -2209,7 +2418,7 @@ export interface components {
             name: string | null;
             /** Birth Date */
             birth_date: string | null;
-            sex_code: components["schemas"]["RecipientSexCode"] | null;
+            sex_code: components["schemas"]["RecipientSexCodeRead"] | null;
             recipient_status: components["schemas"]["RecipientStatus"];
             /** Recipient No */
             recipient_no: string | null;
@@ -2231,6 +2440,11 @@ export interface components {
          * @enum {string}
          */
         RecipientSexCode: "MALE" | "FEMALE";
+        /**
+         * RecipientSexCodeRead
+         * @enum {string}
+         */
+        RecipientSexCodeRead: "MALE" | "FEMALE" | "TEST";
         /**
          * RecipientStatus
          * @description Manually assigned recipient display/filter tag (memo-like).
@@ -3517,7 +3731,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3593,7 +3807,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3674,7 +3888,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3750,7 +3964,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3830,7 +4044,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3911,7 +4125,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3992,7 +4206,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4066,7 +4280,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4140,7 +4354,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4218,7 +4432,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4296,7 +4510,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4372,7 +4586,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4452,7 +4666,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4528,7 +4742,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4608,7 +4822,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4689,7 +4903,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4770,7 +4984,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4846,7 +5060,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4926,7 +5140,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5007,7 +5221,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5088,7 +5302,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5169,7 +5383,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5245,7 +5459,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5325,7 +5539,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5406,7 +5620,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5487,7 +5701,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5563,7 +5777,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5643,7 +5857,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5724,7 +5938,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5804,7 +6018,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5885,7 +6099,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5966,7 +6180,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6047,7 +6261,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6129,7 +6343,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6211,7 +6425,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6292,7 +6506,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6374,7 +6588,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6456,7 +6670,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6536,7 +6750,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6619,7 +6833,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Conflict */
+            /** @description STAFF_EMPLOYMENT_PERIOD_CONFLICT, STAFF_PERIOD_CONFLICT, STAFF_SERVICE_QUALIFICATION_CONFLICT, STAFF_PERIOD_OUTSIDE_EMPLOYMENT, CARE_ASSIGNMENT_POSITION_ORPHAN_FORBIDDEN, CARE_ASSIGNMENT_QUALIFICATION_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8744,7 +8958,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8824,7 +9038,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8901,7 +9115,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8982,7 +9196,7 @@ export interface operations {
                     "application/json": components["schemas"]["RecipientErrorEnvelope"];
                 };
             };
-            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            /** @description CONTRACT_SERVICE_PERIOD_CONFLICT, CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT, CONTRACT_REACTIVATION_FORBIDDEN, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -8992,6 +9206,326 @@ export interface operations {
                 };
             };
             /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listCareAssignments: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_CONCURRENT_CONFLICT, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_FAMILY_RELATIONSHIP_REQUIRED, CARE_ASSIGNMENT_PERIOD_CONFLICT, or VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createCareAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareAssignmentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_CONCURRENT_CONFLICT, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_FAMILY_RELATIONSHIP_REQUIRED, CARE_ASSIGNMENT_PERIOD_CONFLICT, or VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getCareAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_CONCURRENT_CONFLICT, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_FAMILY_RELATIONSHIP_REQUIRED, CARE_ASSIGNMENT_PERIOD_CONFLICT, or VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+        };
+    };
+    replaceCareAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipient_id: number;
+                contract_id: number;
+                assignment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareAssignmentReplacementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareAssignmentReplacementResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_CONCURRENT_CONFLICT, CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN, or ROW_VERSION_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientErrorEnvelope"];
+                };
+            };
+            /** @description CARE_ASSIGNMENT_OUTSIDE_CONTRACT_PERIOD, CARE_ASSIGNMENT_OUTSIDE_EMPLOYMENT_PERIOD, CARE_ASSIGNMENT_STAFF_INELIGIBLE, CARE_ASSIGNMENT_FAMILY_RELATIONSHIP_REQUIRED, CARE_ASSIGNMENT_PERIOD_CONFLICT, or VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -10385,6 +10919,80 @@ export interface operations {
             };
         };
     };
+    listW2OfficialWorkCardEligibleAssignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialWorkCardEligibleAssigneeListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     closeW2OfficialWorkCard: {
         parameters: {
             query?: never;
@@ -10397,6 +11005,86 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OfficialWorkCardCloseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialWorkCardListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reassignW2OfficialWorkCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                card_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfficialWorkCardReassignRequest"];
             };
         };
         responses: {

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from app.api.dependencies import get_db_session
 from app.main import app
@@ -12,11 +14,11 @@ ERRORS_PATH = Path(__file__).resolve().parents[1] / "app" / "api" / "w1a_errors.
 SECRET_PIN = "654321"
 
 
-def _override_db_session() -> object:
+def _override_db_session() -> Iterator[object]:
     yield object()
 
 
-def _assert_auth_validation_is_safe(response, *, secret: str) -> None:
+def _assert_auth_validation_is_safe(response: Response, *, secret: str) -> None:
     assert response.status_code == 422
     payload = response.json()
     serialized = json.dumps(payload, ensure_ascii=False)

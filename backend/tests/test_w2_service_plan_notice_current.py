@@ -19,8 +19,8 @@ from app.domains.w2.service import W2Service
 from app.main import app
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "backend" / "alembic" / "versions" / (
-    "20260813_0024_w2_service_plan_notice_current.py"
+MIGRATION = (
+    ROOT / "backend" / "alembic" / "versions" / ("20260813_0024_w2_service_plan_notice_current.py")
 )
 
 
@@ -53,12 +53,14 @@ def test_service_plan_requests_are_narrow_and_date_ordered() -> None:
             applied_end_date=date(2026, 8, 31),
         )
     with pytest.raises(ValidationError):
-        ServicePlanNoticeReplaceRequest(
-            recipient_contract_id=4,
-            notification_date=date(2026, 8, 13),
-            applied_start_date=date(2026, 8, 14),
-            expected_row_version=1,
-            status="COMPLETE",
+        ServicePlanNoticeReplaceRequest.model_validate(
+            {
+                "recipient_contract_id": 4,
+                "notification_date": date(2026, 8, 13),
+                "applied_start_date": date(2026, 8, 14),
+                "expected_row_version": 1,
+                "status": "COMPLETE",
+            }
         )
 
 
@@ -91,9 +93,10 @@ def test_service_plan_api_is_business_scoped_and_cards_have_no_public_create() -
     assert set(paths[collection]) >= {"get", "post"}
     assert set(paths[item]) >= {"put"}
     assert not any("/plan-notifications" in path for path in paths)
-    assert {
-        path for path in paths if "plan-notice" in path or "plan-notification" in path
-    } == {collection, item}
+    assert {path for path in paths if "plan-notice" in path or "plan-notification" in path} == {
+        collection,
+        item,
+    }
 
     schemas = document["components"]["schemas"]
     assert {
@@ -113,7 +116,9 @@ def test_service_plan_api_is_business_scoped_and_cards_have_no_public_create() -
         assert not hasattr(owner, "list_plan_notifications")
         assert not hasattr(owner, "invalidate_plan_notification")
     assert set(paths["/api/v1/official-work-cards"]) == {"get"}
+    assert set(paths["/api/v1/official-work-cards/eligible-assignees"]) == {"get"}
     assert set(paths["/api/v1/official-work-cards/{card_id}/close"]) == {"post"}
+    assert set(paths["/api/v1/official-work-cards/{card_id}/reassign"]) == {"post"}
 
 
 def test_plan_card_bridge_is_internal_d45_only() -> None:

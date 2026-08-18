@@ -1,0 +1,28 @@
+{
+  "fixture_version": "w3-source-intake-reorder-expected-v2",
+  "parent_fixture": "source_intake_semantic_v1",
+  "raw_row_cases": [
+    {
+      "case_id": "W3-NHIS-240-480-REORDERED",
+      "parent_case_id": "W3-NHIS-240-480",
+      "raw_rows_preserved": 3,
+      "automatic_row_deletes": 0,
+      "row_number_is_business_key": false,
+      "array_index_is_business_key": false,
+      "occurrence_meaning_preserved": true,
+      "duration_only_grouping_allowed": false,
+      "occurrence_by_synthetic_key": {"A": 2, "B": 1}
+    },
+    {
+      "case_id": "W3-RFID-SAME-TIME-OCCURRENCE-REORDERED",
+      "parent_case_id": "W3-RFID-SAME-TIME-OCCURRENCE",
+      "raw_rows_preserved": 2,
+      "automatic_row_deletes": 0,
+      "row_number_is_business_key": false,
+      "array_index_is_business_key": false,
+      "occurrence_meaning_preserved": true,
+      "occurrence_count": 2,
+      "business_signature_collapse_allowed": false
+    }
+  ]
+}

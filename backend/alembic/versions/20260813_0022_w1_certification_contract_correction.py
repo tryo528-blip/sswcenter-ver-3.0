@@ -54,6 +54,8 @@ def _fail_closed_grade_preflight() -> None:
         $$;
         """
     )
+
+
 def _merge_grade_into_certification() -> None:
     op.add_column(
         "recipient_certification_period",

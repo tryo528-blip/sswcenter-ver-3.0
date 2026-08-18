@@ -29,7 +29,11 @@
 
 ## 2. 급여계획서 계약
 
-1. 계획서는 수급자 서비스계약 하나에 연결한다.
+1. 계획서는 수급자 서비스계약 하나에 연결한다. 정정(replacement)은 같은
+   수급자의 다른 계약으로 바꿀 수 있다. 3A에서 운영 원장의 내부 `recipient_id`를
+   contract에서 backfill하고, `(recipient_id, recipient_contract_id)` contract FK와
+   `(recipient_id, replacement_service_plan_notice_id)` DEFERRABLE INITIALLY DEFERRED
+   self-FK로 서로 다른 수급자 replacement를 DB 최종 상태에서 거부한다.
 2. 통보일·적용 시작일·적용 종료일을 저장한다.
 3. 적용 종료일 기본값은 통보월 1~6월이면 같은 해 12월 31일, 7~12월이면
    다음 해 6월 30일이다.
@@ -59,6 +63,9 @@
 - 하위 카드가 먼저 존재하다 상위 조건이 확인되면 한 transaction에서 하위
   카드를 닫고 상위 카드로 교체한다.
 - 같은 원천·같은 갱신묶음은 화면에 보이지 않는 내부 발생키로 중복을 막는다.
+- `계획서통보` 카드의 자동 담당자는 호출자 값이나 request time이 아니라 이 원천이
+  확정한 카드 `due_date` 업무기준일의 월 전문직 담당이다. 같은 갱신묶음에서 ADMIN
+  수동 재배정이 기록되면 우선순위 교체도 그 assignee를 무조건 계승한다.
 
 ## 4. migration과 데이터 안전
 

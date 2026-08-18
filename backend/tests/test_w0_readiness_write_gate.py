@@ -3,12 +3,13 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.api.dependencies import get_db_session, get_settings
+from app.api.dependencies import get_db_session
 from app.core.readiness import CURRENT_ALEMBIC_REVISION, evaluate_readiness
-from app.core.settings import Environment, Settings
-from app.db.postcheck_dispatch import CURRENT_REVISION
+from app.core.settings import Environment, Settings, get_settings
+from app.db.postcheck_dispatch import ACTIVE_REVISION
 from app.main import app
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -29,9 +30,9 @@ def test_readiness_contract_binds_current_revision_and_postcheck() -> None:
     health_source = HEALTH_PATH.read_text(encoding="utf-8")
     dependencies_source = DEPENDENCIES_PATH.read_text(encoding="utf-8")
 
-    assert CURRENT_ALEMBIC_REVISION == CURRENT_REVISION
+    assert CURRENT_ALEMBIC_REVISION == ACTIVE_REVISION
     assert "alembic_version" in readiness_source
-    assert "verify_current_0025" in readiness_source
+    assert "verify_current_0028" in readiness_source
     assert "required_data_paths_ready" in readiness_source
     assert "evaluate_readiness" in health_source
     assert "require_postcheck=True" in health_source
@@ -53,7 +54,9 @@ def test_health_ready_reports_missing_database_configuration() -> None:
     }
 
 
-def test_health_ready_fails_closed_for_revision_mismatch(monkeypatch) -> None:
+def test_health_ready_fails_closed_for_revision_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         "app.api.health.evaluate_readiness",
         lambda settings, require_postcheck=False: (False, "alembic_revision_mismatch"),
@@ -71,7 +74,9 @@ def test_health_ready_fails_closed_for_revision_mismatch(monkeypatch) -> None:
     }
 
 
-def test_health_ready_fails_closed_for_postcheck_or_required_path(monkeypatch) -> None:
+def test_health_ready_fails_closed_for_postcheck_or_required_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         "app.api.health.evaluate_readiness",
         lambda settings, require_postcheck=False: (False, "current_postcheck_failed"),
@@ -100,7 +105,9 @@ def test_missing_required_path_is_not_ready(tmp_path: Path) -> None:
     assert reason == "required_path_missing"
 
 
-def test_write_gate_rejects_login_before_product_mutation(monkeypatch) -> None:
+def test_write_gate_rejects_login_before_product_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     login_called = {"value": False}
     postcheck_flags: list[bool] = []
 
@@ -108,7 +115,11 @@ def test_write_gate_rejects_login_before_product_mutation(monkeypatch) -> None:
         login_called["value"] = True
         raise AssertionError("U05_WRITE_GATE_BYPASS: login executed while not ready")
 
-    def reject_failed_postcheck(settings, *, require_postcheck: bool = False):
+    def reject_failed_postcheck(
+        settings: Settings,
+        *,
+        require_postcheck: bool = False,
+    ) -> tuple[bool, str | None]:
         postcheck_flags.append(require_postcheck)
         if require_postcheck:
             return False, "current_postcheck_failed"
@@ -129,7 +140,9 @@ def test_write_gate_rejects_login_before_product_mutation(monkeypatch) -> None:
     assert postcheck_flags == [True]
 
 
-def test_write_gate_rejects_bootstrap_mutation_before_session_factory(monkeypatch) -> None:
+def test_write_gate_rejects_bootstrap_mutation_before_session_factory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     session_opened = {"value": False}
     postcheck_flags: list[bool] = []
 
@@ -137,7 +150,11 @@ def test_write_gate_rejects_bootstrap_mutation_before_session_factory(monkeypatc
         session_opened["value"] = True
         raise AssertionError("U05_WRITE_GATE_BYPASS: database session opened while not ready")
 
-    def reject_failed_postcheck(settings, *, require_postcheck: bool = False):
+    def reject_failed_postcheck(
+        settings: Settings,
+        *,
+        require_postcheck: bool = False,
+    ) -> tuple[bool, str | None]:
         postcheck_flags.append(require_postcheck)
         if require_postcheck:
             return False, "current_postcheck_failed"
@@ -167,7 +184,9 @@ def test_write_gate_rejects_bootstrap_mutation_before_session_factory(monkeypatc
     assert postcheck_flags == [True]
 
 
-def test_live_probe_stays_available_when_write_gate_is_closed(monkeypatch) -> None:
+def test_live_probe_stays_available_when_write_gate_is_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         "app.api.health.evaluate_readiness",
         lambda settings, require_postcheck=False: (False, "alembic_revision_mismatch"),

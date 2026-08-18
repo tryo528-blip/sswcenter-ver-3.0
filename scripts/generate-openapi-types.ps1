@@ -20,7 +20,7 @@ $NpmExe = if ($IsWindowsHost) {
 } else {
     (Get-Command npm -CommandType Application -ErrorAction Stop).Source
 }
-$GeneratedFile = Join-Path $FrontendRoot "src\generated\sswcenter-api.ts"
+$GeneratedFile = Join-Path $FrontendRoot (Join-Path "src" (Join-Path "generated" "sswcenter-api.ts"))
 
 if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
     if (-not [System.IO.Path]::IsPathRooted($PythonExecutable)) { throw "PythonExecutable must be an absolute path" }

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import CurrentAccount
 from app.core.settings import Settings
 from app.db.models import RecipientContract, ServiceGroup, ServiceType
+from app.domains.recipient.errors import RecipientDomainError
 from app.domains.w1d import clock as w1d_clock
 from app.domains.w1d import fault as w1d_fault
 from app.domains.w1d.errors import domain_error
@@ -20,6 +21,7 @@ from app.domains.w1d.schemas import (
     ContractListResponse,
     ContractResponse,
 )
+from app.domains.w1e.errors import is_w1e_advisory_lock_loss, sqlstate_of_dbapi_error
 
 
 class W1DService:
@@ -40,7 +42,9 @@ class W1DService:
         return self.session
 
     @staticmethod
-    def _map_integrity_error(error: IntegrityError) -> Exception:
+    def _map_integrity_error(error: IntegrityError) -> RecipientDomainError:
+        if is_w1e_advisory_lock_loss(error):
+            return domain_error("CARE_ASSIGNMENT_CONCURRENT_CONFLICT", 409)
         original = getattr(error, "orig", None)
         diagnostics = getattr(original, "diag", None)
         constraint_name = getattr(diagnostics, "constraint_name", None)
@@ -57,6 +61,10 @@ class W1DService:
                 "CONTRACT_REACTIVATION_FORBIDDEN",
                 409,
             ),
+            "ct_recipient_contract_assignment_reverse_guard": (
+                "CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN",
+                409,
+            ),
         }
         mapped = mapping.get(constraint_name) if isinstance(constraint_name, str) else None
         if mapped is not None:
@@ -68,6 +76,21 @@ class W1DService:
             return domain_error("CONTRACT_SERVICE_GROUP_PERIOD_CONFLICT", 409)
         if "reactivation" in message:
             return domain_error("CONTRACT_REACTIVATION_FORBIDDEN", 409)
+        if "care_assignment_contract_orphan_forbidden" in message:
+            return domain_error("CARE_ASSIGNMENT_CONTRACT_ORPHAN_FORBIDDEN", 409)
+        return domain_error("UNEXPECTED_SERVER_ERROR", 500)
+
+    @staticmethod
+    def _sqlstate_of(error: BaseException) -> str | None:
+        return sqlstate_of_dbapi_error(error)
+
+    def _map_sqlalchemy_error(self, error: SQLAlchemyError) -> RecipientDomainError:
+        # Only the W1E helper RAISE (55P03 + stable message) is a care-assignment
+        # conflict.  lock_timeout and other 55P03 outcomes stay unmapped.
+        if is_w1e_advisory_lock_loss(error):
+            return domain_error("CARE_ASSIGNMENT_CONCURRENT_CONFLICT", 409)
+        if isinstance(error, IntegrityError):
+            return self._map_integrity_error(error)
         return domain_error("UNEXPECTED_SERVER_ERROR", 500)
 
     def _flush(self) -> None:
@@ -76,31 +99,35 @@ class W1DService:
         except IntegrityError as exc:
             self.session.rollback()
             raise self._map_integrity_error(exc) from None
-        except SQLAlchemyError:
+        except SQLAlchemyError as exc:
             self.session.rollback()
-            raise domain_error("UNEXPECTED_SERVER_ERROR", 500) from None
+            raise self._map_sqlalchemy_error(exc) from None
 
     def _commit(self) -> None:
         if self.session.info.get("recipient_detail_batch_defer_commit"):
-            self.session.flush()
+            try:
+                self.session.flush()
+            except IntegrityError as exc:
+                self.session.rollback()
+                raise self._map_integrity_error(exc) from None
+            except SQLAlchemyError as exc:
+                self.session.rollback()
+                raise self._map_sqlalchemy_error(exc) from None
             return
         try:
             self.session.commit()
         except IntegrityError as exc:
             self.session.rollback()
             raise self._map_integrity_error(exc) from None
-        except SQLAlchemyError:
+        except SQLAlchemyError as exc:
             self.session.rollback()
-            raise domain_error("UNEXPECTED_SERVER_ERROR", 500) from None
+            raise self._map_sqlalchemy_error(exc) from None
 
     def _service_meta(
         self,
     ) -> tuple[dict[int, ServiceType], dict[str, ServiceType], dict[int, str]]:
         types = self.repo.get_service_types()
-        groups = {
-            group.id: group.code
-            for group in self.session.query(ServiceGroup).all()
-        }
+        groups = {group.id: group.code for group in self.session.query(ServiceGroup).all()}
         return (
             {service_type.id: service_type for service_type in types},
             {service_type.code: service_type for service_type in types},

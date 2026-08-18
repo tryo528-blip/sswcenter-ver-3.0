@@ -4,6 +4,8 @@ import {
   W2ConflictError,
   closeOfficialWorkCard,
   createPersonalTodo,
+  listOfficialWorkCardEligibleAssignees,
+  reassignOfficialWorkCard,
   createSchedule,
   createServicePlanNotice,
   deletePersonalTodo,
@@ -14,7 +16,9 @@ import {
   listSchedules,
   listServicePlanNotices,
   normalizeOfficialWorkCardCollection,
+  normalizeScheduleMonthSnapshot,
   normalizeServicePlanNoticeHistory,
+  projectScheduleMonthSnapshot,
   reorderPersonalTodos,
   replaceSchedule,
   replaceServicePlanNotice,
@@ -40,6 +44,8 @@ function officialResponse() {
         id: 3,
         row_version: 4,
         kind: 'CONTRACT_EXPIRY',
+        assignee_staff_id: 11,
+        assignee_staff_name: '박복지',
         display: {
           work_title: '계약만료',
           target_name: '   ',
@@ -115,6 +121,8 @@ describe('W2 API adapter', () => {
           id: 3,
           rowVersion: 4,
           kind: 'CONTRACT_EXPIRY',
+          assigneeStaffId: 11,
+          assigneeStaffName: '박복지',
           title: '계약만료',
           targetName: '미입력',
           detail: '계약 갱신',
@@ -143,6 +151,43 @@ describe('W2 API adapter', () => {
       expected_row_version: 8,
     });
     expect(closed.groups).toEqual([]);
+  });
+
+  it('calls eligible-assignee and reassign endpoints with expected_row_version', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(json({
+        as_of_date: '2026-08-13',
+        items: [{ staff_id: 12, staff_name: '이간호' }],
+      }))
+      .mockResolvedValueOnce(json({ ...officialResponse(), groups: [] }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const eligible = await listOfficialWorkCardEligibleAssignees();
+    const reassigned = await reassignOfficialWorkCard(3, 8, 12);
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/official-work-cards/eligible-assignees');
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/official-work-cards/3/reassign');
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({
+      expected_row_version: 8,
+      assignee_staff_id: 12,
+    });
+    expect(eligible.items[0]).toEqual({ staffId: 12, staffName: '이간호' });
+    expect(reassigned.groups).toEqual([]);
+  });
+
+  it('reads official-card 409 details.latest as the latest card collection', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json({
+      error: { code: 'ROW_VERSION_CONFLICT', message: '먼저 변경됨' },
+      details: { latest: officialResponse() },
+    }, 409)) as unknown as typeof fetch;
+
+    const promise = reassignOfficialWorkCard(3, 3, 12);
+    await expect(promise).rejects.toBeInstanceOf(W2ConflictError);
+    await expect(promise).rejects.toMatchObject({
+      latestOfficialWorkCards: {
+        groups: [{ cards: [{ id: 3, rowVersion: 4, assigneeStaffId: 11 }] }],
+      },
+    });
   });
 
   it('sends todo list revision and row version on every mutation and full ordered_ids', async () => {
@@ -191,6 +236,91 @@ describe('W2 API adapter', () => {
     await expect(promise).rejects.toMatchObject({
       latestTodoList: { listRevision: 12, items: [{ id: 2, rowVersion: 12 }] },
     });
+  });
+
+  it('normalizes schedule finalized_at_utc as camelCase string or null and rejects missing or wrong types', () => {
+    expect(normalizeScheduleMonthSnapshot(scheduleResponse())).toMatchObject({
+      finalizedAtUtc: null,
+    });
+    expect(normalizeScheduleMonthSnapshot({
+      ...scheduleResponse(),
+      finalized_at_utc: '2026-08-10T00:00:00Z',
+    }).finalizedAtUtc).toBe('2026-08-10T00:00:00Z');
+
+    const missingFinalizedAt = { ...scheduleResponse() };
+    delete (missingFinalizedAt as { finalized_at_utc?: unknown }).finalized_at_utc;
+    expect(() => normalizeScheduleMonthSnapshot(missingFinalizedAt)).toThrow(
+      /schedule-month\.finalized_at_utc/,
+    );
+
+    for (const value of [123, true, { iso: '2026-08-10T00:00:00Z' }, [], undefined]) {
+      expect(() => normalizeScheduleMonthSnapshot({
+        ...scheduleResponse(),
+        finalized_at_utc: value,
+      })).toThrow(/schedule-month\.finalized_at_utc/);
+    }
+  });
+
+  it('projects a full-month snapshot onto recipient_id or staff_id and keeps month metadata', () => {
+    const snapshot = normalizeScheduleMonthSnapshot({
+      ...scheduleResponse(8),
+      finalized: true,
+      finalized_at_utc: '2026-08-10T00:00:00Z',
+      items: [
+        {
+          id: 9,
+          schedule_month: '2026-08-01',
+          recipient_id: 10,
+          assigned_staff: [{ staff_id: 11, employment_id: 21 }],
+          service_type_id: 12,
+          starts_at_utc: '2026-08-10T00:00:00Z',
+          ends_at_utc: '2026-08-10T01:00:00Z',
+          row_version: 2,
+        },
+        {
+          id: 88,
+          schedule_month: '2026-08-01',
+          recipient_id: 90,
+          assigned_staff: [{ staff_id: 99, employment_id: 191 }],
+          service_type_id: 99,
+          starts_at_utc: '2026-08-11T00:00:00Z',
+          ends_at_utc: '2026-08-11T01:00:00Z',
+          row_version: 1,
+        },
+        {
+          id: 91,
+          schedule_month: '2026-08-01',
+          recipient_id: 10,
+          assigned_staff: [
+            { staff_id: 22, employment_id: 31 },
+            { staff_id: 11, employment_id: 32 },
+          ],
+          service_type_id: 14,
+          starts_at_utc: '2026-08-12T00:00:00Z',
+          ends_at_utc: '2026-08-12T01:00:00Z',
+          row_version: 1,
+        },
+      ],
+    });
+
+    const byRecipient = projectScheduleMonthSnapshot(snapshot, { recipientId: 10 });
+    expect(byRecipient).toMatchObject({
+      scheduleMonth: '2026-08-01',
+      finalized: true,
+      finalizedAtUtc: '2026-08-10T00:00:00Z',
+      rowVersion: 8,
+    });
+    expect(byRecipient.items.map((item) => item.id)).toEqual([9, 91]);
+
+    const byStaff = projectScheduleMonthSnapshot(snapshot, { staffId: 11 });
+    expect(byStaff).toMatchObject({
+      scheduleMonth: '2026-08-01',
+      finalized: true,
+      finalizedAtUtc: '2026-08-10T00:00:00Z',
+      rowVersion: 8,
+    });
+    expect(byStaff.items.map((item) => item.id)).toEqual([9, 91]);
+    expect(projectScheduleMonthSnapshot(snapshot, {}).items).toHaveLength(3);
   });
 
   it('queries schedules with only month and optional recipient_id or staff_id', async () => {

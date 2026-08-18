@@ -4,6 +4,7 @@ import hashlib
 import os
 import threading
 import time
+from collections.abc import Iterator
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -28,6 +29,7 @@ from app.domains.w1c.schemas import (
     CertificationIdentityCreateRequest,
     CertificationPeriodCreateRequest,
     CertificationPeriodReplacementRequest,
+    GradeCode,
 )
 from app.domains.w1c.service import W1CService
 
@@ -52,7 +54,7 @@ class W1CAuthenticatedCase:
 
 
 @pytest.fixture(scope="session")
-def database_engine() -> Engine:
+def database_engine() -> Iterator[Engine]:
     database_url = os.environ["SSWCENTER_DATABASE_URL"]
     engine = create_engine(database_url, pool_pre_ping=True)
     try:
@@ -210,7 +212,7 @@ def _seed_certification_period(
         certification = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
-                grade_code="3",
+                grade_code=GradeCode.GRADE_3,
                 start_date=date(2026, 9, 1),
                 end_date=date(2026, 9, 30),
             ),
@@ -295,7 +297,7 @@ def test_w1c_identity_certification_and_grade_invariants(
         july = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
-                grade_code="3",
+                grade_code=GradeCode.GRADE_3,
                 start_date=date(2026, 7, 1),
                 end_date=date(2026, 7, 31),
             ),
@@ -307,7 +309,7 @@ def test_w1c_identity_certification_and_grade_invariants(
             lambda: service.create_certification_period(
                 case.recipient_id,
                 CertificationPeriodCreateRequest(
-                    grade_code="4",
+                    grade_code=GradeCode.GRADE_4,
                     start_date=date(2026, 7, 31),
                     end_date=date(2026, 8, 15),
                 ),
@@ -317,7 +319,7 @@ def test_w1c_identity_certification_and_grade_invariants(
         august = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
-                grade_code="4",
+                grade_code=GradeCode.GRADE_4,
                 start_date=date(2026, 8, 1),
                 end_date=date(2026, 8, 31),
             ),
@@ -327,16 +329,20 @@ def test_w1c_identity_certification_and_grade_invariants(
         assert august.grade_code.value == "4"
 
     with database_engine.connect() as connection:
-        row = connection.execute(
-            text(
-                """
+        row = (
+            connection.execute(
+                text(
+                    """
                 SELECT grade_code, start_date, end_date
                 FROM erp.recipient_certification_period
                 WHERE id = :period_id
                 """
-            ),
-            {"period_id": july.id},
-        ).mappings().one()
+                ),
+                {"period_id": july.id},
+            )
+            .mappings()
+            .one()
+        )
         assert dict(row) == {
             "grade_code": "3",
             "start_date": date(2026, 7, 1),
@@ -450,18 +456,22 @@ def test_w1c_certification_writes_are_serialized(
 
     assert outcomes == ["ex_recipient_certification_period", "ok"]
     with database_engine.connect() as connection:
-        rows = connection.execute(
-            text(
-                """
+        rows = (
+            connection.execute(
+                text(
+                    """
                 SELECT grade_code
                 FROM erp.recipient_certification_period
                 WHERE recipient_id = :recipient_id
                   AND start_date = DATE '2026-09-01'
                   AND invalidated_at_utc IS NULL
                 """
-            ),
-            {"recipient_id": case.recipient_id},
-        ).scalars().all()
+                ),
+                {"recipient_id": case.recipient_id},
+            )
+            .scalars()
+            .all()
+        )
     assert len(rows) == 1
     assert rows[0] in {"2", "3"}
 
@@ -477,7 +487,7 @@ def test_w1c_benefit_and_approval_ledgers_are_independent(
         benefit = service.create_benefit_period(
             case.recipient_id,
             BenefitPeriodCreateRequest(
-                benefit_code="MEDICAL_6",
+                benefit_code=BenefitCode.MEDICAL_6,
                 start_text="표시 전용 / 날짜 아님",
             ),
             case.account,
@@ -490,7 +500,7 @@ def test_w1c_benefit_and_approval_ledgers_are_independent(
             lambda: service.create_benefit_period(
                 case.recipient_id,
                 BenefitPeriodCreateRequest(
-                    benefit_code="MEDICAL_9",
+                    benefit_code=BenefitCode.MEDICAL_9,
                     start_text="다른 표시값",
                 ),
                 case.account,
@@ -501,7 +511,7 @@ def test_w1c_benefit_and_approval_ledgers_are_independent(
             case.recipient_id,
             benefit.id,
             BenefitPeriodReplacementRequest(
-                benefit_code="BASIC_LIVELIHOOD",
+                benefit_code=BenefitCode.BASIC_LIVELIHOOD,
                 start_text="",
                 expected_row_version=benefit.row_version,
             ),
@@ -516,7 +526,7 @@ def test_w1c_benefit_and_approval_ledgers_are_independent(
                 case.recipient_id,
                 benefit.id,
                 BenefitPeriodReplacementRequest(
-                    benefit_code="GENERAL",
+                    benefit_code=BenefitCode.GENERAL,
                     start_text="stale",
                     expected_row_version=benefit.row_version,
                 ),
@@ -565,7 +575,7 @@ def test_w1c_replacements_audit_original_and_new_facts(
         certification = service.create_certification_period(
             case.recipient_id,
             CertificationPeriodCreateRequest(
-                grade_code="2",
+                grade_code=GradeCode.GRADE_2,
                 start_date=date(2026, 2, 1),
                 end_date=date(2026, 2, 28),
             ),
@@ -574,7 +584,7 @@ def test_w1c_replacements_audit_original_and_new_facts(
         benefit = service.create_benefit_period(
             case.recipient_id,
             BenefitPeriodCreateRequest(
-                benefit_code="MEDICAL_6",
+                benefit_code=BenefitCode.MEDICAL_6,
                 start_text="old",
             ),
             case.account,
@@ -593,7 +603,7 @@ def test_w1c_replacements_audit_original_and_new_facts(
             case.recipient_id,
             certification.id,
             CertificationPeriodReplacementRequest(
-                grade_code="3",
+                grade_code=GradeCode.GRADE_3,
                 start_date=certification.start_date,
                 end_date=certification.end_date,
                 expected_row_version=certification.row_version,
@@ -604,7 +614,7 @@ def test_w1c_replacements_audit_original_and_new_facts(
             case.recipient_id,
             benefit.id,
             BenefitPeriodReplacementRequest(
-                benefit_code="BASIC_LIVELIHOOD",
+                benefit_code=BenefitCode.BASIC_LIVELIHOOD,
                 start_text="new",
                 expected_row_version=benefit.row_version,
             ),
@@ -813,15 +823,11 @@ def test_w1c_catalog_and_http_error_contracts(
             assert conflict.status_code == 409
             assert conflict.json()["error"]["code"] == "CERTIFICATION_PERIOD_CONFLICT"
 
-            empty_benefits = client.get(
-                f"/api/v1/recipients/{case.recipient_id}/benefit-periods"
-            )
+            empty_benefits = client.get(f"/api/v1/recipients/{case.recipient_id}/benefit-periods")
             assert empty_benefits.status_code == 200
             assert empty_benefits.json() == {"items": []}
 
-            retired_grade = client.get(
-                f"/api/v1/recipients/{case.recipient_id}/grade-periods"
-            )
+            retired_grade = client.get(f"/api/v1/recipients/{case.recipient_id}/grade-periods")
             retired_effective = client.get(
                 f"/api/v1/recipients/{case.recipient_id}/benefit-periods/effective",
                 params={"on_date": "2026-03-15"},

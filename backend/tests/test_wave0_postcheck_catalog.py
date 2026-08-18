@@ -50,9 +50,7 @@ def _constraint_rows() -> list[dict[str, object]]:
     return [
         {
             **common,
-            "constraint_name": (
-                "ck_installation_state_ck_installation_state_singleton_key_true"
-            ),
+            "constraint_name": ("ck_installation_state_ck_installation_state_singleton_key_true"),
             "table_name": "installation_state",
             "constraint_type": "c",
             "columns": ["singleton_key"],
@@ -134,9 +132,7 @@ def _constraint_rows() -> list[dict[str, object]]:
         },
         {
             **common,
-            "constraint_name": (
-                "fk_installation_state_first_admin_account_id_user_account"
-            ),
+            "constraint_name": ("fk_installation_state_first_admin_account_id_user_account"),
             "table_name": "installation_state",
             "constraint_type": "f",
             "columns": ["first_admin_account_id"],
@@ -495,9 +491,7 @@ def test_postgres_rejects_each_mutated_foreign_key_catalog_field(
     update_clause: str,
     validation_clause: str,
 ) -> None:
-    postgres_connection.execute(
-        text("CREATE TABLE public.user_account (id bigint PRIMARY KEY)")
-    )
+    postgres_connection.execute(text("CREATE TABLE public.user_account (id bigint PRIMARY KEY)"))
     postgres_connection.execute(
         text(
             """
@@ -528,9 +522,7 @@ def test_postgres_rejects_each_mutated_foreign_key_catalog_field(
 def test_postgres_rejects_not_valid_mutated_singleton_check(
     postgres_connection: Connection,
 ) -> None:
-    constraint_name = (
-        "ck_installation_state_ck_installation_state_singleton_key_true"
-    )
+    constraint_name = "ck_installation_state_ck_installation_state_singleton_key_true"
     postgres_connection.execute(
         text(f"ALTER TABLE erp.installation_state DROP CONSTRAINT {constraint_name}")
     )
@@ -631,9 +623,7 @@ def test_postgres_rejects_collation_on_exclusion_supporting_index_key(
 def test_postgres_ignores_expected_constraint_name_on_an_unrelated_table(
     postgres_connection: Connection,
 ) -> None:
-    postgres_connection.execute(
-        text("CREATE TABLE erp.wave0_later_probe (value boolean NOT NULL)")
-    )
+    postgres_connection.execute(text("CREATE TABLE erp.wave0_later_probe (value boolean NOT NULL)"))
     postgres_connection.execute(
         text(
             """
@@ -650,15 +640,11 @@ def test_postgres_ignores_expected_constraint_name_on_an_unrelated_table(
 def test_postgres_rejects_a_false_singleton_key(
     postgres_connection: Connection,
 ) -> None:
-    constraint_name = (
-        "ck_installation_state_ck_installation_state_singleton_key_true"
-    )
+    constraint_name = "ck_installation_state_ck_installation_state_singleton_key_true"
     postgres_connection.execute(
         text(f"ALTER TABLE erp.installation_state DROP CONSTRAINT {constraint_name}")
     )
-    postgres_connection.execute(
-        text("UPDATE erp.installation_state SET singleton_key = false")
-    )
+    postgres_connection.execute(text("UPDATE erp.installation_state SET singleton_key = false"))
 
     with pytest.raises(SystemExit, match="installation_state singleton postcheck failed"):
         _verify_runtime_contract(postgres_connection)

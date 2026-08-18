@@ -329,9 +329,7 @@ def _canonical_sql(value: object) -> str:
 
 
 def _text_tuple(value: object, *, field: str) -> tuple[str, ...]:
-    if not isinstance(value, (list, tuple)) or any(
-        not isinstance(item, str) for item in value
-    ):
+    if not isinstance(value, (list, tuple)) or any(not isinstance(item, str) for item in value):
         raise SystemExit(f"Unexpected Wave 0 catalog field type: {field}")
     return tuple(value)
 
@@ -455,8 +453,7 @@ def _verify_index_shapes(rows: Sequence[Mapping[str, object]]) -> None:
             table_schema=str(row["table_schema"]),
             table_name=str(row["table_name"]),
             keys=tuple(
-                _canonical_sql(key)
-                for key in _text_tuple(row["keys"], field=f"{name}.keys")
+                _canonical_sql(key) for key in _text_tuple(row["keys"], field=f"{name}.keys")
             ),
             included_columns=tuple(
                 _canonical_sql(column)
@@ -531,9 +528,10 @@ def verify_wave0_invariants(
     if not extension_exists:
         raise SystemExit("btree_gist extension is missing")
 
-    constraint_rows = connection.execute(
-        text(
-            """
+    constraint_rows = (
+        connection.execute(
+            text(
+                """
             SELECT
                 constraint_record.conname AS constraint_name,
                 namespace_record.nspname AS table_schema,
@@ -726,15 +724,17 @@ def verify_wave0_invariants(
               ON access_method.oid = supporting_index_record.relam
             WHERE namespace_record.nspname = 'erp'
             """
+            )
         )
-    ).mappings().all()
-    _verify_constraint_shapes(
-        cast(Sequence[Mapping[str, object]], constraint_rows)
+        .mappings()
+        .all()
     )
+    _verify_constraint_shapes(cast(Sequence[Mapping[str, object]], constraint_rows))
 
-    index_rows = connection.execute(
-        text(
-            """
+    index_rows = (
+        connection.execute(
+            text(
+                """
             SELECT
                 index_record.relname AS index_name,
                 namespace_record.nspname AS table_schema,
@@ -786,8 +786,11 @@ def verify_wave0_invariants(
               ON access_method.oid = index_record.relam
             WHERE namespace_record.nspname = 'erp'
             """
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     _verify_index_shapes(cast(Sequence[Mapping[str, object]], index_rows))
 
     permission_count = connection.execute(

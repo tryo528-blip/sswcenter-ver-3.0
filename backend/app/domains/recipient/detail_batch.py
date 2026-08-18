@@ -113,6 +113,7 @@ class RecipientBasicCreateBatchRequest(StrictModel):
             raise ValueError("payer guardian slot must be included in guardians")
         return self
 
+
 class RecipientBasicUpdateBatchRequest(StrictModel):
     recipient: RecipientUpdateRequest
     guardians: list[BasicGuardianMutation] = Field(default_factory=list, max_length=2)
@@ -404,9 +405,13 @@ class RecipientDetailBatchService:
             self._session.commit()
         except IntegrityError as exc:
             self._session.rollback()
+            if payload.contract is not None:
+                raise self._w1d_service._map_integrity_error(exc) from None
             raise self._recipient_service._map_integrity_error(exc) from None
-        except SQLAlchemyError:
+        except SQLAlchemyError as exc:
             self._session.rollback()
+            if payload.contract is not None:
+                raise self._w1d_service._map_sqlalchemy_error(exc) from None
             raise RuntimeError("recipient detail batch commit failed") from None
         except Exception:
             self._session.rollback()

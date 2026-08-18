@@ -10,10 +10,12 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from datetime import date
+from typing import Any, cast
 from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session
 
@@ -92,13 +94,18 @@ def _csrf_headers(client: TestClient) -> dict[str, str]:
     return {settings.csrf_header_name: csrf}
 
 
-def _post(client: TestClient, path: str, payload: dict[str, object]):
-    return client.post(path, json=payload, headers=_csrf_headers(client))
+def _post(client: TestClient, path: str, payload: dict[str, object]) -> Response:
+    return cast(Response, client.post(path, json=payload, headers=_csrf_headers(client)))
 
 
-def _assert_error_envelope(response, *, status: int, code: str) -> dict[str, object]:
+def _assert_error_envelope(
+    response: Response,
+    *,
+    status: int,
+    code: str,
+) -> dict[str, object]:
     assert response.status_code == status, response.text
-    payload = response.json()
+    payload = cast(dict[str, Any], response.json())
     assert set(payload) == {"error", "field_errors", "details", "request_id"}
     assert payload["error"]["code"] == code
     assert isinstance(payload["error"]["message"], str) and payload["error"]["message"]
@@ -108,7 +115,7 @@ def _assert_error_envelope(response, *, status: int, code: str) -> dict[str, obj
     assert response.headers["x-request-id"] == request_id
     assert "traceback" not in response.text.lower()
     assert "sqlalchemy" not in response.text.lower()
-    return payload
+    return cast(dict[str, object], payload)
 
 
 def test_0014_catalog_roles_acl_constraints_and_trigger_contract(owner_engine: Engine) -> None:
@@ -623,8 +630,11 @@ def test_0014_authorization_csrf_validation_and_error_envelopes(
 
     validation = _post(admin_client, path, {"notified_date": "not-a-date"})
     validation_body = _assert_error_envelope(validation, status=422, code="VALIDATION_ERROR")
-    assert validation_body["field_errors"]
-    assert validation_body["field_errors"][0]["field"] == "notified_date"
+    field_errors = validation_body["field_errors"]
+    assert isinstance(field_errors, list) and field_errors
+    first_field_error = field_errors[0]
+    assert isinstance(first_field_error, dict)
+    assert first_field_error["field"] == "notified_date"
 
     missing_recipient = admin_client.get(
         "/api/v1/recipients/9223372036854775807/plan-notifications"

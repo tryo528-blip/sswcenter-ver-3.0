@@ -6,6 +6,7 @@ Create Date: 2026-08-13
 """
 
 from collections.abc import Sequence
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -35,7 +36,7 @@ _ALL_TABLES = (
 )
 
 
-def _actor_columns() -> tuple[sa.Column[object], ...]:
+def _actor_columns() -> tuple[sa.Column[Any], ...]:
     return (
         sa.Column("created_by_account_id", sa.BigInteger(), nullable=False),
         sa.Column(
@@ -100,8 +101,7 @@ def _create_monthly_professional_assignment() -> None:
             name="ck_monthly_professional_assignment_date_order",
         ),
         sa.CheckConstraint(
-            "start_date >= service_month "
-            "AND end_date < (service_month + INTERVAL '1 month')::date",
+            "start_date >= service_month AND end_date < (service_month + INTERVAL '1 month')::date",
             name="ck_monthly_professional_assignment_inside_month",
         ),
         sa.CheckConstraint(
