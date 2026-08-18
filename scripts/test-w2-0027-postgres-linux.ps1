@@ -206,7 +206,7 @@ $PlaywrightOutputRoot = Join-Path $ClusterRoot "playwright-output"
 $ViteCacheRoot = Join-Path $ClusterRoot "vite-cache"
 $PreviousRevision = "20260814_0026_w1e_care_assignment_family_relationship_lock"
 $CurrentRevision = "20260817_0027_w2_official_card_assignee_and_plan_replacement"
-$ActiveHeadRevision = "20260817_0028_w3_source_intake_foundation"
+$ActiveHeadRevision = "20260818_0029_w3_persistent_apply_workspace"
 $RogueRevision = "w2_0027_rogue_second_head"
 $OwnerDatabaseUrl = "postgresql+psycopg://erp_owner@127.0.0.1:$Port/$DatabaseName"
 $AppDatabaseUrl = "postgresql+psycopg://erp_app@127.0.0.1:$Port/$DatabaseName"
@@ -662,13 +662,13 @@ $$;
         if ($LASTEXITCODE -ne 0) {
             throw "W2_0027_BROWSER_POSTCHECK_FAILED"
         }
-        if ($BrowserDispatchOutput -notcontains "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK") {
-            throw "W2_0027_BROWSER_CURRENT_0028_MARKER_MISSING"
+        if ($BrowserDispatchOutput -notcontains "SSWCENTER_CURRENT_0029_DB_POSTCHECK_OK") {
+            throw "W2_0027_BROWSER_CURRENT_0029_MARKER_MISSING"
         }
         if ($BrowserDispatchOutput -notcontains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK") {
             throw "W2_0027_BROWSER_CURRENT_HEAD_MARKER_MISSING"
         }
-        Write-Output "W2_0027_BROWSER_CURRENT_0028_POSTCHECK_GREEN"
+        Write-Output "W2_0027_BROWSER_CURRENT_0029_POSTCHECK_GREEN"
     }
     finally {
         Pop-Location
@@ -678,7 +678,7 @@ $$;
     try {
         # Current FastAPI must retain strict active-head readiness.  Run the
         # original full W2 HTTP contract only against BrowserDatabase, whose
-        # catalog is explicitly upgraded to 0028 above; never disguise the
+        # catalog is explicitly upgraded to the active 0029 head above; never disguise the
         # pinned historical 0027 lifecycle database as current.
         $env:SSWCENTER_DATABASE_URL = $BrowserOwnerDatabaseUrl
         $env:SSWCENTER_APP_DATABASE_URL = $BrowserAppDatabaseUrl

@@ -56,6 +56,10 @@ textarea:focus-visible {
   background: var(--bg-sidebar);
 }
 
+.app-shell-io {
+  min-width: 0;
+}
+
 /* Sidebar */
 .app-sidebar {
   position: sticky;
@@ -499,5 +503,92 @@ textarea:focus-visible {
   .app-header {
     padding-right: 20px;
     padding-left: 38px;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell-io .app-sidebar {
+    flex-basis: 56px;
+    width: 56px;
+  }
+
+  .app-shell-io .sidebar-header {
+    min-height: 56px;
+    padding: 10px;
+  }
+
+  .app-shell-io .sidebar-brand {
+    gap: 0;
+  }
+
+  .app-shell-io .sidebar-brand-mark {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+  }
+
+  .app-shell-io .sidebar-brand-copy,
+  .app-shell-io .sidebar-menu-label,
+  .app-shell-io .sidebar-menu-label-en,
+  .app-shell-io .header-message,
+  .app-shell-io .header-clock-container > span:first-child {
+    display: none;
+  }
+
+  .app-shell-io .sidebar-nav {
+    padding-top: 10px;
+  }
+
+  .app-shell-io .sidebar-menu-link {
+    justify-content: center;
+    min-height: 48px;
+    padding: 10px;
+  }
+
+  .app-shell-io .sidebar-footer {
+    padding: 8px;
+  }
+
+  .app-shell-io .sidebar-logout {
+    font-size: 9px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell-io .app-header {
+    gap: 8px;
+    min-height: 56px;
+    padding: 0 12px;
+  }
+
+  .app-shell-io .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .app-shell-io .header-user-name {
+    max-width: 88px;
+    font-size: 13px;
+  }
+
+  .app-shell-io .header-right {
+    gap: 8px;
+  }
+
+  .app-shell-io .month-selector-select {
+    width: 62px;
+    height: 28px;
+    padding-right: 5px;
+    padding-left: 17px;
+    font-size: 10px;
+  }
+
+  .app-shell-io .header-clock-time {
+    font-size: 14px;
+  }
+
+  .app-shell-io .app-content {
+    padding: 14px 12px 32px;
   }
 }

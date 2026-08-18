@@ -1,4 +1,4 @@
-"""Fail-closed current-head postcheck for the 0028 W3 source-intake foundation."""
+"""Fail-closed historical postcheck for the exact 0028 W3 foundation."""
 
 from __future__ import annotations
 
@@ -2305,7 +2305,6 @@ def main() -> None:
     finally:
         engine.dispose()
     print(CURRENT_0028_MARKER)
-    print(HEAD_MARKER)
 
 
 if __name__ == "__main__":

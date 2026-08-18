@@ -1,0 +1,73 @@
+{
+  "fixture_id": "W3-PROFILE-NHIS-002",
+  "profile_version": "nhis-schedule-xlsx-v1",
+  "source_type": "NHIS_SCHEDULE",
+  "source_granularity": "MONTH",
+  "declared_filename": "일정계획_YYYYMM.xlsx",
+  "filename_is_business_key": false,
+  "format": "xlsx",
+  "sheet_names": [
+    "일정계획"
+  ],
+  "header_row": 1,
+  "headers": [
+    "일자",
+    "시작시간",
+    "종료시간",
+    "수급자명",
+    "수급자\n인정번호",
+    "요양보호사명",
+    "생년월일",
+    "요양보호사번호",
+    "종사자구분",
+    "가족여부",
+    "가족관계",
+    "서비스구분",
+    "수가코드",
+    "수가명",
+    "수가"
+  ],
+  "required_columns": [
+    "일자",
+    "시작시간",
+    "종료시간",
+    "수급자명",
+    "수급자\n인정번호",
+    "요양보호사명",
+    "생년월일",
+    "요양보호사번호",
+    "종사자구분",
+    "가족여부",
+    "서비스구분",
+    "수가코드",
+    "수가명",
+    "수가"
+  ],
+  "optional_columns": [
+    "가족관계"
+  ],
+  "column_types": {
+    "일자": "EXCEL_DATE",
+    "시작시간": "TEXT_HH_MM",
+    "종료시간": "TEXT_HH_MM",
+    "수급자명": "TEXT",
+    "수급자\n인정번호": "TEXT",
+    "요양보호사명": "TEXT",
+    "생년월일": "EXCEL_DATE",
+    "요양보호사번호": "TEXT",
+    "종사자구분": "TEXT",
+    "가족여부": "TEXT_ENUM_Y_N",
+    "가족관계": "OPTIONAL_TEXT",
+    "서비스구분": "TEXT_ENUM_VISIT_SERVICE",
+    "수가코드": "TEXT",
+    "수가명": "TEXT",
+    "수가": "INTEGER"
+  },
+  "status": "APPROVED_PSEUDONYMOUS_REAL_SHAPE",
+  "approval_basis": "user supplied workbook and stated all names and numbers are pseudonymous or fake",
+  "source_sha256": "f9d4ac2b7ec8497a127fa1f0f7111228fe06b1d3a1c9c7aba0cf6a8c8f69ba48",
+  "source_bytes": 88291,
+  "macro_execution": false,
+  "active_content_allowed": false,
+  "contains_pii": false
+}

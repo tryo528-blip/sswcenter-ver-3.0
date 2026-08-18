@@ -118,7 +118,9 @@ export async function apiRequest<T>(
   const requestGeneration = authGeneration;
   const headers = new Headers(options.headers || {});
 
-  if (options.body && !headers.has('Content-Type')) {
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (options.body && !isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 

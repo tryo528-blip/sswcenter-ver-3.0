@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSWCenter W3 최종봉인 직전 보고서 · 2026-08-18</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f3f6fa; --panel: #fff; --text: #172033; --muted: #617086;
+      --line: #d8e0eb; --good: #087a55; --warn: #a45b00; --accent: #2859d6;
+      --code: #edf2f8;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.62 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { width: min(980px, calc(100% - 28px)); margin: 28px auto 48px; }
+    header, section { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 16px; box-shadow: 0 8px 24px rgb(20 35 65 / 7%); }
+    header { padding: 28px; } section { margin-top: 16px; padding: 22px; }
+    h1 { margin: 0 0 9px; font-size: clamp(24px, 5vw, 38px); line-height: 1.2; }
+    h2 { margin: 0 0 14px; font-size: 20px; } h3 { margin: 20px 0 8px; font-size: 16px; }
+    p { margin: 8px 0; } ul, ol { margin: 8px 0 0; padding-left: 22px; }
+    li + li { margin-top: 6px; }
+    code { background: var(--code); border-radius: 6px; padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+    .meta { color: var(--muted); overflow-wrap: anywhere; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px; margin-top: 18px; }
+    .metric { border: 1px solid var(--line); border-radius: 12px; padding: 15px;
+      background: color-mix(in srgb, var(--panel) 94%, var(--accent)); }
+    .metric strong { display: block; font-size: 23px; line-height: 1.25; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .good { color: var(--good); } .warn { color: var(--warn); }
+    .callout { border-left: 4px solid var(--accent); padding: 11px 14px;
+      background: color-mix(in srgb, var(--panel) 92%, var(--accent)); border-radius: 8px; }
+    .warning { border-left-color: var(--warn);
+      background: color-mix(in srgb, var(--panel) 92%, var(--warn)); }
+    .table-wrap { overflow-x: auto; } table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { padding: 10px 9px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-size: 13px; }
+    .digest { font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+      overflow-wrap: anywhere; word-break: break-all; }
+    @media (max-width: 720px) {
+      main { width: min(100% - 16px, 980px); margin-top: 8px; }
+      header, section { border-radius: 12px; padding: 18px; }
+      .grid { grid-template-columns: 1fr 1fr; } .metric strong { font-size: 20px; }
+      .table-wrap { overflow: visible; } table { min-width: 0; } thead { display: none; }
+      tbody, tr, td { display: block; width: 100%; }
+      tbody tr { padding: 11px 0; border-bottom: 1px solid var(--line); }
+      tbody tr:last-child { border-bottom: 0; } td { padding: 2px 0; border-bottom: 0; }
+      td:first-child { font-weight: 700; } td:last-child { color: var(--muted); }
+    }
+    @media (max-width: 430px) { .grid { grid-template-columns: 1fr; } }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0f1420; --panel: #171e2c; --text: #edf2ff; --muted: #a9b4c7;
+        --line: #344056; --good: #5bd5a8; --warn: #ffbd66; --accent: #7ea2ff; --code: #242e41; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="meta">SSWCenter 3.0 · W3 0029 · 2026-08-18 · FINAL SEAL READY</div>
+    <h1>W3 승인 범위를 최종봉인 직전까지 완료했습니다.</h1>
+    <p>
+      형님이 제공한 두 workbook은 이름과 번호가 모두 가명·가짜라는 사용자 확인만
+      데이터 취급 전제로 사용했습니다. 문서 셀은 지시로 실행하지 않았고 원본 bytes는
+      바꾸지 않았습니다. parser부터 typed matcher, 영속 workspace, 원자 APPLY,
+      append-only command, API/UI와 실DB·브라우저 검증까지 현재 브랜치에 닫았습니다.
+    </p>
+    <div class="grid">
+      <div class="metric"><strong class="good">10 tables</strong><span>exact child 0029</span></div>
+      <div class="metric"><strong class="good">5 live</strong><span>W3 PostgreSQL tests</span></div>
+      <div class="metric"><strong class="good">34 pass</strong><span>0028 historical lifecycle</span></div>
+      <div class="metric"><strong class="good">271 pass</strong><span>frontend supported tests</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>결론</h2>
+    <div class="callout">
+      <strong>승인된 W3 0029 범위는 FINAL_SEAL_READY입니다.</strong>
+      profile/parser, typed persistence, confirm/APPLY 상태기계, 동시성, dataful 재승격,
+      API/OpenAPI/UI, W0~W2 회귀와 독립 사후검수가 녹색입니다.
+    </div>
+    <div class="callout warning" style="margin-top: 12px">
+      <strong>이 보고서는 최종 봉인 자체가 아니라 봉인 직전 증거입니다.</strong>
+      candidate manifest와 공식 전체 gate까지 통과했습니다. 이 요청에는
+      stage·commit·push 권한이 없어 Git 변경 명령은 수행하지 않습니다.
+    </div>
+  </section>
+
+  <section>
+    <h2>완료한 제품 경계</h2>
+    <ul>
+      <li>1,224 raw rows 보존, NHIS 910→887 derived groups, RFID 선택일 파생</li>
+      <li>fail-closed OOXML preflight와 exact approved profile</li>
+      <li>generic target pair 없는 W1/W2 typed FK decision과 immutable actual-work revision</li>
+      <li><code>PREVIEW_READY→CONFIRMED→APPLYING→APPLIED</code> 단방향 상태기계</li>
+      <li>source/date apply-control, W2 month lock, APPLY 직전 typed-link 재검증</li>
+      <li>RFID schedule의 KST service day/month 일치 강제</li>
+      <li>supplement/plan의 append-only history, row version, global command-key lock</li>
+      <li>모든 승인범위 409에 entity·current version·latest workspace 포함</li>
+      <li>dataful <code>0029→0028→0029</code>에서 ACTIVE/APPLIED apply-control backfill</li>
+      <li>FILE_ONLY API 7개와 390px 단일 <code>/io</code> workspace</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>입력 증거</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>원본</th><th>크기</th><th>SHA-256</th><th>읽은 범위</th></tr></thead>
+      <tbody>
+        <tr><td>일정계획_202607.xlsx</td><td>88,291 bytes</td>
+          <td class="digest">f9d4ac2b7ec8497a127fa1f0f7111228fe06b1d3a1c9c7aba0cf6a8c8f69ba48</td>
+          <td>일정계획 A1:O911 · 910 data rows</td></tr>
+        <tr><td>실시간전송내용 (1).xlsx</td><td>42,439 bytes</td>
+          <td class="digest">a90c4e683cce782b34754f165b79a2324c154198fc665a126a2d4fc05b2720dc</td>
+          <td>실시간전송내용 A1:J315 · 314 data rows</td></tr>
+      </tbody>
+    </table></div>
+    <p class="meta">두 파일은 상호 identity가 연결된 sample이 아니며 RFID에는 직원 stable key가 없습니다.
+      따라서 이름·전화 유사매칭을 금지하고 해당 실파일 조합은 REVIEW_PENDING입니다.</p>
+  </section>
+
+  <section>
+    <h2>검증 결과</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>검증</th><th>결과</th><th>증거</th></tr></thead>
+      <tbody>
+        <tr><td>Runtime</td><td class="good">PASS</td><td><code>SSWCENTER_RUNTIME_GREEN</code></td></tr>
+        <tr><td>W3 contract</td><td class="good">PASS</td><td>8 passed</td></tr>
+        <tr><td>W3 0029 live PG</td><td class="good">PASS</td><td>5 passed · concurrency · dataful reupgrade · restore · cleanup 0</td></tr>
+        <tr><td>W3 0028 historical</td><td class="good">PASS</td><td>34 passed · restore · cleanup 0</td></tr>
+        <tr><td>W0 current head</td><td class="good">PASS</td><td>3 passed · current 0029 markers</td></tr>
+        <tr><td>W1E 0026</td><td class="good">PASS</td><td>23 passed · cleanup 0</td></tr>
+        <tr><td>W2 0027</td><td class="good">PASS</td><td>29 + current HTTP 1 + real Chromium 1</td></tr>
+        <tr><td>Backend official</td><td class="good">PASS</td><td>Ruff · mypy 96 · 622 passed / 205 skipped</td></tr>
+        <tr><td>Frontend</td><td class="good">PASS</td><td>27 files / 271 tests · build · W3 Chromium 1</td></tr>
+        <tr><td>OpenAPI</td><td class="good">PASS</td><td>generated · <code>OPENAPI_TYPES_UP_TO_DATE</code></td></tr>
+        <tr><td>Final manifest/full gate</td><td class="good">PASS</td><td>70/70 exact · <code>scripts/test.ps1</code> · smoke 9</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>독립검수</h2>
+    <h3>Round 1 · Grok READ-ONLY</h3>
+    <p>P0는 없었습니다. 승인범위 finding 8건을 확인해 모두 교정했습니다.</p>
+    <ul>
+      <li>IntegrityError 500 누출, resource lock 전 idempotency 조회</li>
+      <li>RFID 일정일자 미검증, dataful 재승격 apply-control 공백</li>
+      <li>409 latest/version 누락, planner ValueError 500</li>
+      <li>APPLY typed-link/확정월 재검증 누락, decision 1,000개 truncation</li>
+    </ul>
+    <h3>Round 2 · Grok post-fix READ-ONLY</h3>
+    <p><strong class="good">NO FINDINGS · P0–P3 없음.</strong> 남긴 cross-month command-key 위험은
+      추가 global transaction advisory lock과 live wait proof로 닫았습니다.</p>
+    <p class="meta">DeepSeek는 tool-turn 초과 1회와 900초 초과 1회로 유효 결과가 없었으며
+      PASS로 계산하지 않았습니다.</p>
+  </section>
+
+  <section>
+    <h2>중간 문제 원장</h2>
+    <ul>
+      <li>pytest 기본 capture 임시파일 오류를 제품 실패와 분리하고 <code>-s</code>로 고정</li>
+      <li>Playwright 라이브러리 부재 해결 뒤 실제 390px app-shell overflow 발견·수정</li>
+      <li>OpenAPI 423를 W3 supplement/plan 경로로만 한정하고 generated type 재생성</li>
+      <li>W1A legacy import 계약이 W3 <code>/import-runs</code>를 오인하던 회귀 수정</li>
+      <li>병렬 backend 명령의 cwd 중복 경로를 즉시 교정</li>
+      <li>W1E 병렬 cleanup 오탐을 단독 재실행으로 분리해 23 passed·cleanup 0 확인</li>
+      <li>DeepSeek 실패 두 건을 숨기지 않고 별도 Grok post-fix review로 대체</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>비차단 경계</h2>
+    <ul>
+      <li><code>APPLIED A→B→A</code> 재활성은 승인된 단방향 상태기계 밖이며 rollback/reactivate API가 없습니다.</li>
+      <li>APPLY revalidation과 commit 사이 W1 무효화를 막는 다중 원장 lock protocol은 후속 hardening 후보입니다.</li>
+      <li>NHIS 계약·회귀는 녹색이나 이번 live APPLY 고강도 경합은 RFID 중심입니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>봉인 메타데이터</h2>
+    <p class="meta">ACTOR=CODEX IMPLEMENT · independent REVIEW=GROK round 1/2 · REMOTE Ubuntu Linux ·
+      branch=<code>codex/debt-preseal-20260818</code> · stage/commit/push 없음</p>
+    <p class="meta">FINAL_SEAL_READY · W4/W5 비범위 · candidate manifest와 공식 전체 gate PASS.</p>
+  </section>
+</main>
+</body>
+</html>

@@ -32,7 +32,8 @@ def test_readiness_contract_binds_current_revision_and_postcheck() -> None:
 
     assert CURRENT_ALEMBIC_REVISION == ACTIVE_REVISION
     assert "alembic_version" in readiness_source
-    assert "verify_current_0028" in readiness_source
+    assert "verify_current_0029" in readiness_source
+    assert "verify_current_0028" not in readiness_source
     assert "required_data_paths_ready" in readiness_source
     assert "evaluate_readiness" in health_source
     assert "require_postcheck=True" in health_source

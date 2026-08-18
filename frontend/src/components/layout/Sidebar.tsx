@@ -65,6 +65,7 @@ export const Sidebar: React.FC = () => {
                 to={item.path}
                 className={({ isActive }) => `sidebar-menu-link ${isActive ? 'active' : ''}`}
                 role="menuitem"
+                aria-label={item.label}
                 data-testid={`sidebar-item-${item.id}`}
               >
                 <svg

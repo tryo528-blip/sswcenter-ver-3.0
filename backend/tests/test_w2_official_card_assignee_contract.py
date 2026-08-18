@@ -199,7 +199,7 @@ def test_priority_replacement_uses_recorded_manual_assignee_without_later_revali
 
 
 def test_restore_and_current_head_routes_distinguish_0027_from_historical_heads() -> None:
-    """A restored 0028 backup alone is allowed to claim the current-head marker."""
+    """Only a restored 0029 backup may claim the current-head marker."""
 
     restore_source = RESTORE_DRILL.read_text(encoding="utf-8")
     dispatcher_source = (BACKEND_ROOT / "app" / "db" / "postcheck_dispatch.py").read_text(
@@ -208,6 +208,8 @@ def test_restore_and_current_head_routes_distinguish_0027_from_historical_heads(
     harness = W2_LIVE_HARNESS.read_text(encoding="utf-8")
     assert "20260817_0028_w3_source_intake_foundation" in restore_source
     assert "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK" in restore_source
+    assert "20260818_0029_w3_persistent_apply_workspace" in restore_source
+    assert "SSWCENTER_CURRENT_0029_DB_POSTCHECK_OK" in restore_source
     assert "20260817_0027_w2_official_card_assignee_and_plan_replacement" in restore_source
     assert "SSWCENTER_CURRENT_0027_DB_POSTCHECK_OK" in restore_source
     assert "20260814_0026_w1e_care_assignment_family_relationship_lock" in restore_source
@@ -222,12 +224,13 @@ def test_restore_and_current_head_routes_distinguish_0027_from_historical_heads(
         $Historical0025Revision,
         $Historical0026Revision,
         $Historical0027Revision,
+        $Historical0028Revision,
         $ActiveRevision
     ))"""
         in restore_source
     )
     assert "$PostcheckOutput | Write-Output" in restore_source
-    assert ('ACTIVE_REVISION = "20260817_0028_w3_source_intake_foundation"') in dispatcher_source
+    assert ('ACTIVE_REVISION = "20260818_0029_w3_persistent_apply_workspace"') in dispatcher_source
     assert "verify_current_0025" not in dispatcher_source
     assert "verify_current_0026" not in dispatcher_source
     assert "verify_current_0027" not in dispatcher_source
@@ -236,7 +239,7 @@ def test_restore_and_current_head_routes_distinguish_0027_from_historical_heads(
     assert "upgrade $CurrentRevision" in harness
 
 
-def test_w2_historical_database_excludes_current_http_and_runs_it_only_at_0028() -> None:
+def test_w2_historical_database_excludes_current_http_and_runs_it_only_at_0029() -> None:
     harness = W2_LIVE_HARNESS.read_text(encoding="utf-8")
     current_http = W2_CURRENT_HTTP_PG_TEST.read_text(encoding="utf-8")
 
@@ -252,16 +255,16 @@ def test_w2_historical_database_excludes_current_http_and_runs_it_only_at_0028()
     assert "SSWCENTER_W2_CURRENT_HTTP_APP_DATABASE_URL" in harness
     assert "upgrade $ActiveHeadRevision" in harness
     assert "app.db.postcheck_dispatch" in harness
-    assert "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK" in harness
+    assert "SSWCENTER_CURRENT_0029_DB_POSTCHECK_OK" in harness
     assert "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK" in harness
-    assert "W2_0027_BROWSER_CURRENT_0028_MARKER_MISSING" in harness
+    assert "W2_0027_BROWSER_CURRENT_0029_MARKER_MISSING" in harness
     assert "W2_0027_BROWSER_CURRENT_HEAD_MARKER_MISSING" in harness
-    assert "W2_0027_BROWSER_CURRENT_0028_POSTCHECK_GREEN" in harness
+    assert "W2_0027_BROWSER_CURRENT_0029_POSTCHECK_GREEN" in harness
     assert "W2_0027_POSTGRES_RESTORE_HISTORICAL_0027_MARKER_MISSING" in harness
     assert "W2_0027_POSTGRES_RESTORE_EMITTED_CURRENT_HEAD_MARKER" in harness
     assert "SSWCENTER_READINESS_BYPASS" not in harness
 
-    assert 'ACTIVE_REVISION = "20260817_0028_w3_source_intake_foundation"' in current_http
+    assert 'ACTIVE_REVISION = "20260818_0029_w3_persistent_apply_workspace"' in current_http
     assert "SSWCENTER_W2_CURRENT_HTTP_REAL_PG" in current_http
     assert "SSWCENTER_W2_CURRENT_HTTP_DATABASE_URL" in current_http
     assert "SSWCENTER_W2_CURRENT_HTTP_APP_DATABASE_URL" in current_http

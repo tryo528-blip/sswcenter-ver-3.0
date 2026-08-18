@@ -52,6 +52,7 @@ ENV_PY = BACKEND_ROOT / "alembic" / "env.py"
 
 PARENT_REVISION = "20260817_0027_w2_official_card_assignee_and_plan_replacement"
 ACTIVE_REVISION = "20260817_0028_w3_source_intake_foundation"
+CURRENT_HEAD_REVISION = "20260818_0029_w3_persistent_apply_workspace"
 
 EXPECTED_TABLE_NAMES = {
     "w3_private_content",
@@ -159,17 +160,23 @@ def test_0028_orm_models_match_foundation_identity_and_have_no_target_link() -> 
         assert "target_id" not in compiled
 
 
-def test_0028_is_registered_as_current_head_only() -> None:
+def test_0028_is_registered_as_historical_direct_verifier_only() -> None:
     assert W3_0028_REVISION == ACTIVE_REVISION
     assert EXPECTED_REVISION == ACTIVE_REVISION
-    assert postcheck_dispatch.ACTIVE_REVISION == ACTIVE_REVISION
-    assert readiness.CURRENT_ALEMBIC_REVISION == ACTIVE_REVISION
-    assert "verify_current_0028" in READINESS.read_text(encoding="utf-8")
+    assert postcheck_dispatch.ACTIVE_REVISION == CURRENT_HEAD_REVISION
+    assert readiness.CURRENT_ALEMBIC_REVISION == CURRENT_HEAD_REVISION
+    assert postcheck_dispatch.ACTIVE_REVISION != ACTIVE_REVISION
+    assert "verify_current_0029" in READINESS.read_text(encoding="utf-8")
+    assert "verify_current_0028" not in READINESS.read_text(encoding="utf-8")
     assert "verify_current_0027" not in inspect.getsource(readiness.database_catalog_is_ready)
 
     dispatcher_source = DISPATCHER.read_text(encoding="utf-8")
-    assert f'ACTIVE_REVISION = "{ACTIVE_REVISION}"' in dispatcher_source
-    assert "verify_current_0028" in dispatcher_source
+    direct_source = W3_POSTCHECK.read_text(encoding="utf-8")
+    assert f'ACTIVE_REVISION = "{CURRENT_HEAD_REVISION}"' in dispatcher_source
+    assert "verify_current_0029" in dispatcher_source
+    assert "verify_current_0028" not in dispatcher_source
+    assert "print(CURRENT_0028_MARKER)" in direct_source
+    assert "print(HEAD_MARKER)" not in direct_source
     assert CURRENT_0028_MARKER == "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK"
     assert HEAD_MARKER == "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"
 
@@ -201,12 +208,17 @@ def test_0028_grant_and_restore_and_w2_harness_split_active_from_historical() ->
     revoke_block = revoke_block.split("GRANT SELECT ON SEQUENCE", maxsplit=1)[0]
     for table_name in sorted(REQUIRED_TABLES):
         assert f"erp.{table_name}" in revoke_block
-    status_grant = grant_source.split("GRANT UPDATE (status) ON TABLE", maxsplit=1)[1]
-    status_grant = status_grant.split("TO erp_app;", maxsplit=1)[0]
-    for table_name in sorted(MUTABLE_LINEAGE_TABLES):
-        assert f"erp.{table_name}" in status_grant
+    assert "GRANT UPDATE (status) ON TABLE erp.w3_source_snapshot TO erp_app;" in grant_source
+    assert "GRANT UPDATE (status) ON TABLE erp.w3_import_run TO erp_app;" in grant_source
+    assert (
+        "GRANT UPDATE (status, row_version) ON TABLE erp.w3_import_run TO erp_app;"
+        in grant_source
+    )
     for table_name in sorted(IMMUTABLE_TABLES):
-        assert f"erp.{table_name}" not in status_grant
+        assert re.search(
+            rf"GRANT UPDATE \([^)]*\) ON TABLE erp\.{re.escape(table_name)} TO erp_app;",
+            grant_source,
+        ) is None
     assert "acl.grantee <> relation_row.relowner" not in postcheck_source
     assert "_exact_acl_drifts(" in postcheck_source
     assert "_verify_w3_table_relacl_entries(connection)" in postcheck_source
@@ -272,6 +284,7 @@ def test_0028_grant_and_restore_and_w2_harness_split_active_from_historical() ->
         $Historical0025Revision,
         $Historical0026Revision,
         $Historical0027Revision,
+        $Historical0028Revision,
         $ActiveRevision
     ))"""
         in restore_source
@@ -281,14 +294,14 @@ def test_0028_grant_and_restore_and_w2_harness_split_active_from_historical() ->
 
     w2_harness = W2_HARNESS.read_text(encoding="utf-8")
     assert PARENT_REVISION in w2_harness
-    assert ACTIVE_REVISION in w2_harness
     assert "app.db.postcheck_current_0027" in w2_harness
     assert "upgrade head" not in w2_harness.split("browser_database")[0]
     assert "upgrade $ActiveHeadRevision" in w2_harness
     assert "upgrade $CurrentRevision" in w2_harness
-    assert "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK" in w2_harness
+    assert CURRENT_HEAD_REVISION in w2_harness
+    assert "SSWCENTER_CURRENT_0029_DB_POSTCHECK_OK" in w2_harness
     assert "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK" in w2_harness
-    assert "W2_0027_BROWSER_CURRENT_0028_MARKER_MISSING" in w2_harness
+    assert "W2_0027_BROWSER_CURRENT_0029_MARKER_MISSING" in w2_harness
     assert "W2_0027_BROWSER_CURRENT_HEAD_MARKER_MISSING" in w2_harness
     assert "W2_0027_POSTGRES_RESTORE_HISTORICAL_0027_MARKER_MISSING" in w2_harness
     assert "W2_0027_POSTGRES_RESTORE_EMITTED_CURRENT_HEAD_MARKER" in w2_harness
@@ -304,9 +317,9 @@ def test_0028_grant_and_restore_and_w2_harness_split_active_from_historical() ->
     assert "--timeout=15" in w3_harness
     assert "W3_0028_POSTGRES_RESTORE_MARKER_MISSING" in w3_harness
     assert "W3_0028_POSTGRES_RESTORE_CURRENT_0028_MARKER_MISSING" in w3_harness
-    assert "W3_0028_POSTGRES_RESTORE_HEAD_MARKER_MISSING" in w3_harness
+    assert "W3_0028_POSTGRES_RESTORE_EMITTED_CURRENT_HEAD_MARKER" in w3_harness
     assert ('$RestoreOutput -notcontains "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK"') in w3_harness
-    assert ('$RestoreOutput -notcontains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"') in w3_harness
+    assert ('$RestoreOutput -contains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"') in w3_harness
     assert '$RestoreOutput -notcontains "RESTORE_DRILL_OK $ReviewDatabaseName"' in w3_harness
 
 
@@ -409,8 +422,8 @@ def test_parent_w2_delta_records_intentional_0028_transition_without_unauthorize
     assert "W2_PARENT_REVIEWED_ROWS_EXACT=85/98" in delta
     assert "W3_INTENTIONAL_CANONICAL_CHANGES=13" in delta
     assert "W2_UNAUTHORIZED_DRIFT=0" in delta
-    assert "FOUNDATION_0028_UNSUPPORTED_REVISION" in foundation_contract.read_text(encoding="utf-8")
-    assert "FOUNDATION_0028_UNSUPPORTED_REVISION" in w1e_contract.read_text(encoding="utf-8")
+    assert "W3_0029_UNSUPPORTED_REVISION" in foundation_contract.read_text(encoding="utf-8")
+    assert "W3_0029_UNSUPPORTED_REVISION" in w1e_contract.read_text(encoding="utf-8")
 
     intentional: dict[str, tuple[str, int, str, int]] = {}
     row_pattern = re.compile(

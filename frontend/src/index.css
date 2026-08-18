@@ -4,6 +4,7 @@
 @import './styles/layout.css';
 @import './styles/editorial.css';
 @import './styles/schedule.css';
+@import './styles/io.css';
 
 /* Global Index CSS Reset */
 html, body, #root {

@@ -51,7 +51,7 @@ def test_dispatcher_rejects_historical_0025_revision(capsys: pytest.CaptureFixtu
     dispatcher = _load_dispatcher()
     assert DISPATCHER_PATH.is_file()
     assert dispatcher.ACTIVE_REVISION != CURRENT_REVISION
-    with pytest.raises(SystemExit, match="FOUNDATION_0028_UNSUPPORTED_REVISION"):
+    with pytest.raises(SystemExit, match="W3_0029_UNSUPPORTED_REVISION"):
         dispatcher.dispatch_current_head(_RevisionConnection([CURRENT_REVISION]))
     output = capsys.readouterr().out
     assert HISTORICAL_DIRECT_MARKER not in output

@@ -1353,6 +1353,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/w3/workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workspace */
+        get: operations["getW3Workspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/w3/import-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Workbook */
+        post: operations["uploadW3Workbook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/w3/import-runs/{run_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Run */
+        post: operations["confirmW3ImportRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/w3/import-runs/{run_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Run */
+        post: operations["applyW3ImportRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/w3/import-runs/{run_id}/decisions/{decision_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Decision */
+        post: operations["resolveW3MatchDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/w3/actual-work/{revision_id}/supplements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Supplement */
+        post: operations["createW3ManualSupplement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/w3/actual-work/{revision_id}/plan-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adopt Plan Adjustment */
+        post: operations["adoptW3PlanAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1505,6 +1624,17 @@ export interface components {
             replacement_benefit_period_id: number | null;
             /** Row Version */
             row_version: number;
+        };
+        /** Body_uploadW3Workbook */
+        Body_uploadW3Workbook: {
+            source_type: components["schemas"]["W3SourceType"];
+            /**
+             * Target Date
+             * Format: date
+             */
+            target_date: string;
+            /** File */
+            file: string;
         };
         /** BootstrapRequest */
         BootstrapRequest: {
@@ -3500,6 +3630,248 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** W3ActiveSnapshot */
+        W3ActiveSnapshot: {
+            /** Snapshot Id */
+            snapshot_id: number;
+            /** Import Run Id */
+            import_run_id: number;
+            source_type: components["schemas"]["W3SourceType"];
+            /**
+             * Target Date
+             * Format: date
+             */
+            target_date: string;
+            /** Row Version */
+            row_version: number;
+        };
+        /** W3ApplyRequest */
+        W3ApplyRequest: {
+            /** Expected Row Version */
+            expected_row_version: number;
+            /** Command Idempotency Key */
+            command_idempotency_key: string;
+        };
+        /** W3ConfirmRequest */
+        W3ConfirmRequest: {
+            /** Expected Row Version */
+            expected_row_version: number;
+            /** Preview Digest */
+            preview_digest: string;
+            /** Command Idempotency Key */
+            command_idempotency_key: string;
+        };
+        /** W3DecisionItem */
+        W3DecisionItem: {
+            /** Id */
+            id: number;
+            /** Source Occurrence Identity */
+            source_occurrence_identity: string;
+            status: components["schemas"]["W3MatchStatus"];
+            /** Reason Code */
+            reason_code: string;
+            /** Source Row Number */
+            source_row_number?: number | null;
+            /**
+             * Service Date
+             * Format: date
+             */
+            service_date: string;
+            /** Service Category */
+            service_category: string;
+            /** Event State */
+            event_state?: string | null;
+            /** End Display */
+            end_display?: string | null;
+            /** Row Version */
+            row_version: number;
+        };
+        /**
+         * W3MatchStatus
+         * @enum {string}
+         */
+        W3MatchStatus: "AUTO_MATCH" | "MANUAL_MATCH" | "REVIEW_PENDING" | "BLOCKED";
+        /** W3PlanAdjustmentRequest */
+        W3PlanAdjustmentRequest: {
+            /** Expected Schedule Row Version */
+            expected_schedule_row_version: number;
+            /** Expected Month Row Version */
+            expected_month_row_version: number;
+            /**
+             * Rule Version
+             * @constant
+             */
+            rule_version: "w3-rfid-adjustment-v1";
+            /** Reason */
+            reason: string;
+            /** Command Idempotency Key */
+            command_idempotency_key: string;
+        };
+        /** W3PlanAdjustmentResponse */
+        W3PlanAdjustmentResponse: {
+            /** Id */
+            id: number;
+            /** Actual Work Revision Id */
+            actual_work_revision_id: number;
+            /** W2 Schedule Id */
+            w2_schedule_id: number;
+            /** Rule Version */
+            rule_version: string;
+            /**
+             * Adopted Planned Start
+             * Format: date-time
+             */
+            adopted_planned_start: string;
+            /**
+             * Adopted Planned End
+             * Format: date-time
+             */
+            adopted_planned_end: string;
+            /** Schedule Row Version */
+            schedule_row_version: number;
+            /** Month Row Version */
+            month_row_version: number;
+            /**
+             * Created At Utc
+             * Format: date-time
+             */
+            created_at_utc: string;
+        };
+        /** W3ResolveDecisionRequest */
+        W3ResolveDecisionRequest: {
+            /** Expected Run Row Version */
+            expected_run_row_version: number;
+            /** Command Idempotency Key */
+            command_idempotency_key: string;
+            /** Recipient Id */
+            recipient_id: number;
+            /** Certification Period Id */
+            certification_period_id: number;
+            /** Staff Id */
+            staff_id: number;
+            /** Employment Id */
+            employment_id: number;
+            /** Service Type Id */
+            service_type_id: number;
+            /** Recipient Contract Id */
+            recipient_contract_id: number;
+            /** Care Assignment Id */
+            care_assignment_id: number;
+            /** W2 Schedule Id */
+            w2_schedule_id: number;
+        };
+        /** W3RunCounts */
+        W3RunCounts: {
+            /** Raw Rows */
+            raw_rows: number;
+            /** Normalized Rows */
+            normalized_rows: number;
+            /** Target Rows */
+            target_rows: number;
+            /** Derived Groups */
+            derived_groups: number;
+            /** Auto Matches */
+            auto_matches: number;
+            /** Manual Matches */
+            manual_matches: number;
+            /** Review Pending */
+            review_pending: number;
+            /** Blocked */
+            blocked: number;
+        };
+        /**
+         * W3RunStatus
+         * @enum {string}
+         */
+        W3RunStatus: "RECEIVED" | "PARSING" | "PREVIEW_READY" | "CONFIRMED" | "APPLYING" | "APPLIED" | "BLOCKED" | "FAILED";
+        /** W3RunSummary */
+        W3RunSummary: {
+            /** Id */
+            id: number;
+            source_type: components["schemas"]["W3SourceType"];
+            /**
+             * Target Date
+             * Format: date
+             */
+            target_date: string;
+            /** Original Filename */
+            original_filename: string;
+            /** Parser Profile Version */
+            parser_profile_version: string;
+            status: components["schemas"]["W3RunStatus"];
+            /** Row Version */
+            row_version: number;
+            /** Preview Digest */
+            preview_digest?: string | null;
+            /** Warning Codes */
+            warning_codes?: string[];
+            counts: components["schemas"]["W3RunCounts"];
+            /** Decisions */
+            decisions?: components["schemas"]["W3DecisionItem"][];
+            /**
+             * Created At Utc
+             * Format: date-time
+             */
+            created_at_utc: string;
+            /** Can Confirm */
+            can_confirm: boolean;
+            /** Can Apply */
+            can_apply: boolean;
+        };
+        /**
+         * W3SourceType
+         * @enum {string}
+         */
+        W3SourceType: "NHIS_SCHEDULE" | "RFID";
+        /**
+         * W3SupplementAction
+         * @enum {string}
+         */
+        W3SupplementAction: "CREATE" | "CANCEL" | "REPLACE";
+        /** W3SupplementRequest */
+        W3SupplementRequest: {
+            action: components["schemas"]["W3SupplementAction"];
+            /** Expected Row Version */
+            expected_row_version: number;
+            /** Proposed Actual End */
+            proposed_actual_end?: string | null;
+            /** Reason */
+            reason: string;
+            /** Command Idempotency Key */
+            command_idempotency_key: string;
+        };
+        /** W3SupplementResponse */
+        W3SupplementResponse: {
+            /** Id */
+            id: number;
+            /** Actual Work Revision Id */
+            actual_work_revision_id: number;
+            /** Row Version */
+            row_version: number;
+            action: components["schemas"]["W3SupplementAction"];
+            /** Proposed Actual End */
+            proposed_actual_end?: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Created At Utc
+             * Format: date-time
+             */
+            created_at_utc: string;
+        };
+        /** W3WorkspaceResponse */
+        W3WorkspaceResponse: {
+            source_type: components["schemas"]["W3SourceType"];
+            /**
+             * Target Date
+             * Format: date
+             */
+            target_date: string;
+            active?: components["schemas"]["W3ActiveSnapshot"] | null;
+            latest_run?: components["schemas"]["W3RunSummary"] | null;
+            /** Recent Runs */
+            recent_runs?: components["schemas"]["W3RunSummary"][];
         };
     };
     responses: never;
@@ -11144,6 +11516,643 @@ export interface operations {
             };
             /** @description Internal Server Error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getW3Workspace: {
+        parameters: {
+            query: {
+                source_type: components["schemas"]["W3SourceType"];
+                target_date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3WorkspaceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    uploadW3Workbook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_uploadW3Workbook"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3WorkspaceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    confirmW3ImportRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["W3ConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3WorkspaceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    applyW3ImportRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["W3ApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3WorkspaceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    resolveW3MatchDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+                decision_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["W3ResolveDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3WorkspaceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createW3ManualSupplement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                revision_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["W3SupplementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3SupplementResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    adoptW3PlanAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                revision_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["W3PlanAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["W3PlanAdjustmentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

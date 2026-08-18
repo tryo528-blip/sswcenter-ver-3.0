@@ -87,7 +87,7 @@ def test_current_dispatcher_rejects_historical_0026_without_head_marker(
     dispatcher = importlib.import_module("app.db.postcheck_dispatch")
     assert dispatcher.ACTIVE_REVISION != W1E_0026_REVISION
 
-    with pytest.raises(SystemExit, match="FOUNDATION_0028_UNSUPPORTED_REVISION"):
+    with pytest.raises(SystemExit, match="W3_0029_UNSUPPORTED_REVISION"):
         dispatcher.dispatch_current_head(_RevisionConnection([W1E_0026_REVISION]))
     output = capsys.readouterr().out
     assert "SSWCENTER_HISTORICAL_0026_DB_POSTCHECK_OK" not in output

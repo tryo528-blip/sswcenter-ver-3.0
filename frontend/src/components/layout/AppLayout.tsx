@@ -6,8 +6,13 @@ import Header from './Header';
 export const AppLayout: React.FC = () => {
   const location = useLocation();
   const isDashboard = location.pathname.startsWith('/dashboard');
+  const isIO = location.pathname.startsWith('/io');
   const isRecipients = location.pathname.startsWith('/recipients');
-  const shellClass = isDashboard ? 'app-shell app-shell-dashboard' : 'app-shell';
+  const shellClass = isDashboard
+    ? 'app-shell app-shell-dashboard'
+    : isIO
+      ? 'app-shell app-shell-io'
+      : 'app-shell';
   const contentClass = `app-content${isRecipients ? ' app-content-recipients' : ''}`;
 
   return (

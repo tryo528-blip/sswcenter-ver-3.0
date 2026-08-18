@@ -11,6 +11,7 @@ from app.api.w1c import router as w1c_router
 from app.api.w1d import router as w1d_router
 from app.api.w1e import router as w1e_router
 from app.api.w2 import router as w2_router
+from app.api.w3 import router as w3_router
 from app.core.logging import configure_logging
 from app.core.settings import get_settings
 
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     application.include_router(w1d_router)
     application.include_router(w1e_router)
     application.include_router(w2_router)
+    application.include_router(w3_router)
     install_w1a_error_contract(application)
     return application
 

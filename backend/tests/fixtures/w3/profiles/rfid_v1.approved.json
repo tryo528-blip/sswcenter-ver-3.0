@@ -1,0 +1,58 @@
+{
+  "fixture_id": "W3-PROFILE-RFID-002",
+  "profile_version": "rfid-xlsx-v1",
+  "source_type": "RFID",
+  "source_granularity": "DAY_SELECTED_FROM_RANGE_EXPORT",
+  "declared_filename": "실시간전송내용.xlsx",
+  "filename_is_business_key": false,
+  "format": "xlsx",
+  "sheet_names": [
+    "실시간전송내용"
+  ],
+  "header_row": 1,
+  "headers": [
+    "구분",
+    "수급자성명",
+    "인정번호",
+    "요양요원",
+    "핸드폰번호",
+    "급여종류",
+    "총시간",
+    "시작시간",
+    "종료시간",
+    "사용여부"
+  ],
+  "required_columns": [
+    "구분",
+    "수급자성명",
+    "인정번호",
+    "요양요원",
+    "핸드폰번호",
+    "급여종류",
+    "총시간",
+    "시작시간",
+    "사용여부"
+  ],
+  "optional_columns": [
+    "종료시간"
+  ],
+  "column_types": {
+    "구분": "TEXT_ENUM_TRANSMISSION_KIND",
+    "수급자성명": "TEXT",
+    "인정번호": "TEXT",
+    "요양요원": "TEXT",
+    "핸드폰번호": "TEXT",
+    "급여종류": "TEXT_ENUM_VISIT_SERVICE",
+    "총시간": "TEXT_INTEGER_REFERENCE_MINUTES",
+    "시작시간": "TEXT_YYYY_MM_DD_HH_MM_SS",
+    "종료시간": "OPTIONAL_TEXT_YYYY_MM_DD_HH_MM_SS",
+    "사용여부": "TEXT_ENUM_USE_STATE"
+  },
+  "status": "APPROVED_PSEUDONYMOUS_REAL_SHAPE",
+  "approval_basis": "user supplied workbook and stated all names and numbers are pseudonymous or fake",
+  "source_sha256": "a90c4e683cce782b34754f165b79a2324c154198fc665a126a2d4fc05b2720dc",
+  "source_bytes": 42439,
+  "macro_execution": false,
+  "active_content_allowed": false,
+  "contains_pii": false
+}

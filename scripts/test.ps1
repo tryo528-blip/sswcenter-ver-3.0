@@ -77,7 +77,7 @@ try {
         }
     }
 
-    & $PythonExe -B -m pytest -q tests/test_w0_release_gate.py
+    & $PythonExe -B -m pytest -q -s tests/test_w0_release_gate.py
     if ($LASTEXITCODE -ne 0) { throw "W0 release-gate contract failed" }
 
     $OpenApiScript = Join-Path $WorkspaceRoot "scripts\generate-openapi-types.ps1"
@@ -128,7 +128,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "W0 mypy failed" }
 
         $PytestArguments = @(
-            "-B", "-m", "pytest", "-q",
+            "-B", "-m", "pytest", "-q", "-s",
             "tests/test_foundation_0025_contract.py",
             "tests/test_health.py",
             "tests/test_logging.py",
@@ -148,7 +148,7 @@ try {
         & $PythonExe -m mypy app
         if ($LASTEXITCODE -ne 0) { throw "mypy failed" }
 
-        $PytestArguments = @("-B", "-m", "pytest", "-q")
+        $PytestArguments = @("-B", "-m", "pytest", "-q", "-s")
         if (-not $RequirePostgres) {
             $PytestArguments += "--ignore=tests/test_w1a_vs6_postgres.py"
         }

@@ -107,8 +107,8 @@ $W3NodeIds = @(
     "tests/test_w3_0028_postgres.py::test_w3_0028_pg_postcheck_rejects_hostile_filename_update_grant",
     "tests/test_w3_0028_postgres.py::test_w3_0028_pg_rogue_second_head_fails_direct_dispatcher_and_readiness",
     "tests/test_w3_0028_postgres.py::test_w3_0028_pg_two_connection_active_partial_unique_race",
-    "tests/test_w3_0028_postgres.py::test_w3_0028_pg_dispatcher_emits_current_head_only",
-    "tests/test_w3_0028_postgres.py::test_w3_0028_pg_app_dispatcher_rejects_hidden_no_privilege_w3_relation",
+    "tests/test_w3_0028_postgres.py::test_w3_0028_pg_dispatcher_rejects_historical_revision_without_head_marker",
+    "tests/test_w3_0028_postgres.py::test_w3_0028_pg_app_direct_verifier_rejects_hidden_no_privilege_w3_relation",
     "tests/test_w3_0028_postgres.py::test_w3_0028_pg_app_url_is_not_superuser",
     "tests/test_w3_0028_postgres.py::test_w3_0028_pg_postcheck_rejects_unexpected_owner",
     "tests/test_w3_0028_postgres.py::test_w3_0028_pg_postcheck_rejects_sequence_and_schema_acl_drift",
@@ -334,15 +334,15 @@ CREATE ROLE erp_backup LOGIN;
     Push-Location $BackendRoot
     try {
         $env:SSWCENTER_DATABASE_URL = $AppDatabaseUrl
-        $DispatchOutput = @(& $PythonExe -B -m app.db.postcheck_dispatch)
+        $DispatchOutput = @(& $PythonExe -B -m app.db.postcheck_current_0028)
         if ($LASTEXITCODE -ne 0) {
-            throw "W3_0028_POSTGRES_CURRENT_POSTCHECK_FAILED"
+            throw "W3_0028_POSTGRES_HISTORICAL_POSTCHECK_FAILED"
         }
         if ($DispatchOutput -notcontains "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK") {
-            throw "W3_0028_POSTGRES_CURRENT_MARKER_MISSING"
+            throw "W3_0028_POSTGRES_HISTORICAL_MARKER_MISSING"
         }
-        if ($DispatchOutput -notcontains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK") {
-            throw "W3_0028_POSTGRES_HEAD_MARKER_MISSING"
+        if ($DispatchOutput -contains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK") {
+            throw "W3_0028_POSTGRES_HISTORICAL_EMITTED_CURRENT_HEAD_MARKER"
         }
         $env:SSWCENTER_DATABASE_URL = $OwnerDatabaseUrl
         & $PythonExe -B -m pytest -q -p no:cacheprovider -s @W3NodeIds
@@ -407,8 +407,8 @@ CREATE ROLE erp_backup LOGIN;
     if ($RestoreOutput -notcontains "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK") {
         throw "W3_0028_POSTGRES_RESTORE_CURRENT_0028_MARKER_MISSING"
     }
-    if ($RestoreOutput -notcontains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK") {
-        throw "W3_0028_POSTGRES_RESTORE_HEAD_MARKER_MISSING"
+    if ($RestoreOutput -contains "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK") {
+        throw "W3_0028_POSTGRES_RESTORE_EMITTED_CURRENT_HEAD_MARKER"
     }
     Write-Output "W3_0028_POSTGRES_RESTORE_GREEN"
     Write-Output "W3_0028_POSTGRES_LIVE_GREEN"

@@ -1096,21 +1096,22 @@ def test_dispatcher_and_readiness_fetch_all_alembic_version_rows() -> None:
     postcheck_source = POSTCHECK_0028.read_text(encoding="utf-8")
     assert "SELECT version_num FROM erp.alembic_version" in dispatcher_source
     assert "len(values) != 1" in dispatcher_source
-    assert "FOUNDATION_0028_REVISION_CARDINALITY" in dispatcher_source
+    assert "W3_0029_REVISION_CARDINALITY" in dispatcher_source
     assert "SELECT version_num FROM erp.alembic_version" in readiness_source
     assert "len(revisions) != 1" in readiness_source
     assert "alembic_revision_cardinality" in readiness_source
     assert "revisions != [EXPECTED_REVISION]" in postcheck_source
-    assert readiness.CURRENT_ALEMBIC_REVISION == EXPECTED_REVISION
-    with pytest.raises(SystemExit, match="FOUNDATION_0028_REVISION_CARDINALITY"):
+    assert readiness.CURRENT_ALEMBIC_REVISION == ACTIVE_REVISION
+    assert ACTIVE_REVISION != EXPECTED_REVISION
+    with pytest.raises(SystemExit, match="W3_0029_REVISION_CARDINALITY"):
         _read_single_revision(
-            _FakeRevisionConnection([EXPECTED_REVISION, "w3_0028_rogue_second_head"])
+            _FakeRevisionConnection([ACTIVE_REVISION, "w3_0029_rogue_second_head"])
         )
 
 
-def test_historical_0027_direct_verifier_cannot_emit_head_marker() -> None:
+def test_historical_0027_and_0028_direct_verifiers_cannot_emit_head_marker() -> None:
     historical = POSTCHECK_0027.read_text(encoding="utf-8")
-    current = POSTCHECK_0028.read_text(encoding="utf-8")
+    historical_0028 = POSTCHECK_0028.read_text(encoding="utf-8")
     dispatcher = DISPATCHER.read_text(encoding="utf-8")
 
     assert HISTORICAL_0027_REVISION == (
@@ -1118,11 +1119,12 @@ def test_historical_0027_direct_verifier_cannot_emit_head_marker() -> None:
     )
     assert "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK" not in historical
     assert 'print("SSWCENTER_CURRENT_0027_DB_POSTCHECK_OK")' in historical
-    assert "print(HEAD_MARKER)" in current
-    assert "print(CURRENT_0028_MARKER)" in current
-    assert ACTIVE_REVISION == EXPECTED_REVISION
+    assert "print(HEAD_MARKER)" not in historical_0028
+    assert "print(CURRENT_0028_MARKER)" in historical_0028
+    assert ACTIVE_REVISION != EXPECTED_REVISION
     assert dispatcher.count("print(HEAD_MARKER)") == 1
-    assert "verify_current_0028(connection)" in dispatcher
+    assert "verify_current_0029(connection)" in dispatcher
+    assert "verify_current_0028" not in dispatcher
     assert "verify_current_0027" not in dispatcher
     assert "verify_current_0026" not in dispatcher
     assert "verify_current_0025" not in dispatcher

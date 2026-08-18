@@ -94,4 +94,6 @@ def test_http_423_is_documented_only_for_actual_resource_lock_paths() -> None:
         ("PUT", "/api/v1/schedules/{schedule_id}"),
         ("DELETE", "/api/v1/schedules/{schedule_id}"),
         ("POST", "/api/v1/schedule-months/{schedule_month}/finalize"),
+        ("POST", "/api/v1/w3/actual-work/{revision_id}/supplements"),
+        ("POST", "/api/v1/w3/actual-work/{revision_id}/plan-adjustments"),
     }

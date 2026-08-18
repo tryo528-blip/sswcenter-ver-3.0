@@ -22,8 +22,8 @@ Set-StrictMode -Version Latest
 
 Import-Module (Join-Path $PSScriptRoot "PostgresTools.psm1") -Force
 
-$ActiveRevision = "20260817_0028_w3_source_intake_foundation"
-$ActiveMarker = "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK"
+$ActiveRevision = "20260818_0029_w3_persistent_apply_workspace"
+$ActiveMarker = "SSWCENTER_CURRENT_0029_DB_POSTCHECK_OK"
 $CurrentHeadMarker = "SSWCENTER_CURRENT_HEAD_POSTCHECK_OK"
 $Historical0025Revision = "20260813_0025_w1_relationship_lock_contract_correction"
 $Historical0025DirectMarker = "SSWCENTER_CURRENT_0025_DB_POSTCHECK_OK"
@@ -31,6 +31,8 @@ $Historical0026Revision = "20260814_0026_w1e_care_assignment_family_relationship
 $Historical0026DirectMarker = "SSWCENTER_CURRENT_0026_DB_POSTCHECK_OK"
 $Historical0027Revision = "20260817_0027_w2_official_card_assignee_and_plan_replacement"
 $Historical0027DirectMarker = "SSWCENTER_CURRENT_0027_DB_POSTCHECK_OK"
+$Historical0028Revision = "20260817_0028_w3_source_intake_foundation"
+$Historical0028DirectMarker = "SSWCENTER_CURRENT_0028_DB_POSTCHECK_OK"
 
 $Connection = ConvertFrom-SswPostgresUrl -DatabaseUrl $AdminDatabaseUrl
 if ($Connection.Database -ne "postgres") {
@@ -85,6 +87,7 @@ $SupportedRevisions = @(
     $Historical0025Revision,
     $Historical0026Revision,
     $Historical0027Revision,
+    $Historical0028Revision,
     $ActiveRevision
 )
 if ($SupportedRevisions -notcontains $ManifestRevision) {
@@ -210,6 +213,7 @@ try {
         $Historical0025Revision,
         $Historical0026Revision,
         $Historical0027Revision,
+        $Historical0028Revision,
         $ActiveRevision
     )) {
         $ResolvedPythonExe = if ($PSBoundParameters.ContainsKey("PythonExe")) {
@@ -258,18 +262,22 @@ try {
             $env:SSWCENTER_DATA_ROOT = $ResolvedReviewDataRoot
             $env:PYTHONDONTWRITEBYTECODE = "1"
             if ($ManifestRevision -eq $ActiveRevision) {
-                # Dispatch is reserved for the active 0028 head; it is the
+                # Dispatch is reserved for the active 0029 head; it is the
                 # only restore branch allowed to emit the current-head marker.
                 $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_dispatch)
             }
+            elseif ($ManifestRevision -eq $Historical0028Revision) {
+                # 0028 remains a direct historical verifier after 0029 becomes current.
+                $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_current_0028)
+            }
             elseif ($ManifestRevision -eq $Historical0027Revision) {
                 # Keep the W2 pinned restore proof independent of active-head
-                # dispatch so it cannot masquerade as a 0028 current check.
+                # dispatch so it cannot masquerade as a 0029 current check.
                 $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_current_0027)
             }
             elseif ($ManifestRevision -eq $Historical0026Revision) {
                 # Keep the W1E pinned restore proof independent of active-head
-                # dispatch so it cannot masquerade as a 0028 current check.
+                # dispatch so it cannot masquerade as a 0029 current check.
                 $PostcheckOutput = @(& $ResolvedPythonExe -B -m app.db.postcheck_current_0026)
             }
             else {
@@ -296,10 +304,18 @@ try {
         }
         if ($ManifestRevision -eq $ActiveRevision) {
             if ($PostcheckOutput -notcontains $ActiveMarker) {
-                throw "Restored active 0028 postcheck marker is missing"
+                throw "Restored active 0029 postcheck marker is missing"
             }
             if ($PostcheckOutput -notcontains $CurrentHeadMarker) {
                 throw "Restored active current-head postcheck marker is missing"
+            }
+        }
+        elseif ($ManifestRevision -eq $Historical0028Revision) {
+            if ($PostcheckOutput -notcontains $Historical0028DirectMarker) {
+                throw "Restored historical 0028 direct postcheck marker is missing"
+            }
+            if ($PostcheckOutput -contains $CurrentHeadMarker) {
+                throw "Historical 0028 restore emitted a current-head marker"
             }
         }
         elseif ($ManifestRevision -eq $Historical0027Revision) {

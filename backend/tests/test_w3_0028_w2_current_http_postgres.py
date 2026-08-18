@@ -1,10 +1,12 @@
-"""Run the full W2 HTTP contract against the active 0028 browser database.
+"""Run the full W2 HTTP contract against the active 0029 browser database.
 
 The W2 0027 lifecycle database remains deliberately historical.  This test
 does not duplicate or dilute its HTTP assertions: it loads and invokes the
-original W2 HTTP contract with an independently seeded active 0028 database.
+original W2 HTTP contract with an independently seeded active 0029 database.
 That keeps FastAPI -> W2 service -> PostgreSQL coverage complete without
 allowing a historical catalog to masquerade as the current head.
+
+The filename is retained so historical W2 harness references remain stable.
 """
 
 from __future__ import annotations
@@ -21,12 +23,12 @@ from sqlalchemy.engine import Engine
 
 from app.core.settings import assert_safe_test_database_url
 
-ACTIVE_REVISION = "20260817_0028_w3_source_intake_foundation"
+ACTIVE_REVISION = "20260818_0029_w3_persistent_apply_workspace"
 W2_CORE_POSTGRES_TEST = Path(__file__).with_name("test_w2_core_postgres.py")
 
 pytestmark = pytest.mark.skipif(
     os.getenv("SSWCENTER_W2_CURRENT_HTTP_REAL_PG") != "1",
-    reason="requires the active 0028 W2 browser/current PostgreSQL harness",
+    reason="requires the active 0029 W2 browser/current PostgreSQL harness",
 )
 
 
@@ -99,7 +101,7 @@ def _assert_current_application_ready(app_database_url: str) -> None:
         api_dependencies._database_runtime.cache_clear()
 
 
-def test_current_0028_runs_full_original_w2_http_contract(
+def test_current_0029_runs_full_original_w2_http_contract(
     current_engine: Engine,
 ) -> None:
     """Keep every original HTTP assertion on the separately active catalog."""

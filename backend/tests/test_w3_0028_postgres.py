@@ -188,9 +188,12 @@ def _assert_dispatch_markers_absent(
     capsys: pytest.CaptureFixture[str],
     match: str,
 ) -> None:
+    # Historical helper name retained for stable test-node history.  Once 0029
+    # became current, catalog-drift assertions must call the 0028 verifier
+    # directly; the dispatcher correctly rejects 0028 before catalog checks.
     capsys.readouterr()
     with pytest.raises(SystemExit, match=match):
-        dispatch_current_head(connection)
+        verify_current_0028(connection)
     output = capsys.readouterr().out
     assert CURRENT_0028_MARKER not in output
     assert HEAD_MARKER not in output
@@ -201,11 +204,10 @@ def _assert_dispatch_markers_present(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     capsys.readouterr()
-    revision = dispatch_current_head(connection)
+    verify_current_0028(connection)
     output = capsys.readouterr().out
-    assert revision == CURRENT_REVISION
-    assert CURRENT_0028_MARKER in output
-    assert HEAD_MARKER in output
+    assert CURRENT_0028_MARKER not in output
+    assert HEAD_MARKER not in output
 
 
 def _restore_active_partial_unique(connection: Connection) -> None:
@@ -964,7 +966,7 @@ def test_w3_0028_pg_rogue_second_head_fails_direct_dispatcher_and_readiness(
         with database_engine.connect() as connection:
             with pytest.raises(SystemExit, match="CURRENT_0028_REVISION_MISMATCH"):
                 verify_current_0028(connection)
-            with pytest.raises(SystemExit, match="FOUNDATION_0028_REVISION_CARDINALITY"):
+            with pytest.raises(SystemExit, match="W3_0029_REVISION_CARDINALITY"):
                 dispatch_current_head(connection)
         output = capsys.readouterr().out
         assert CURRENT_0028_MARKER not in output
@@ -1050,20 +1052,19 @@ def test_w3_0028_pg_two_connection_active_partial_unique_race(
     assert int(count) == 1
 
 
-def test_w3_0028_pg_dispatcher_emits_current_head_only(
+def test_w3_0028_pg_dispatcher_rejects_historical_revision_without_head_marker(
     database_engine: Engine,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with database_engine.connect() as connection:
-        revision = dispatch_current_head(connection)
+        with pytest.raises(SystemExit, match="W3_0029_UNSUPPORTED_REVISION"):
+            dispatch_current_head(connection)
     output = capsys.readouterr().out
-    assert revision == CURRENT_REVISION
-    assert CURRENT_0028_MARKER in output
-    assert HEAD_MARKER in output
-    assert "SSWCENTER_CURRENT_0027_DB_POSTCHECK_OK" not in output
+    assert CURRENT_0028_MARKER not in output
+    assert HEAD_MARKER not in output
 
 
-def test_w3_0028_pg_app_dispatcher_rejects_hidden_no_privilege_w3_relation(
+def test_w3_0028_pg_app_direct_verifier_rejects_hidden_no_privilege_w3_relation(
     superuser_engine: Engine,
     app_engine: Engine,
     capsys: pytest.CaptureFixture[str],
@@ -1084,7 +1085,7 @@ def test_w3_0028_pg_app_dispatcher_rejects_hidden_no_privilege_w3_relation(
             app_connection.rollback()
 
             with pytest.raises(SystemExit, match="CURRENT_0028_TABLE_MISMATCH"):
-                dispatch_current_head(app_connection)
+                verify_current_0028(app_connection)
 
         output = capsys.readouterr().out
         assert CURRENT_0028_MARKER not in output

@@ -6,7 +6,7 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.core.settings import Settings
-from app.db.postcheck_current_0028 import verify_current_0028
+from app.db.postcheck_current_0029 import verify_current_0029
 from app.db.postcheck_dispatch import ACTIVE_REVISION
 from app.db.session import create_postgres_engine
 
@@ -59,7 +59,7 @@ def database_catalog_is_ready(
 
                 if require_postcheck:
                     try:
-                        verify_current_0028(connection)
+                        verify_current_0029(connection)
                     except SystemExit:
                         return False, "current_postcheck_failed"
         finally:

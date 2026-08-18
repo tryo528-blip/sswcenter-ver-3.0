@@ -24,6 +24,7 @@ from app.domains.staff.service import StaffService
 from app.domains.w1c.service import W1CService
 from app.domains.w1d.service import W1DService
 from app.domains.w1e.service import W1EService
+from app.domains.w3.service import W3Service
 
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
 _READ_ONLY_HTTP_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -360,3 +361,55 @@ W1EServiceDependency = Annotated[
     W1EService,
     Depends(get_w1e_service),
 ]
+
+
+def require_w3_view(
+    current_account: CurrentAccountDependency,
+    database_session: DatabaseSession,
+) -> CurrentAccount:
+    if not _has_any_permission(
+        database_session,
+        current_account,
+        {"W3_VIEW", "W3_MANAGE"},
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "PERMISSION_REQUIRED", "permission": "W3_VIEW"},
+        )
+    return current_account
+
+
+def require_w3_manage(
+    current_account: CsrfAccountDependency,
+    database_session: DatabaseSession,
+) -> CurrentAccount:
+    if not _has_any_permission(
+        database_session,
+        current_account,
+        {"W3_MANAGE"},
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "PERMISSION_REQUIRED", "permission": "W3_MANAGE"},
+        )
+    return current_account
+
+
+W3ViewAccountDependency = Annotated[CurrentAccount, Depends(require_w3_view)]
+W3ManageAccountDependency = Annotated[CurrentAccount, Depends(require_w3_manage)]
+
+
+def get_w3_service(
+    request: Request,
+    database_session: DatabaseSession,
+    settings: SettingsDependency,
+) -> W3Service:
+    request_id = getattr(request.state, "request_id", None)
+    return W3Service(
+        database_session,
+        settings,
+        request_id=request_id if isinstance(request_id, UUID) else None,
+    )
+
+
+W3ServiceDependency = Annotated[W3Service, Depends(get_w3_service)]

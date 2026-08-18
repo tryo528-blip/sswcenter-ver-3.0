@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 
 ROOT = Path(__file__).parents[2]
@@ -37,11 +38,29 @@ def test_missing_workbook_profiles_are_explicitly_blocked() -> None:
         assert profile["contains_pii"] is False
 
 
-def test_no_parser_ready_workbook_is_claimed_without_a_profile() -> None:
-    assert not list(FIXTURE_ROOT.rglob("*.xlsx"))
+def test_parser_ready_workbooks_have_exact_approved_profiles() -> None:
+    workbook_profiles = {
+        "nhis_schedule_202607_v1.xlsx": "nhis_schedule_v1.approved.json",
+        "rfid_202607_v1.xlsx": "rfid_v1.approved.json",
+    }
+    workbooks = sorted((FIXTURE_ROOT / "workbooks").glob("*.xlsx"))
+
+    assert [path.name for path in workbooks] == sorted(workbook_profiles)
+    for workbook in workbooks:
+        profile = json.loads(
+            (FIXTURE_ROOT / "profiles" / workbook_profiles[workbook.name]).read_text(
+                encoding="utf-8"
+            )
+        )
+        payload = workbook.read_bytes()
+        assert profile["status"] == "APPROVED_PSEUDONYMOUS_REAL_SHAPE"
+        assert profile["contains_pii"] is False
+        assert profile["source_sha256"] == sha256(payload).hexdigest()
+        assert profile["source_bytes"] == len(payload)
+
     readme = (FIXTURE_ROOT / "README.md").read_text(encoding="utf-8")
-    assert "실제 외부 workbook shape로" not in readme
-    assert "parser-ready `.xlsx`: 없음" in readme
+    assert "parser-ready 가명 실제형 workbook" in readme
+    assert "운영체제 suffix는 업무키가 아니다" in readme
 
 
 def test_semantic_fixtures_preserve_raw_rows_and_zero_partial_apply() -> None:

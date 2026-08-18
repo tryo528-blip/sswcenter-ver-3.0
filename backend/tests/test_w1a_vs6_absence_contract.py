@@ -22,13 +22,14 @@ PUBLIC_PRODUCT_FILES = (
     REPO_ROOT / "backend" / "app" / "domains" / "staff" / "repository.py",
     REPO_ROOT / "frontend" / "src" / "pages" / "StaffPage.tsx",
     REPO_ROOT / "frontend" / "src" / "services" / "staffApi.ts",
-    REPO_ROOT / "frontend" / "src" / "generated" / "sswcenter-api.ts",
 )
 PUBLIC_SURFACE_FRAGMENTS = {
     "legacy_staff_key",
     "staff_legacy_mapping",
     "legacy-import",
     "legacy_import",
+}
+STAFF_IMPORT_FRAGMENTS = {
     "import-run",
     "import_run",
 }
@@ -104,7 +105,11 @@ def _hidden_public_route_hits() -> list[str]:
                 endpoint_source,
             )
         ).lower()
-        if any(fragment in route_surface for fragment in PUBLIC_SURFACE_FRAGMENTS):
+        is_staff_surface = "/staff" in str(route.path).lower() or "app.api.staff" in route_surface
+        if any(fragment in route_surface for fragment in PUBLIC_SURFACE_FRAGMENTS) or (
+            is_staff_surface
+            and any(fragment in route_surface for fragment in STAFF_IMPORT_FRAGMENTS)
+        ):
             hits.append(str(route.path))
     return sorted(set(hits))
 
@@ -125,16 +130,36 @@ def test_vs6_00_public_openapi_has_no_legacy_mapping_import_surface() -> None:
         str(path)
         for path in paths
         if any(fragment in str(path).lower() for fragment in PUBLIC_SURFACE_FRAGMENTS)
+        or (
+            "/staff" in str(path).lower()
+            and any(fragment in str(path).lower() for fragment in STAFF_IMPORT_FRAGMENTS)
+        )
     )
     if path_hits:
         _fail("W1A_VS6_PUBLIC_IMPORT_ROUTE_FOUND: " + ",".join(path_hits))
+    schemas = document.get("components", {}).get("schemas", {})
+    if not isinstance(schemas, dict):
+        _fail("W1A_VS6_ABSENCE_HARNESS_FAILURE: OpenAPI schemas are not an object")
+    staff_schema = json.dumps(
+        {name: schema for name, schema in schemas.items() if "staff" in str(name).lower()},
+        ensure_ascii=False,
+    ).lower()
+    staff_properties = sorted(
+        fragment for fragment in STAFF_IMPORT_FRAGMENTS if fragment in staff_schema
+    )
+    if staff_properties:
+        _fail("W1A_VS6_PUBLIC_IMPORT_PROPERTY_FOUND: " + ",".join(staff_properties))
 
 
 def test_vs6_01_public_staff_files_do_not_expose_legacy_key_or_import() -> None:
     for path in PUBLIC_PRODUCT_FILES:
         source = _read(path, "W1A_VS6_ABSENCE_HARNESS_FAILURE: public product file is unreadable")
         lowered = source.lower()
-        present = sorted(fragment for fragment in PUBLIC_SURFACE_FRAGMENTS if fragment in lowered)
+        present = sorted(
+            fragment
+            for fragment in PUBLIC_SURFACE_FRAGMENTS | STAFF_IMPORT_FRAGMENTS
+            if fragment in lowered
+        )
         if present:
             _fail(
                 "W1A_VS6_PUBLIC_PRODUCT_SURFACE_FOUND: "

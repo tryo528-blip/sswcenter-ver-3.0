@@ -1,0 +1,62 @@
+{
+  "fixture_version": "w3-workbook-profile-expected-v1",
+  "contains_pii": false,
+  "nhis_schedule": {
+    "workbook": "workbooks/nhis_schedule_202607_v1.xlsx",
+    "sha256": "f9d4ac2b7ec8497a127fa1f0f7111228fe06b1d3a1c9c7aba0cf6a8c8f69ba48",
+    "bytes": 88291,
+    "sheet": "일정계획",
+    "raw_row_count": 910,
+    "first_source_row": 2,
+    "last_source_row": 911,
+    "minimum_date": "2026-07-01",
+    "maximum_date": "2026-07-31",
+    "duration_minutes": {
+      "60": 136,
+      "90": 156,
+      "120": 53,
+      "150": 1,
+      "180": 449,
+      "240": 69,
+      "300": 2,
+      "330": 2,
+      "360": 2,
+      "450": 2,
+      "480": 38
+    },
+    "family_relationship_blank_count": 623,
+    "exact_duplicate_row_occurrences_after_first": 19
+  },
+  "rfid": {
+    "workbook": "workbooks/rfid_202607_v1.xlsx",
+    "sha256": "a90c4e683cce782b34754f165b79a2324c154198fc665a126a2d4fc05b2720dc",
+    "bytes": 42439,
+    "sheet": "실시간전송내용",
+    "raw_row_count": 314,
+    "first_source_row": 2,
+    "last_source_row": 315,
+    "minimum_start": "2026-07-01T05:34:29+09:00",
+    "maximum_start": "2026-07-11T18:00:57+09:00",
+    "start_only_count": 3,
+    "target_date_row_counts": {
+      "2026-07-01": 32,
+      "2026-07-02": 30,
+      "2026-07-03": 32,
+      "2026-07-04": 22,
+      "2026-07-05": 9,
+      "2026-07-06": 36,
+      "2026-07-07": 33,
+      "2026-07-08": 34,
+      "2026-07-09": 32,
+      "2026-07-10": 34,
+      "2026-07-11": 20
+    }
+  },
+  "cross_workbook": {
+    "purpose": "shape validation only; no invented integrated identity mapping",
+    "recipient_certification_number_intersection": 0,
+    "recipient_name_intersection": 0,
+    "staff_name_intersection": 1,
+    "automatic_match_expectation": "REVIEW_PENDING"
+  }
+}

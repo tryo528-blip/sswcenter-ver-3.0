@@ -92,6 +92,8 @@ PUBLIC_FORBIDDEN_FRAGMENTS = (
     "staff_legacy_mapping",
     "legacy-import",
     "legacy_import",
+)
+STAFF_IMPORT_FRAGMENTS = (
     "import-run",
     "import_run",
 )
@@ -678,6 +680,10 @@ def test_vs6_03_internal_import_is_not_public_http_or_openapi() -> None:
         str(path)
         for path in paths
         if any(fragment in str(path).lower() for fragment in PUBLIC_FORBIDDEN_FRAGMENTS)
+        or (
+            "/staff" in str(path).lower()
+            and any(fragment in str(path).lower() for fragment in STAFF_IMPORT_FRAGMENTS)
+        )
     ]
     if exposed_paths:
         _fail("W1A_VS6_PUBLIC_IMPORT_ROUTE_FOUND: " + ",".join(sorted(exposed_paths)))
@@ -687,6 +693,21 @@ def test_vs6_03_internal_import_is_not_public_http_or_openapi() -> None:
     ]
     if exposed_properties:
         _fail("W1A_VS6_PUBLIC_IMPORT_PROPERTY_FOUND: " + ",".join(sorted(exposed_properties)))
+    schemas = document.get("components", {}).get("schemas", {})
+    if not isinstance(schemas, dict):
+        _fail("W1A_VS6_ABSENCE_HARNESS_FAILURE: OpenAPI schemas are not an object")
+    staff_schema = json.dumps(
+        {name: schema for name, schema in schemas.items() if "staff" in str(name).lower()},
+        ensure_ascii=False,
+    ).lower()
+    exposed_staff_properties = [
+        fragment for fragment in STAFF_IMPORT_FRAGMENTS if fragment in staff_schema
+    ]
+    if exposed_staff_properties:
+        _fail(
+            "W1A_VS6_PUBLIC_IMPORT_PROPERTY_FOUND: "
+            + ",".join(sorted(exposed_staff_properties))
+        )
 
 
 def test_vs6_04_general_license_contract_has_no_import_maximum() -> None:
